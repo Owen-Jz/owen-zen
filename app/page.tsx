@@ -10,10 +10,10 @@ import { twMerge } from "tailwind-merge";
 type TaskStatus = "pending" | "in-progress" | "completed";
 
 interface Task {
-  id: string;
+  _id: string; // MongoDB uses _id
   title: string;
   status: TaskStatus;
-  createdAt: number;
+  createdAt: string;
 }
 
 // --- Utils ---
@@ -98,7 +98,7 @@ const TaskItem = ({ task, onUpdate, onDelete }: { task: Task; onUpdate: (id: str
     >
       <div className="flex items-center gap-4 flex-1">
         <button
-          onClick={() => onUpdate(task.id, nextStatus[task.status])}
+          onClick={() => onUpdate(task._id, nextStatus[task.status])}
           className={cn("p-2 rounded-full hover:bg-white/5 transition-colors", statusColors[task.status])}
         >
           {task.status === "completed" ? <Check size={20} /> : task.status === "in-progress" ? <Clock size={20} /> : <Circle size={20} />}
@@ -108,7 +108,7 @@ const TaskItem = ({ task, onUpdate, onDelete }: { task: Task; onUpdate: (id: str
         </span>
       </div>
       <button
-        onClick={() => onDelete(task.id)}
+        onClick={() => onDelete(task._id)}
         className="p-2 text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all"
       >
         <Trash2 size={18} />
@@ -122,37 +122,81 @@ export default function Dashboard() {
   const [newTask, setNewTask] = useState("");
   const [activeTab, setActiveTab] = useState("tasks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load from local storage
+  // Load from API
   useEffect(() => {
-    const saved = localStorage.getItem("owen-zen-tasks");
-    if (saved) setTasks(JSON.parse(saved));
+    const fetchTasks = async () => {
+      try {
+        const res = await fetch("/api/tasks");
+        const json = await res.json();
+        if (json.success) {
+          setTasks(json.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch tasks", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchTasks();
   }, []);
 
-  // Save to local storage
-  useEffect(() => {
-    localStorage.setItem("owen-zen-tasks", JSON.stringify(tasks));
-  }, [tasks]);
-
-  const addTask = (e: React.FormEvent) => {
+  const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTask.trim()) return;
-    const task: Task = {
-      id: crypto.randomUUID(),
-      title: newTask,
-      status: "pending",
-      createdAt: Date.now(),
-    };
-    setTasks([task, ...tasks]);
-    setNewTask("");
+
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newTask }),
+      });
+      const json = await res.json();
+      
+      if (json.success) {
+        setTasks([json.data, ...tasks]);
+        setNewTask("");
+      }
+    } catch (error) {
+      console.error("Failed to add task", error);
+    }
   };
 
-  const updateTask = (id: string, status: TaskStatus) => {
-    setTasks(tasks.map(t => t.id === id ? { ...t, status } : t));
+  const updateTask = async (id: string, status: TaskStatus) => {
+    // Optimistic update
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, status } : t));
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+      if (!res.ok) {
+        setTasks(oldTasks); // Revert on error
+      }
+    } catch (error) {
+      setTasks(oldTasks);
+    }
   };
 
-  const deleteTask = (id: string) => {
-    setTasks(tasks.filter(t => t.id !== id));
+  const deleteTask = async (id: string) => {
+    // Optimistic update
+    const oldTasks = [...tasks];
+    setTasks(tasks.filter(t => t._id !== id));
+
+    try {
+      const res = await fetch(`/api/tasks/${id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        setTasks(oldTasks);
+      }
+    } catch (error) {
+      setTasks(oldTasks);
+    }
   };
 
   const stats = {
@@ -216,47 +260,51 @@ export default function Dashboard() {
             </form>
 
             {/* Task List */}
-            <div className="space-y-6">
-              {stats.inProgress > 0 && (
-                <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">In Focus</h3>
-                  <div className="space-y-2">
-                    <AnimatePresence>
-                      {tasks.filter(t => t.status === "in-progress").map(task => (
-                        <TaskItem key={task.id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                      ))}
-                    </AnimatePresence>
-                  </div>
-                </div>
-              )}
+            {isLoading ? (
+                <div className="text-center py-8 text-gray-500">Loading tasks...</div>
+            ) : (
+                <div className="space-y-6">
+                {stats.inProgress > 0 && (
+                    <div>
+                    <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">In Focus</h3>
+                    <div className="space-y-2">
+                        <AnimatePresence>
+                        {tasks.filter(t => t.status === "in-progress").map(task => (
+                            <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
+                        ))}
+                        </AnimatePresence>
+                    </div>
+                    </div>
+                )}
 
-              <div>
-                <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Backlog</h3>
-                <div className="space-y-2">
-                  <AnimatePresence>
-                    {tasks.filter(t => t.status === "pending").map(task => (
-                      <TaskItem key={task.id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                    ))}
-                    {tasks.filter(t => t.status === "pending").length === 0 && (
-                      <div className="text-center py-8 text-gray-600 italic">No pending tasks. Clear mind. 🧘‍♂️</div>
-                    )}
-                  </AnimatePresence>
-                </div>
-              </div>
-
-              {stats.completed > 0 && (
                 <div>
-                  <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Completed</h3>
-                  <div className="space-y-2">
+                    <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Backlog</h3>
+                    <div className="space-y-2">
                     <AnimatePresence>
-                      {tasks.filter(t => t.status === "completed").map(task => (
-                        <TaskItem key={task.id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                      ))}
+                        {tasks.filter(t => t.status === "pending").map(task => (
+                        <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
+                        ))}
+                        {tasks.filter(t => t.status === "pending").length === 0 && (
+                        <div className="text-center py-8 text-gray-600 italic">No pending tasks. Clear mind. 🧘‍♂️</div>
+                        )}
                     </AnimatePresence>
-                  </div>
+                    </div>
                 </div>
-              )}
-            </div>
+
+                {stats.completed > 0 && (
+                    <div>
+                    <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">Completed</h3>
+                    <div className="space-y-2">
+                        <AnimatePresence>
+                        {tasks.filter(t => t.status === "completed").map(task => (
+                            <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
+                        ))}
+                        </AnimatePresence>
+                    </div>
+                    </div>
+                )}
+                </div>
+            )}
           </div>
         )}
 
