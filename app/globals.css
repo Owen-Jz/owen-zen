@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #0a0a0a;
+  --color-foreground: #ededed;
+  --font-sans: var(--font-manrope);
+  
+  --color-primary: #b02222;
+  --color-primary-light: #d38787;
+  --color-surface: #171717;
+  --color-surface-hover: #262626;
+  --color-border: #333333;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+}
+
+@utility btn-primary {
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-primary to-primary-light transition-all duration-300 hover:shadow-[0_0_15px_rgba(176,34,34,0.3)] hover:-translate-y-0.5 active:translate-y-0;
+}
+
+@utility card-glass {
+  @apply bg-surface/50 backdrop-blur-md border border-border rounded-xl;
+}
