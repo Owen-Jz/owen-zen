@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Check, Circle, Clock, Trash2, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users } from "lucide-react";
+import { Plus, Check, Circle, Clock, Trash2, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -24,6 +24,14 @@ interface Wallet {
   tags: string[];
 }
 
+interface Post {
+  _id: string;
+  content: string;
+  platforms: string[];
+  status: 'draft' | 'scheduled' | 'published';
+  scheduledFor?: string;
+}
+
 // --- Utils ---
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -35,6 +43,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "sniper", label: "Sniper System", icon: Target },
+    { id: "socials", label: "Social Hub", icon: Share2 },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
   ];
@@ -192,14 +201,14 @@ const SniperView = () => {
             <TrendingUp size={64} />
           </div>
           <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Alpha Signals</h3>
-          <p className="text-3xl font-bold text-green-500">0</p> {/* Placeholder for live signal count */}
+          <p className="text-3xl font-bold text-green-500">0</p>
         </div>
         <div className="bg-surface border border-border p-6 rounded-xl relative overflow-hidden group">
           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
             <Crosshair size={64} />
           </div>
           <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">System Status</h3>
-          <p className="text-3xl font-bold text-yellow-500">Standby</p> {/* Needs Helius Key */}
+          <p className="text-3xl font-bold text-yellow-500">Standby</p>
         </div>
       </div>
 
@@ -261,6 +270,97 @@ const SniperView = () => {
   );
 };
 
+const SocialHubView = () => {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [content, setContent] = useState("");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+
+  useEffect(() => {
+    fetch("/api/posts")
+      .then(res => res.json())
+      .then(data => { if(data.success) setPosts(data.data); });
+  }, []);
+
+  const togglePlatform = (p: string) => {
+    setSelectedPlatforms(prev => 
+      prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p]
+    );
+  };
+
+  const createDraft = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if(!content) return;
+    const res = await fetch("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, platforms: selectedPlatforms }),
+    });
+    const json = await res.json();
+    if(json.success) {
+      setPosts([json.data, ...posts]);
+      setContent("");
+      setSelectedPlatforms([]);
+    }
+  };
+
+  return (
+    <div className="max-w-3xl mx-auto space-y-8">
+      <div className="bg-surface border border-border rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-4">Create Content</h2>
+        <form onSubmit={createDraft} className="space-y-4">
+          <textarea 
+            className="w-full bg-background border border-border rounded-lg p-4 h-32 focus:border-primary outline-none resize-none"
+            placeholder="What's on your mind?"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+          />
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <button 
+                type="button"
+                onClick={() => togglePlatform('twitter')}
+                className={cn("p-2 rounded-lg border", selectedPlatforms.includes('twitter') ? "bg-blue-500/20 border-blue-500 text-blue-500" : "border-border text-gray-500")}
+              >
+                <Twitter size={20} />
+              </button>
+              <button 
+                type="button"
+                onClick={() => togglePlatform('linkedin')}
+                className={cn("p-2 rounded-lg border", selectedPlatforms.includes('linkedin') ? "bg-blue-700/20 border-blue-700 text-blue-700" : "border-border text-gray-500")}
+              >
+                <Linkedin size={20} />
+              </button>
+              <button 
+                type="button"
+                onClick={() => togglePlatform('instagram')}
+                className={cn("p-2 rounded-lg border", selectedPlatforms.includes('instagram') ? "bg-pink-500/20 border-pink-500 text-pink-500" : "border-border text-gray-500")}
+              >
+                <Instagram size={20} />
+              </button>
+            </div>
+            <button type="submit" className="btn-primary">Save Draft</button>
+          </div>
+        </form>
+      </div>
+
+      <div className="space-y-4">
+        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Queue</h3>
+        {posts.map(post => (
+          <div key={post._id} className="bg-surface border border-border p-4 rounded-xl">
+            <p className="text-white mb-3">{post.content}</p>
+            <div className="flex gap-2">
+              {post.platforms.map(p => (
+                <span key={p} className="text-xs uppercase tracking-wide text-gray-500 bg-white/5 px-2 py-1 rounded">{p}</span>
+              ))}
+              <span className="ml-auto text-xs text-yellow-500 uppercase">{post.status}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [newTask, setNewTask] = useState("");
@@ -268,7 +368,6 @@ export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Load Tasks
   useEffect(() => {
     const fetchTasks = async () => {
       try {
@@ -345,10 +444,10 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : 'Good Morning, Owen.'}
+              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : 'Good Morning, Owen.'}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : "Let's stay focused today."}
+              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'socials' ? 'Drafting & Scheduling.' : "Let's stay focused today."}
             </p>
           </div>
           <button 
@@ -438,6 +537,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === "sniper" && <SniperView />}
+        {activeTab === "socials" && <SocialHubView />}
 
         {activeTab === "calendar" && (
           <div className="flex items-center justify-center h-96 text-gray-500 text-sm">
