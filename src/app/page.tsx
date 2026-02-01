@@ -192,7 +192,7 @@ const TaskItem = ({ task, onUpdate, onDelete, isOverlay }: TaskItemProps) => {
           <div className={cn("p-2 rounded-full transition-colors shrink-0", statusColors[task.status])}>
             {task.status === "completed" ? <Check size={20} /> : task.status === "in-progress" ? <Clock size={20} /> : <Circle size={20} />}
           </div>
-          <span className={cn("text-sm md:text-base font-medium transition-all truncate", task.status === "completed" && "text-gray-500 line-through")}>
+          <span className={cn("text-sm md:text-base font-medium transition-all break-words", task.status === "completed" && "text-gray-500 line-through")}>
             {task.title}
           </span>
         </div>
@@ -219,7 +219,7 @@ const TaskItem = ({ task, onUpdate, onDelete, isOverlay }: TaskItemProps) => {
         >
           {task.status === "completed" ? <Check size={20} /> : task.status === "in-progress" ? <Clock size={20} /> : <Circle size={20} />}
         </button>
-        <span className={cn("text-sm md:text-base font-medium transition-all truncate", task.status === "completed" && "text-gray-500 line-through")}>
+        <span className={cn("text-sm md:text-base font-medium transition-all break-words", task.status === "completed" && "text-gray-500 line-through")}>
           {task.title}
         </span>
       </div>
