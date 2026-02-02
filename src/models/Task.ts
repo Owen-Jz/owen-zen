@@ -20,6 +20,10 @@ const TaskSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isArchived: {
+    type: Boolean,
+    default: false,
+  },
   createdAt: {
     type: Date,
     default: Date.now,

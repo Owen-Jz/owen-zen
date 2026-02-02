@@ -35,7 +35,7 @@ export async function PUT(req: Request) {
   await dbConnect();
   try {
     const body = await req.json();
-    const { tasks } = body; // Expects array of { _id, order, status }
+    const { tasks } = body; 
     
     if (!Array.isArray(tasks)) {
       return NextResponse.json({ success: false, message: "Invalid data" }, { status: 400 });
@@ -45,7 +45,15 @@ export async function PUT(req: Request) {
     const bulkOps = tasks.map((task: any) => ({
       updateOne: {
         filter: { _id: task._id },
-        update: { $set: { order: task.order, status: task.status } }
+        update: { 
+          $set: { 
+            order: task.order, 
+            status: task.status,
+            priority: task.priority, // Allow priority updates
+            title: task.title,       // Allow title updates
+            isArchived: task.isArchived // Allow archiving
+          } 
+        }
       }
     }));
 
