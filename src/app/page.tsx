@@ -13,16 +13,13 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
-  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
-  SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
 
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed";
@@ -58,46 +55,6 @@ interface Post {
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
-
-// --- Droppable Column Component ---
-const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive }: any) => {
-  const { setNodeRef } = useDroppable({
-    id: id,
-  });
-
-  return (
-    <div 
-      ref={setNodeRef} // Make the WHOLE div droppable
-      className="bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col"
-    >
-      <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
-          {title}
-          <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs text-white">
-              {tasks.length}
-          </span>
-      </h3>
-      <SortableContext 
-        items={tasks.map((t: any) => t._id)} 
-        strategy={verticalListSortingStrategy}
-      >
-        <div className="space-y-3 flex-1">
-          {tasks.map((task: any) => (
-            <SortableTaskItem 
-              key={task._id} 
-              task={task} 
-              onDelete={onDelete}
-              onUpdateStatus={onUpdateStatus}
-              onEdit={onEdit}
-              onArchive={onArchive}
-            />
-          ))}
-          {/* Invisible spacer to make dropping easier */}
-          <div className="h-10 w-full" /> 
-        </div>
-      </SortableContext>
-    </div>
-  );
-};
 
 // --- Components ---
 
@@ -171,141 +128,6 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
         </nav>
       </div>
     </>
-  );
-};
-
-// --- Sortable Task Item with Edit & Menu ---
-const SortableTaskItem = ({ 
-  task, 
-  onDelete, 
-  onUpdateStatus, 
-  onEdit, 
-  onArchive 
-}: { 
-  task: Task; 
-  onDelete: (id: string) => void;
-  onUpdateStatus: (id: string, status: TaskStatus) => void;
-  onEdit: (task: Task) => void;
-  onArchive: (id: string) => void;
-}) => {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging
-  } = useSortable({ id: task._id });
-
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-  };
-
-  const priorityColors = {
-    "high": "border-l-4 border-red-500",
-    "medium": "border-l-4 border-yellow-500",
-    "low": "border-l-4 border-blue-500"
-  };
-
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleMenuAction = (action: () => void) => {
-    action();
-    setMenuOpen(false);
-  };
-
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={cn(
-        "group flex items-center justify-between p-4 bg-surface hover:bg-surface-hover border border-border rounded-r-xl transition-colors mb-3 relative",
-        priorityColors[task.priority] || priorityColors["medium"]
-      )}
-    >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <button {...attributes} {...listeners} className="p-2 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white shrink-0">
-          <GripVertical size={16} />
-        </button>
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <span className={cn("text-sm md:text-base font-medium transition-all break-words leading-relaxed pr-2", task.status === "completed" && "text-gray-500 line-through")}>
-            {task.title}
-          </span>
-          <div className="flex items-center gap-2 md:hidden">
-             <span className={cn("text-[10px] uppercase font-bold", task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500")}>
-               {task.priority}
-             </span>
-          </div>
-        </div>
-      </div>
-      
-      {/* Desktop Priority Badge */}
-      <div className="hidden md:flex items-center gap-2 mr-2">
-         <span className={cn(
-             "text-[10px] uppercase font-bold px-2 py-1 rounded bg-white/5",
-             task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500"
-         )}>
-             {task.priority}
-         </span>
-      </div>
-
-      {/* Menu Trigger */}
-      <div className="relative" ref={menuRef}>
-        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
-          <MoreVertical size={18} />
-        </button>
-
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
-            >
-              <div className="p-1">
-                <button onClick={() => handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Edit2 size={14} /> Edit Task
-                </button>
-                <div className="h-px bg-border my-1" />
-                <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Circle size={14} /> Backlog
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "in-progress"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Clock size={14} /> In Focus
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Check size={14} /> Done
-                </button>
-                <div className="h-px bg-border my-1" />
-                {task.status === "completed" && (
-                   <button onClick={() => handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
-                     <Archive size={14} /> Archive
-                   </button>
-                )}
-                <button onClick={() => handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
-                  <Trash2 size={14} /> Delete
-                </button>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
   );
 };
 
@@ -438,7 +260,7 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
     );
 }
 
-// --- Kanban Board Component ---
+// --- Task Board Component ---
 const TaskBoard = ({ 
     tasks, 
     setTasks, 
@@ -476,24 +298,31 @@ const TaskBoard = ({
     const activeId = active.id;
     const overId = over.id;
 
-    const activeTask = tasks.find(t => t._id === activeId);
+    // Determine target status
     let newStatus: TaskStatus | undefined;
     
     if (["pending", "in-progress", "completed"].includes(overId)) {
+        // Dropped on a column
         newStatus = overId as TaskStatus;
     } else {
+        // Dropped on a task
         const overTask = tasks.find(t => t._id === overId);
         if (overTask) newStatus = overTask.status;
     }
 
-    if (!activeTask || !newStatus) return;
+    if (!newStatus) return;
+
+    const activeTask = tasks.find(t => t._id === activeId);
+    if (!activeTask) return;
 
     let newTasks = [...tasks];
 
+    // Status change?
     if (activeTask.status !== newStatus) {
         activeTask.status = newStatus;
     }
     
+    // Reorder?
     if (activeId !== overId) {
        const oldIndex = tasks.findIndex(t => t._id === activeId);
        const newIndex = tasks.findIndex(t => t._id === overId);
