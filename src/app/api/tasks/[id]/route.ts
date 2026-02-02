@@ -2,10 +2,11 @@ import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import { NextResponse } from "next/server";
 
-export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
+  await dbConnect();
+  const { id } = await params;
+  
   try {
-    await dbConnect();
-    const { id } = await params;
     const body = await req.json();
     const task = await Task.findByIdAndUpdate(id, body, {
       new: true,
@@ -16,22 +17,21 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     }
     return NextResponse.json({ success: true, data: task });
   } catch (error) {
-    console.error("PUT Task Error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error }, { status: 400 });
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+  await dbConnect();
+  const { id } = await params;
+
   try {
-    await dbConnect();
-    const { id } = await params;
     const deletedTask = await Task.deleteOne({ _id: id });
     if (!deletedTask) {
       return NextResponse.json({ success: false }, { status: 404 });
     }
     return NextResponse.json({ success: true, data: {} });
   } catch (error) {
-    console.error("DELETE Task Error:", error);
-    return NextResponse.json({ success: false, error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ success: false, error: error }, { status: 400 });
   }
 }
