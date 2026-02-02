@@ -1,10 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Check, Circle, Clock, Trash2, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed";
@@ -14,6 +32,7 @@ interface Task {
   title: string;
   status: TaskStatus;
   createdAt: string;
+  order: number;
 }
 
 interface Wallet {
@@ -36,6 +55,54 @@ interface Post {
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
+
+// --- Sortable Item Component ---
+const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: string) => void }) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: task._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const statusColors = {
+    "pending": "border-l-4 border-gray-500",
+    "in-progress": "border-l-4 border-yellow-500",
+    "completed": "border-l-4 border-green-500 opacity-60"
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex items-center justify-between p-4 bg-surface hover:bg-surface-hover border border-border rounded-r-xl transition-colors mb-3 touch-manipulation",
+        statusColors[task.status]
+      )}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button {...attributes} {...listeners} className="p-2 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white">
+          <GripVertical size={16} />
+        </button>
+        <span className={cn("text-sm md:text-base font-medium transition-all truncate", task.status === "completed" && "text-gray-500 line-through")}>
+          {task.title}
+        </span>
+      </div>
+      <div className="flex gap-2">
+         {/* Could add quick status toggle here if needed, but drag is primary now */}
+      </div>
+    </div>
+  );
+};
+
 
 // --- Components ---
 
@@ -111,48 +178,6 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   );
 };
 
-const TaskItem = ({ task, onUpdate, onDelete }: { task: Task; onUpdate: (id: string, status: TaskStatus) => void; onDelete: (id: string) => void }) => {
-  const statusColors = {
-    "pending": "text-gray-500",
-    "in-progress": "text-yellow-500",
-    "completed": "text-green-500 line-through opacity-50"
-  };
-
-  const nextStatus: Record<TaskStatus, TaskStatus> = {
-    "pending": "in-progress",
-    "in-progress": "completed",
-    "completed": "pending"
-  };
-
-  return (
-    <motion.div
-      layout
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.95 }}
-      className="group flex items-center justify-between p-4 bg-surface hover:bg-surface-hover border border-border rounded-xl transition-colors mb-3 touch-manipulation"
-    >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <button
-          onClick={() => onUpdate(task._id, nextStatus[task.status])}
-          className={cn("p-2 rounded-full hover:bg-white/5 transition-colors shrink-0", statusColors[task.status])}
-        >
-          {task.status === "completed" ? <Check size={20} /> : task.status === "in-progress" ? <Clock size={20} /> : <Circle size={20} />}
-        </button>
-        <span className={cn("text-sm md:text-base font-medium transition-all truncate", task.status === "completed" && "text-gray-500 line-through")}>
-          {task.title}
-        </span>
-      </div>
-      <button
-        onClick={() => onDelete(task._id)}
-        className="p-2 text-gray-500 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
-      >
-        <Trash2 size={18} />
-      </button>
-    </motion.div>
-  );
-};
-
 const SettingsView = () => {
   const setTheme = (theme: string) => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -195,9 +220,6 @@ const SettingsView = () => {
   );
 };
 
-// ... SniperView & SocialHubView (Keep existing code) ...
-// (Re-declaring shortened versions for brevity in this update, assumes previous code exists)
-
 const SniperView = () => (
     <div className="p-12 text-center text-gray-500">Sniper View (Loaded)</div>
 );
@@ -205,6 +227,124 @@ const SniperView = () => (
 const SocialHubView = () => (
     <div className="p-12 text-center text-gray-500">Social Hub (Loaded)</div>
 );
+
+// --- Kanban Board Component ---
+const TaskBoard = ({ tasks, setTasks }: { tasks: Task[], setTasks: React.Dispatch<React.SetStateAction<Task[]>> }) => {
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  const handleDragStart = (event: any) => {
+    setActiveId(event.active.id);
+  };
+
+  const handleDragEnd = async (event: any) => {
+    const { active, over } = event;
+    setActiveId(null);
+
+    if (!over) return;
+
+    const activeId = active.id;
+    const overId = over.id;
+
+    // Find the task and the column/status it was dropped into
+    const activeTask = tasks.find(t => t._id === activeId);
+    
+    // Determine target status
+    let newStatus: TaskStatus | undefined;
+    
+    // If dropped on a column container (droppable id is the status)
+    if (["pending", "in-progress", "completed"].includes(overId)) {
+        newStatus = overId as TaskStatus;
+    } else {
+        // Dropped on another task -> same status as that task
+        const overTask = tasks.find(t => t._id === overId);
+        if (overTask) newStatus = overTask.status;
+    }
+
+    if (!activeTask || !newStatus) return;
+
+    let newTasks = [...tasks];
+
+    // If changing status
+    if (activeTask.status !== newStatus) {
+        activeTask.status = newStatus;
+    }
+    
+    // If reordering within same status or moved to new status
+    if (activeId !== overId) {
+       // Just visual reorder logic simplified for "sort by order" field
+       const oldIndex = tasks.findIndex(t => t._id === activeId);
+       const newIndex = tasks.findIndex(t => t._id === overId);
+       newTasks = arrayMove(tasks, oldIndex, newIndex);
+    }
+    
+    // Re-assign order numbers based on new array position
+    newTasks = newTasks.map((t, index) => ({ ...t, order: index }));
+    
+    setTasks(newTasks);
+
+    // Save to DB
+    await fetch("/api/tasks", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+            tasks: newTasks.map(t => ({ _id: t._id, order: t.order, status: t.status })) 
+        }),
+    });
+  };
+
+  const columns: { id: TaskStatus; title: string }[] = [
+    { id: "pending", title: "Backlog" },
+    { id: "in-progress", title: "In Focus" },
+    { id: "completed", title: "Done" }
+  ];
+
+  return (
+    <DndContext 
+      sensors={sensors} 
+      collisionDetection={closestCenter} 
+      onDragStart={handleDragStart} 
+      onDragEnd={handleDragEnd}
+    >
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {columns.map(col => (
+          <div key={col.id} className="bg-surface/30 p-4 rounded-xl border border-border min-h-[500px]">
+            <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
+                {col.title}
+                <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs text-white">
+                    {tasks.filter(t => t.status === col.id).length}
+                </span>
+            </h3>
+            <SortableContext 
+              items={tasks.filter(t => t.status === col.id).map(t => t._id)} 
+              strategy={verticalListSortingStrategy}
+            >
+              <div className="space-y-3">
+                {tasks.filter(t => t.status === col.id).map(task => (
+                  <SortableTaskItem key={task._id} task={task} onDelete={(id) => setTasks(tasks.filter(t => t._id !== id))} />
+                ))}
+              </div>
+            </SortableContext>
+          </div>
+        ))}
+      </div>
+      
+      <DragOverlay>
+        {activeId ? (
+            <div className="p-4 bg-surface border border-primary rounded-xl shadow-2xl opacity-90 cursor-grabbing">
+                {tasks.find(t => t._id === activeId)?.title}
+            </div>
+        ) : null}
+      </DragOverlay>
+    </DndContext>
+  );
+};
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -246,42 +386,12 @@ export default function Dashboard() {
       });
       const json = await res.json();
       if (json.success) {
-        setTasks([json.data, ...tasks]);
+        setTasks([...tasks, json.data]); // Add to end
         setNewTask("");
       }
     } catch (error) {
       console.error("Failed to add task", error);
     }
-  };
-
-  const updateTask = async (id: string, status: TaskStatus) => {
-    const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, status } : t));
-    try {
-      await fetch(`/api/tasks/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-    } catch {
-      setTasks(oldTasks);
-    }
-  };
-
-  const deleteTask = async (id: string) => {
-    const oldTasks = [...tasks];
-    setTasks(tasks.filter(t => t._id !== id));
-    try {
-      await fetch(`/api/tasks/${id}`, { method: "DELETE" });
-    } catch {
-      setTasks(oldTasks);
-    }
-  };
-
-  const stats = {
-    pending: tasks.filter(t => t.status === "pending").length,
-    inProgress: tasks.filter(t => t.status === "in-progress").length,
-    completed: tasks.filter(t => t.status === "completed").length,
   };
 
   return (
@@ -311,23 +421,8 @@ export default function Dashboard() {
         </header>
 
         {activeTab === "tasks" && (
-          <div className="max-w-3xl mx-auto pb-20">
-            <div className="grid grid-cols-3 gap-2 md:gap-4 mb-6 md:mb-8">
-              <div className="bg-surface border border-border p-3 md:p-4 rounded-xl text-center">
-                <div className="text-xl md:text-2xl font-bold text-white mb-1">{stats.pending}</div>
-                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">To Do</div>
-              </div>
-              <div className="bg-surface border border-border p-3 md:p-4 rounded-xl text-center">
-                <div className="text-xl md:text-2xl font-bold text-yellow-500 mb-1">{stats.inProgress}</div>
-                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">In Focus</div>
-              </div>
-              <div className="bg-surface border border-border p-3 md:p-4 rounded-xl text-center">
-                <div className="text-xl md:text-2xl font-bold text-green-500 mb-1">{stats.completed}</div>
-                <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Done</div>
-              </div>
-            </div>
-
-            <form onSubmit={addTask} className="mb-6 md:mb-8 relative">
+          <div className="max-w-6xl mx-auto pb-20">
+            <form onSubmit={addTask} className="mb-8 relative max-w-2xl mx-auto">
               <input
                 type="text"
                 value={newTask}
@@ -344,46 +439,9 @@ export default function Dashboard() {
             </form>
 
             {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading tasks...</div>
+                <div className="text-center py-8 text-gray-500">Loading Board...</div>
             ) : (
-                <div className="space-y-6">
-                {stats.inProgress > 0 && (
-                    <div>
-                    <h3 className="text-xs md:text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider pl-1">In Focus</h3>
-                    <div className="space-y-2">
-                        <AnimatePresence>
-                        {tasks.filter(t => t.status === "in-progress").map(task => (
-                            <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                        ))}
-                        </AnimatePresence>
-                    </div>
-                    </div>
-                )}
-
-                <div>
-                    <h3 className="text-xs md:text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider pl-1">Backlog</h3>
-                    <div className="space-y-2">
-                    <AnimatePresence>
-                        {tasks.filter(t => t.status === "pending").map(task => (
-                        <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                        ))}
-                    </AnimatePresence>
-                    </div>
-                </div>
-
-                {stats.completed > 0 && (
-                    <div>
-                    <h3 className="text-xs md:text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider pl-1">Completed</h3>
-                    <div className="space-y-2">
-                        <AnimatePresence>
-                        {tasks.filter(t => t.status === "completed").map(task => (
-                            <TaskItem key={task._id} task={task} onUpdate={updateTask} onDelete={deleteTask} />
-                        ))}
-                        </AnimatePresence>
-                    </div>
-                    </div>
-                )}
-                </div>
+                <TaskBoard tasks={tasks} setTasks={setTasks} />
             )}
           </div>
         )}
