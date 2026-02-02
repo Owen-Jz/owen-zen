@@ -1,25 +1,57 @@
 @import "tailwindcss";
 
 @theme {
-  --color-background: #0a0a0a;
-  --color-foreground: #ededed;
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
   --font-sans: var(--font-manrope);
   
-  --color-primary: #b02222;
-  --color-primary-light: #d38787;
-  --color-surface: #171717;
-  --color-surface-hover: #262626;
-  --color-border: #333333;
+  --color-primary: var(--primary);
+  --color-primary-light: var(--primary-light);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+}
+
+:root {
+  /* Default (Zen / Modern Dark) */
+  --background: #0a0a0a;
+  --foreground: #ededed;
+  --primary: #b02222;
+  --primary-light: #d38787;
+  --surface: #171717;
+  --surface-hover: #262626;
+  --border: #333333;
+}
+
+[data-theme="cyberpunk"] {
+  --background: #0f0a1e;
+  --foreground: #e0e0e0;
+  --primary: #d946ef; /* Neon Purple */
+  --primary-light: #f472b6; /* Neon Pink */
+  --surface: #1c1535;
+  --surface-hover: #2a214d;
+  --border: #4c1d95;
+}
+
+[data-theme="matrix"] {
+  --background: #000000;
+  --foreground: #00ff41;
+  --primary: #008f11;
+  --primary-light: #00ff41;
+  --surface: #0a0a0a;
+  --surface-hover: #111111;
+  --border: #003b00;
 }
 
 body {
-  background: var(--color-background);
-  color: var(--color-foreground);
+  background: var(--background);
+  color: var(--foreground);
   font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
 }
 
 @utility btn-primary {
-  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-primary to-primary-light transition-all duration-300 hover:shadow-[0_0_15px_rgba(176,34,34,0.3)] hover:-translate-y-0.5 active:translate-y-0;
+  @apply inline-flex items-center justify-center px-4 py-2 rounded-lg text-white font-medium bg-gradient-to-r from-primary to-primary-light transition-all duration-300 hover:shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:-translate-y-0.5 active:translate-y-0;
 }
 
 @utility card-glass {
