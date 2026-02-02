@@ -13,6 +13,7 @@ import {
   useSensor,
   useSensors,
   DragOverlay,
+  useDroppable,
 } from "@dnd-kit/core";
 import {
   arrayMove,
@@ -57,6 +58,46 @@ interface Post {
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
+
+// --- Droppable Column Component ---
+const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive }: any) => {
+  const { setNodeRef } = useDroppable({
+    id: id,
+  });
+
+  return (
+    <div 
+      ref={setNodeRef} // Make the WHOLE div droppable
+      className="bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col"
+    >
+      <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
+          {title}
+          <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs text-white">
+              {tasks.length}
+          </span>
+      </h3>
+      <SortableContext 
+        items={tasks.map((t: any) => t._id)} 
+        strategy={verticalListSortingStrategy}
+      >
+        <div className="space-y-3 flex-1">
+          {tasks.map((task: any) => (
+            <SortableTaskItem 
+              key={task._id} 
+              task={task} 
+              onDelete={onDelete}
+              onUpdateStatus={onUpdateStatus}
+              onEdit={onEdit}
+              onArchive={onArchive}
+            />
+          ))}
+          {/* Invisible spacer to make dropping easier */}
+          <div className="h-10 w-full" /> 
+        </div>
+      </SortableContext>
+    </div>
+  );
+};
 
 // --- Components ---
 
@@ -495,31 +536,16 @@ const TaskBoard = ({
     >
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {columns.map(col => (
-          <div key={col.id} className="bg-surface/30 p-4 rounded-xl border border-border min-h-[200px] md:min-h-[500px]">
-            <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
-                {col.title}
-                <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs text-white">
-                    {visibleTasks.filter(t => t.status === col.id).length}
-                </span>
-            </h3>
-            <SortableContext 
-              items={visibleTasks.filter(t => t.status === col.id).map(t => t._id)} 
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="space-y-3">
-                {visibleTasks.filter(t => t.status === col.id).map(task => (
-                  <SortableTaskItem 
-                    key={task._id} 
-                    task={task} 
-                    onDelete={onDelete}
-                    onUpdateStatus={onUpdateStatus}
-                    onEdit={onEdit}
-                    onArchive={onArchive}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </div>
+          <TaskColumn
+            key={col.id}
+            id={col.id}
+            title={col.title}
+            tasks={visibleTasks.filter(t => t.status === col.id)}
+            onDelete={onDelete}
+            onUpdateStatus={onUpdateStatus}
+            onEdit={onEdit}
+            onArchive={onArchive}
+          />
         ))}
       </div>
       
