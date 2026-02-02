@@ -92,7 +92,7 @@ const SortableTaskItem = ({ task, onDelete }: { task: Task; onDelete: (id: strin
         <button {...attributes} {...listeners} className="p-2 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white">
           <GripVertical size={16} />
         </button>
-        <span className={cn("text-sm md:text-base font-medium transition-all truncate", task.status === "completed" && "text-gray-500 line-through")}>
+        <span className={cn("text-sm md:text-base font-medium transition-all break-words leading-relaxed pr-2", task.status === "completed" && "text-gray-500 line-through")}>
           {task.title}
         </span>
       </div>
