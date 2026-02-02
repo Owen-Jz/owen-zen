@@ -1,20 +1,178 @@
-// ... imports
-import {
-  useDroppable, // Add this
-  // ... other imports
-} from "@dnd-kit/core";
+import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { SortableTaskItem } from "@/app/page"; // We need to export SortableTaskItem from page.tsx or move it here. 
+// Wait, moving SortableTaskItem here creates a circular dependency or requires refactoring.
+// Better to keep TaskColumn in page.tsx for now to avoid complexity, OR move everything to components.
+// Let's refactor cleanly: Move SortableTaskItem AND TaskColumn to this file.
 
-// ... other components
+import { CSS } from "@dnd-kit/utilities";
+import { useSortable } from "@dnd-kit/sortable";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
-// --- Droppable Column Component ---
-const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive }: any) => {
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
+
+// Types needed here
+type TaskStatus = "pending" | "in-progress" | "completed";
+type TaskPriority = "high" | "medium" | "low";
+
+interface Task {
+  _id: string; 
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  createdAt: string;
+  order: number;
+  isArchived?: boolean;
+}
+
+// --- Sortable Task Item ---
+export const SortableTaskItem = ({ 
+  task, 
+  onDelete, 
+  onUpdateStatus, 
+  onEdit, 
+  onArchive 
+}: { 
+  task: Task; 
+  onDelete: (id: string) => void;
+  onUpdateStatus: (id: string, status: TaskStatus) => void;
+  onEdit: (task: Task) => void;
+  onArchive: (id: string) => void;
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging
+  } = useSortable({ id: task._id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  const priorityColors = {
+    "high": "border-l-4 border-red-500",
+    "medium": "border-l-4 border-yellow-500",
+    "low": "border-l-4 border-blue-500"
+  };
+
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleMenuAction = (action: () => void) => {
+    action();
+    setMenuOpen(false);
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={cn(
+        "group flex items-center justify-between p-4 bg-surface hover:bg-surface-hover border border-border rounded-r-xl transition-colors mb-3 relative",
+        priorityColors[task.priority] || priorityColors["medium"]
+      )}
+    >
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        <button {...attributes} {...listeners} className="p-2 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white shrink-0">
+          <GripVertical size={16} />
+        </button>
+        <div className="flex flex-col gap-1 min-w-0 flex-1">
+          <span className={cn("text-sm md:text-base font-medium transition-all break-words leading-relaxed pr-2", task.status === "completed" && "text-gray-500 line-through")}>
+            {task.title}
+          </span>
+          <div className="flex items-center gap-2 md:hidden">
+             <span className={cn("text-[10px] uppercase font-bold", task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500")}>
+               {task.priority}
+             </span>
+          </div>
+        </div>
+      </div>
+      
+      <div className="hidden md:flex items-center gap-2 mr-2">
+         <span className={cn(
+             "text-[10px] uppercase font-bold px-2 py-1 rounded bg-white/5",
+             task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500"
+         )}>
+             {task.priority}
+         </span>
+      </div>
+
+      <div className="relative" ref={menuRef}>
+        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
+          <MoreVertical size={18} />
+        </button>
+
+        <AnimatePresence>
+          {menuOpen && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+            >
+              <div className="p-1">
+                <button onClick={() => handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                  <Edit2 size={14} /> Edit Task
+                </button>
+                <div className="h-px bg-border my-1" />
+                <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
+                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                  <Circle size={14} /> Backlog
+                </button>
+                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "in-progress"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                  <Clock size={14} /> In Focus
+                </button>
+                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                  <Check size={14} /> Done
+                </button>
+                <div className="h-px bg-border my-1" />
+                {task.status === "completed" && (
+                   <button onClick={() => handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
+                     <Archive size={14} /> Archive
+                   </button>
+                )}
+                <button onClick={() => handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
+                  <Trash2 size={14} /> Delete
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+};
+
+// --- Task Column ---
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive }: any) => {
   const { setNodeRef } = useDroppable({
     id: id,
   });
 
   return (
     <div 
-      ref={setNodeRef} // Make the WHOLE div droppable
+      ref={setNodeRef}
       className="bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col"
     >
       <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
@@ -38,7 +196,7 @@ const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArch
               onArchive={onArchive}
             />
           ))}
-          {/* Invisible spacer to make dropping easier */}
+          {/* Invisible spacer */}
           <div className="h-10 w-full" /> 
         </div>
       </SortableContext>
