@@ -21,7 +21,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
-import { HabitView } from "@/components/HabitView"; // Import HabitView
+import { HabitView } from "@/components/HabitView"; 
+import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
 
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed";
@@ -64,8 +65,9 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "habits", label: "Habits", icon: Trophy }, 
+    { id: "vision", label: "Vision & Word", icon: Target }, // Added Vision Board
     { id: "archive", label: "Archive", icon: Archive },
-    { id: "sniper", label: "Sniper System", icon: Target },
+    { id: "sniper", label: "Sniper System", icon: Crosshair },
     { id: "socials", label: "Social Hub", icon: Share2 },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
@@ -542,10 +544,10 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : 'Good Morning, Owen.'}
+              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : 'Good Morning, Owen.'}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : "Let's stay focused today."}
+              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : "Let's stay focused today."}
             </p>
           </div>
           <button 
@@ -607,6 +609,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === "habits" && <HabitView />}
+        {activeTab === "vision" && <VisionBoardView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
         {activeTab === "sniper" && <SniperView />}
         {activeTab === "socials" && <SocialHubView />}
