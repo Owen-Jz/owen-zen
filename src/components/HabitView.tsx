@@ -179,12 +179,23 @@ export const HabitView = () => {
       "bg-primary"        // 4
   ];
 
-  // --- Last 7 Days for List ---
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return d;
-  });
+  // --- Current Week (Mon-Sun) ---
+  const getCurrentWeekDays = () => {
+      const today = new Date();
+      const day = today.getDay(); // 0 (Sun) to 6 (Sat)
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+      const monday = new Date(today.setDate(diff));
+      
+      const week = [];
+      for (let i = 0; i < 7; i++) {
+          const d = new Date(monday);
+          d.setDate(monday.getDate() + i);
+          week.push(d);
+      }
+      return week;
+  };
+
+  const weekDays = getCurrentWeekDays();
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
@@ -289,11 +300,14 @@ export const HabitView = () => {
                     Reset Protocols
                 </button>
                 <div className="flex gap-1">
-                    {last7Days.map((d, i) => (
-                        <div key={i} className="w-8 text-center text-xs text-gray-500 font-mono uppercase">
-                            {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
-                        </div>
-                    ))}
+                    {weekDays.map((d, i) => {
+                        const isToday = d.toDateString() === new Date().toDateString();
+                        return (
+                            <div key={i} className={cn("w-8 text-center text-xs font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-500")}>
+                                {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
@@ -327,20 +341,22 @@ export const HabitView = () => {
                         </div>
                     </div>
 
-                    {/* History Dots (Last 7 Days) */}
+                    {/* History Dots (Week Days) */}
                     <div className="flex items-center gap-1">
-                        {last7Days.map((date, i) => {
+                        {weekDays.map((date, i) => {
                             const completed = isCompleted(habit, date);
+                            const isToday = date.toDateString() === new Date().toDateString();
                             return (
                                 <button
                                     key={i}
                                     onClick={() => toggleHabit(habit._id, date.toISOString())}
                                     title={date.toDateString()}
                                     className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all border",
                                         completed 
-                                            ? "bg-primary text-white" 
-                                            : "bg-surface-hover text-transparent hover:bg-surface-hover/80"
+                                            ? "bg-primary text-white border-primary" 
+                                            : "bg-surface-hover text-transparent hover:bg-surface-hover/80",
+                                        isToday && !completed ? "border-primary/50" : "border-transparent"
                                     )}
                                 >
                                     <div className={cn("w-1.5 h-1.5 rounded-full", completed ? "bg-white" : "bg-gray-700")} />
