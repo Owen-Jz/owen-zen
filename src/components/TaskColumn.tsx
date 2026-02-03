@@ -16,6 +16,11 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 type TaskStatus = "pending" | "in-progress" | "completed";
 type TaskPriority = "high" | "medium" | "low";
 
+interface SubTask {
+  title: string;
+  completed: boolean;
+}
+
 interface Task {
   _id: string; 
   title: string;
@@ -24,6 +29,7 @@ interface Task {
   createdAt: string;
   order: number;
   isArchived?: boolean;
+  subtasks?: SubTask[];
 }
 
 // --- Sortable Task Item ---
@@ -96,6 +102,19 @@ export const SortableTaskItem = ({
           <span className={cn("text-sm md:text-base font-medium transition-all break-words leading-relaxed pr-2", task.status === "completed" && "text-gray-500 line-through")}>
             {task.title}
           </span>
+          {task.subtasks && task.subtasks.length > 0 && (
+              <div className="flex items-center gap-2 mt-1">
+                  <div className="w-full max-w-[100px] h-1 bg-surface-hover rounded-full overflow-hidden">
+                      <div 
+                          className="h-full bg-primary transition-all duration-300" 
+                          style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }} 
+                      />
+                  </div>
+                  <span className="text-[10px] text-gray-500 font-mono">
+                      {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
+                  </span>
+              </div>
+          )}
           <div className="flex items-center gap-2 md:hidden">
              <span className={cn("text-[10px] uppercase font-bold", task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500")}>
                {task.priority}

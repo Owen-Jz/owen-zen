@@ -28,6 +28,11 @@ import { VisionBoardView } from "@/components/VisionBoardView"; // Import Vision
 type TaskStatus = "pending" | "in-progress" | "completed";
 type TaskPriority = "high" | "medium" | "low";
 
+interface SubTask {
+  title: string;
+  completed: boolean;
+}
+
 interface Task {
   _id: string; 
   title: string;
@@ -36,6 +41,7 @@ interface Task {
   createdAt: string;
   order: number;
   isArchived?: boolean;
+  subtasks?: SubTask[]; // Added
 }
 
 interface Wallet {
@@ -137,15 +143,34 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 };
 
 // --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave }: { task: Task | null, onClose: () => void, onSave: (id: string, title: string, priority: TaskPriority) => void }) => {
+const EditTaskModal = ({ task, onClose, onSave }: { task: Task | null, onClose: () => void, onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void }) => {
   const [title, setTitle] = useState(task?.title || "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
+  const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
+  const [newSubtask, setNewSubtask] = useState("");
 
   if (!task) return null;
 
+  const addSubtask = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newSubtask.trim()) return;
+    setSubtasks([...subtasks, { title: newSubtask, completed: false }]);
+    setNewSubtask("");
+  };
+
+  const toggleSubtask = (index: number) => {
+    const updated = [...subtasks];
+    updated[index].completed = !updated[index].completed;
+    setSubtasks(updated);
+  };
+
+  const removeSubtask = (index: number) => {
+    setSubtasks(subtasks.filter((_, i) => i !== index));
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-surface border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl">
+      <div className="bg-surface border border-border w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-bold mb-4">Edit Task</h3>
         <div className="space-y-4">
           <div>
@@ -153,9 +178,10 @@ const EditTaskModal = ({ task, onClose, onSave }: { task: Task | null, onClose: 
             <textarea 
               value={title} 
               onChange={(e) => setTitle(e.target.value)} 
-              className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none min-h-[100px] resize-none"
+              className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none min-h-[80px] resize-none"
             />
           </div>
+          
           <div>
             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Priority</label>
             <div className="grid grid-cols-3 gap-2">
@@ -175,9 +201,54 @@ const EditTaskModal = ({ task, onClose, onSave }: { task: Task | null, onClose: 
               ))}
             </div>
           </div>
+
+          <div>
+             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})</label>
+             <div className="space-y-2 mb-3">
+                 {subtasks.map((st, i) => (
+                     <div key={i} className="flex items-center gap-2 group">
+                         <button 
+                             onClick={() => toggleSubtask(i)}
+                             className={cn(
+                                 "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                                 st.completed ? "bg-primary border-primary text-white" : "border-gray-500"
+                             )}
+                         >
+                             {st.completed && <Check size={12} />}
+                         </button>
+                         <input 
+                             type="text" 
+                             value={st.title}
+                             onChange={(e) => {
+                                 const updated = [...subtasks];
+                                 updated[i].title = e.target.value;
+                                 setSubtasks(updated);
+                             }}
+                             className={cn("flex-1 bg-transparent outline-none border-b border-transparent focus:border-border text-sm", st.completed && "text-gray-500 line-through")}
+                         />
+                         <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                             <Trash2 size={14} />
+                         </button>
+                     </div>
+                 ))}
+             </div>
+             <form onSubmit={addSubtask} className="flex gap-2">
+                 <input 
+                    type="text" 
+                    value={newSubtask}
+                    onChange={(e) => setNewSubtask(e.target.value)}
+                    placeholder="Add subtask..."
+                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
+                 />
+                 <button type="submit" className="p-2 bg-surface hover:bg-white/10 rounded-lg border border-border">
+                     <Plus size={16} />
+                 </button>
+             </form>
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border border-border text-gray-400 hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={() => onSave(task._id, title, priority)} className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium">Save Changes</button>
+            <button onClick={() => onSave(task._id, title, priority, subtasks)} className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium">Save Changes</button>
           </div>
         </div>
       </div>
@@ -466,16 +537,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, priority: TaskPriority) => {
+  const saveEditTask = async (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => {
       const oldTasks = [...tasks];
-      setTasks(tasks.map(t => t._id === id ? { ...t, title, priority } : t));
+      setTasks(tasks.map(t => t._id === id ? { ...t, title, priority, subtasks } : t));
       setEditingTask(null);
 
       try {
         await fetch(`/api/tasks/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, priority }),
+            body: JSON.stringify({ title, priority, subtasks }),
         });
       } catch {
         setTasks(oldTasks);
