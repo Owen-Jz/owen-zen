@@ -127,30 +127,39 @@ export const HabitView = () => {
   };
 
   // --- Heatmap Logic ---
-  const getThisYearDays = () => {
-      const days = [];
-      const start = new Date(new Date().getFullYear(), 0, 1); // Jan 1
-      const end = new Date(new Date().getFullYear(), 11, 31); // Dec 31
+  const getYearGridData = () => {
+      const year = 2026; // Force 2026 per requirements
+      const start = new Date(year, 0, 1);
+      const end = new Date(year, 11, 31);
       
-      for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+      const days: (Date | null)[] = [];
+      
+      // Add padding for days before Jan 1st (align to Sunday start)
+      const startDay = start.getDay(); // 0=Sun, 1=Mon, etc.
+      for (let i = 0; i < startDay; i++) {
+          days.push(null);
+      }
+      
+      // Add all days of the year
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
           days.push(new Date(d));
       }
+      
       return days;
   };
 
-  const heatmapData = getThisYearDays().map(date => {
+  const heatmapGrid = getYearGridData().map(date => {
+      if (!date) return null;
       date.setHours(0,0,0,0);
       const iso = date.toISOString();
       const count = habits.reduce((acc, h) => {
           return acc + (h.completedDates.some(d => new Date(d).toISOString() === iso) ? 1 : 0);
       }, 0);
-      return { date: new Date(date), count }; // Clone date to avoid ref issues
+      return { date: new Date(date), count };
   });
 
-  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-  // Calculate intensity (0-4)
-  const maxCount = Math.max(...heatmapData.map(d => d.count), 1);
+  // Calculate intensity (0-4) based on real max
+  const maxCount = Math.max(...heatmapGrid.filter(d => d).map(d => d!.count), 1);
   const getIntensity = (count: number) => {
       if (count === 0) return 0;
       return Math.ceil((count / maxCount) * 4);
@@ -221,24 +230,26 @@ export const HabitView = () => {
               </div>
           </div>
           <div className="flex gap-1 min-w-max pb-2">
-              {/* Labels for Months could go here if we had space logic, keeping simple for now */}
-              {Array.from({ length: 53 }).map((_, weekIndex) => (
+              {/* Render Weeks (Columns) */}
+              {Array.from({ length: Math.ceil(heatmapGrid.length / 7) }).map((_, weekIndex) => (
                   <div key={weekIndex} className="flex flex-col gap-1">
                       {Array.from({ length: 7 }).map((_, dayIndex) => {
-                          const dayOfYearIndex = weekIndex * 7 + dayIndex;
-                          // Handle edge case where year might not have perfect 53*7 days mapped
-                          if (dayOfYearIndex >= heatmapData.length) return null;
+                          const flatIndex = weekIndex * 7 + dayIndex;
+                          const data = heatmapGrid[flatIndex];
                           
-                          const data = heatmapData[dayOfYearIndex];
+                          // If no data (end of year padding) or null (start padding), render empty cell
+                          if (!data) return <div key={dayIndex} className="w-3 h-3" />;
+                          
                           const isFuture = data.date > new Date();
-                          
                           return (
                               <div 
                                   key={dayIndex}
                                   title={`${data.date.toDateString()}: ${data.count} completions`}
                                   className={cn(
                                       "w-3 h-3 rounded-sm transition-colors",
-                                      isFuture ? "bg-surface border border-dashed border-white/5 opacity-30" : intensityColors[getIntensity(data.count)]
+                                      isFuture 
+                                        ? "bg-surface border border-dashed border-white/5 opacity-30" 
+                                        : intensityColors[getIntensity(data.count)]
                                   )}
                               />
                           );
