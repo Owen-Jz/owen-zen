@@ -35,8 +35,41 @@ export const HabitView = () => {
     }
   };
 
+  const seedDefaults = async () => {
+      const defaults = [
+          { title: "Morning Devotion & Prayer", category: "mindset" }, // Faith
+          { title: "Gym (Push/Pull/Legs)", category: "health" },       // Cut Phase
+          { title: "Track Macros (2000kcal)", category: "health" },    // Cut Phase
+          { title: "Deep Work (4h)", category: "work" },               // Coding/Agency
+          { title: "Ship Code (GitHub)", category: "learning" },       // Consistency Gap
+          { title: "No Porn/Junk", category: "mindset" },              // Purity/Discipline
+          { title: "Outreach/Content (1h)", category: "work" }         // Agency/Growth
+      ];
+      for (const d of defaults) {
+          await fetch("/api/habits", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(d)
+          });
+      }
+      fetchHabits(); 
+  };
+
   useEffect(() => {
     fetchHabits();
+    // Check if we need to seed (simple check for empty array on mount)
+    // Note: In a real app, we'd check server side count, but this works for client-init
+    const checkAndSeed = async () => {
+        const res = await fetch("/api/habits");
+        const json = await res.json();
+        if (json.data && json.data.length === 0) {
+            seedDefaults();
+        } else {
+            setHabits(json.data);
+        }
+        setLoading(false);
+    }
+    checkAndSeed();
   }, []);
 
   const addHabit = async (e: React.FormEvent) => {
@@ -94,25 +127,27 @@ export const HabitView = () => {
   };
 
   // --- Heatmap Logic ---
-  const getLast365Days = () => {
-      const dates = [];
-      for (let i = 364; i >= 0; i--) {
-          const d = new Date();
-          d.setDate(d.getDate() - i);
-          dates.push(d);
+  const getThisYearDays = () => {
+      const days = [];
+      const start = new Date(new Date().getFullYear(), 0, 1); // Jan 1
+      const end = new Date(new Date().getFullYear(), 11, 31); // Dec 31
+      
+      for (let d = start; d <= end; d.setDate(d.getDate() + 1)) {
+          days.push(new Date(d));
       }
-      return dates;
+      return days;
   };
 
-  const heatmapData = getLast365Days().map(date => {
+  const heatmapData = getThisYearDays().map(date => {
       date.setHours(0,0,0,0);
       const iso = date.toISOString();
-      // Count total completions for this day across ALL habits
       const count = habits.reduce((acc, h) => {
           return acc + (h.completedDates.some(d => new Date(d).toISOString() === iso) ? 1 : 0);
       }, 0);
-      return { date, count };
+      return { date: new Date(date), count }; // Clone date to avoid ref issues
   });
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
   // Calculate intensity (0-4)
   const maxCount = Math.max(...heatmapData.map(d => d.count), 1);
@@ -175,24 +210,35 @@ export const HabitView = () => {
       <div className="bg-surface border border-border rounded-xl p-6 overflow-x-auto">
           <div className="flex items-center justify-between mb-4">
               <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                  <Activity size={16} /> Consistency Graph (Last Year)
+                  <Activity size={16} /> 2026 Consistency Graph
               </h3>
+              <div className="flex gap-2 text-xs text-gray-500">
+                  <span>Less</span>
+                  <div className="flex gap-1">
+                      {intensityColors.map(c => <div key={c} className={cn("w-3 h-3 rounded-sm", c)} />)}
+                  </div>
+                  <span>More</span>
+              </div>
           </div>
-          <div className="flex gap-1 min-w-max">
-              {/* Group by weeks for vertical layout standard in Github */}
+          <div className="flex gap-1 min-w-max pb-2">
+              {/* Labels for Months could go here if we had space logic, keeping simple for now */}
               {Array.from({ length: 53 }).map((_, weekIndex) => (
                   <div key={weekIndex} className="flex flex-col gap-1">
                       {Array.from({ length: 7 }).map((_, dayIndex) => {
                           const dayOfYearIndex = weekIndex * 7 + dayIndex;
+                          // Handle edge case where year might not have perfect 53*7 days mapped
+                          if (dayOfYearIndex >= heatmapData.length) return null;
+                          
                           const data = heatmapData[dayOfYearIndex];
-                          if (!data) return null;
+                          const isFuture = data.date > new Date();
+                          
                           return (
                               <div 
                                   key={dayIndex}
                                   title={`${data.date.toDateString()}: ${data.count} completions`}
                                   className={cn(
                                       "w-3 h-3 rounded-sm transition-colors",
-                                      intensityColors[getIntensity(data.count)]
+                                      isFuture ? "bg-surface border border-dashed border-white/5 opacity-30" : intensityColors[getIntensity(data.count)]
                                   )}
                               />
                           );
