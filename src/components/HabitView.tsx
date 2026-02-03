@@ -1,8 +1,14 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Check, Flame, Trophy, Activity, Trash2 } from "lucide-react";
-import { motion } from "framer-motion";
+import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
 
 interface Habit {
   _id: string;
@@ -23,30 +29,10 @@ export const HabitView = () => {
       const json = await res.json();
       if (json.success) {
         setHabits(json.data);
-        // Auto-seed if empty
-        if (json.data.length === 0) seedDefaults();
       }
     } finally {
       setLoading(false);
     }
-  };
-
-  const seedDefaults = async () => {
-      const defaults = [
-          "Deep Work (90m)",
-          "Code Commit",
-          "Workout (Cut Phase)",
-          "Read/Learn",
-          "No Sugar/Junk"
-      ];
-      for (const title of defaults) {
-          await fetch("/api/habits", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ title, category: 'work' })
-          });
-      }
-      fetchHabits(); // Refresh
   };
 
   useEffect(() => {
@@ -65,18 +51,22 @@ export const HabitView = () => {
     fetchHabits();
   };
 
-  const toggleHabit = async (id: string) => {
-    // Optimistic update
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    const todayStr = today.toISOString();
+  const toggleHabit = async (id: string, dateStr?: string) => {
+    // Default to today if no date provided
+    let targetDate = new Date();
+    if (dateStr) {
+        targetDate = new Date(dateStr);
+    }
+    targetDate.setHours(0,0,0,0);
+    const isoDate = targetDate.toISOString();
 
+    // Optimistic Update
     setHabits(habits.map(h => {
         if (h._id === id) {
-            const hasDone = h.completedDates.some(d => new Date(d).toISOString() === todayStr);
+            const hasDone = h.completedDates.some(d => new Date(d).toISOString() === isoDate);
             const newDates = hasDone 
-                ? h.completedDates.filter(d => new Date(d).toISOString() !== todayStr)
-                : [...h.completedDates, todayStr];
+                ? h.completedDates.filter(d => new Date(d).toISOString() !== isoDate)
+                : [...h.completedDates, isoDate];
             return { ...h, completedDates: newDates };
         }
         return h;
@@ -85,118 +75,219 @@ export const HabitView = () => {
     await fetch(`/api/habits/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "toggle" }),
+      body: JSON.stringify({ action: "toggle", date: isoDate }),
     });
     
-    // Refresh to get real streak calc from backend
-    fetchHabits(); 
+    fetchHabits(); // Refresh for accurate streaks
   };
 
   const deleteHabit = async (id: string) => {
-      if(!confirm("Delete this habit?")) return;
+      if(!confirm("Delete this habit protocol?")) return;
       setHabits(habits.filter(h => h._id !== id));
       await fetch(`/api/habits/${id}`, { method: "DELETE" });
   };
 
-  const isCompletedToday = (h: Habit) => {
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      const todayStr = today.toISOString();
-      return h.completedDates.some(d => new Date(d).toISOString() === todayStr);
+  const isCompleted = (h: Habit, date: Date) => {
+      const d = new Date(date);
+      d.setHours(0,0,0,0);
+      return h.completedDates.some(cd => new Date(cd).toISOString() === d.toISOString());
   };
 
-  const completionRate = habits.length > 0 
-    ? Math.round((habits.filter(isCompletedToday).length / habits.length) * 100) 
-    : 0;
+  // --- Heatmap Logic ---
+  const getLast365Days = () => {
+      const dates = [];
+      for (let i = 364; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          dates.push(d);
+      }
+      return dates;
+  };
+
+  const heatmapData = getLast365Days().map(date => {
+      date.setHours(0,0,0,0);
+      const iso = date.toISOString();
+      // Count total completions for this day across ALL habits
+      const count = habits.reduce((acc, h) => {
+          return acc + (h.completedDates.some(d => new Date(d).toISOString() === iso) ? 1 : 0);
+      }, 0);
+      return { date, count };
+  });
+
+  // Calculate intensity (0-4)
+  const maxCount = Math.max(...heatmapData.map(d => d.count), 1);
+  const getIntensity = (count: number) => {
+      if (count === 0) return 0;
+      return Math.ceil((count / maxCount) * 4);
+  };
+
+  const intensityColors = [
+      "bg-surface-hover", // 0
+      "bg-primary/20",    // 1
+      "bg-primary/40",    // 2
+      "bg-primary/70",    // 3
+      "bg-primary"        // 4
+  ];
+
+  // --- Last 7 Days for List ---
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return d;
+  });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
-      {/* Stats Header */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-surface border border-border p-6 rounded-xl relative overflow-hidden">
-          <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Daily Progress</h3>
-          <p className="text-3xl font-bold text-white">{completionRate}%</p>
-          <div className="w-full bg-white/10 h-1.5 mt-4 rounded-full overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${completionRate}%` }} />
-          </div>
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+      
+      {/* --- Top Stats --- */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="bg-surface border border-border p-6 rounded-xl flex items-center gap-4">
+            <div className="p-3 bg-primary/10 rounded-lg text-primary"><Trophy size={24} /></div>
+            <div>
+                <div className="text-2xl font-bold">{habits.filter(h => isCompleted(h, new Date())).length} / {habits.length}</div>
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Today's Protocol</div>
+            </div>
         </div>
-        <div className="bg-surface border border-border p-6 rounded-xl">
-           <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Longest Streak</h3>
-           <div className="flex items-center gap-2">
-               <Flame className="text-orange-500" />
-               <p className="text-3xl font-bold text-white">
-                   {Math.max(0, ...habits.map(h => h.streak))} <span className="text-sm text-gray-500 font-normal">days</span>
-               </p>
-           </div>
+        <div className="bg-surface border border-border p-6 rounded-xl flex items-center gap-4">
+            <div className="p-3 bg-orange-500/10 rounded-lg text-orange-500"><Flame size={24} /></div>
+            <div>
+                <div className="text-2xl font-bold">{Math.max(0, ...habits.map(h => h.streak))}</div>
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Best Streak</div>
+            </div>
         </div>
-        <div className="bg-surface border border-border p-6 rounded-xl">
-           <h3 className="text-gray-400 text-sm font-medium uppercase tracking-wider mb-2">Active Habits</h3>
-           <div className="flex items-center gap-2">
-               <Activity className="text-blue-500" />
-               <p className="text-3xl font-bold text-white">{habits.length}</p>
-           </div>
+        <div className="bg-surface border border-border p-6 rounded-xl flex items-center gap-4">
+            <div className="p-3 bg-blue-500/10 rounded-lg text-blue-500"><Activity size={24} /></div>
+            <div>
+                <div className="text-2xl font-bold">{habits.reduce((acc, h) => acc + h.completedDates.length, 0)}</div>
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Reps</div>
+            </div>
+        </div>
+        <div className="bg-surface border border-border p-6 rounded-xl flex items-center gap-4">
+            <div className="p-3 bg-purple-500/10 rounded-lg text-purple-500"><Zap size={24} /></div>
+            <div>
+                <div className="text-2xl font-bold">{habits.length > 0 ? Math.round((habits.filter(h => isCompleted(h, new Date())).length / habits.length) * 100) : 0}%</div>
+                <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Daily Rate</div>
+            </div>
         </div>
       </div>
 
-      {/* Habit List */}
-      <div className="bg-surface/30 border border-border rounded-xl p-6">
+      {/* --- Heatmap --- */}
+      <div className="bg-surface border border-border rounded-xl p-6 overflow-x-auto">
+          <div className="flex items-center justify-between mb-4">
+              <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
+                  <Activity size={16} /> Consistency Graph (Last Year)
+              </h3>
+          </div>
+          <div className="flex gap-1 min-w-max">
+              {/* Group by weeks for vertical layout standard in Github */}
+              {Array.from({ length: 53 }).map((_, weekIndex) => (
+                  <div key={weekIndex} className="flex flex-col gap-1">
+                      {Array.from({ length: 7 }).map((_, dayIndex) => {
+                          const dayOfYearIndex = weekIndex * 7 + dayIndex;
+                          const data = heatmapData[dayOfYearIndex];
+                          if (!data) return null;
+                          return (
+                              <div 
+                                  key={dayIndex}
+                                  title={`${data.date.toDateString()}: ${data.count} completions`}
+                                  className={cn(
+                                      "w-3 h-3 rounded-sm transition-colors",
+                                      intensityColors[getIntensity(data.count)]
+                                  )}
+                              />
+                          );
+                      })}
+                  </div>
+              ))}
+          </div>
+      </div>
+
+      {/* --- Main List --- */}
+      <div className="bg-surface/50 border border-border rounded-xl p-6">
         <div className="flex items-center justify-between mb-6">
-            <h2 className="text-xl font-bold flex items-center gap-2">
-                <Trophy className="text-yellow-500" size={20} /> Daily Protocols
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                Active Protocols
             </h2>
+            <div className="flex gap-1">
+                {last7Days.map((d, i) => (
+                    <div key={i} className="w-8 text-center text-xs text-gray-500 font-mono uppercase">
+                        {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                    </div>
+                ))}
+            </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {habits.map(habit => {
-                const done = isCompletedToday(habit);
-                return (
-                    <motion.div 
-                        layout
-                        key={habit._id}
-                        className={`p-4 rounded-xl border transition-all cursor-pointer flex items-center justify-between group ${
-                            done 
-                            ? "bg-primary/10 border-primary" 
-                            : "bg-surface border-border hover:border-gray-500"
-                        }`}
-                        onClick={() => toggleHabit(habit._id)}
-                    >
-                        <div className="flex items-center gap-4">
-                            <div className={`w-6 h-6 rounded-full flex items-center justify-center border ${
-                                done ? "bg-primary border-primary text-white" : "border-gray-500"
-                            }`}>
-                                {done && <Check size={14} />}
-                            </div>
-                            <div>
-                                <h4 className={`font-medium ${done ? "text-white" : "text-gray-300"}`}>{habit.title}</h4>
-                                <div className="flex items-center gap-1 text-xs text-gray-500">
-                                    <Flame size={12} className={habit.streak > 0 ? "text-orange-500" : "text-gray-600"} />
-                                    {habit.streak} day streak
-                                </div>
+        <div className="space-y-2">
+            {habits.map(habit => (
+                <motion.div 
+                    layout
+                    key={habit._id}
+                    className="group flex items-center justify-between p-4 bg-surface border border-border hover:border-primary/50 rounded-xl transition-all"
+                >
+                    <div className="flex items-center gap-4 flex-1">
+                        <button 
+                            onClick={() => toggleHabit(habit._id)}
+                            className={cn(
+                                "w-10 h-10 rounded-xl flex items-center justify-center border transition-all active:scale-95",
+                                isCompleted(habit, new Date()) 
+                                    ? "bg-primary border-primary text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]" 
+                                    : "border-border hover:border-gray-500 text-transparent"
+                            )}
+                        >
+                            <Check size={20} strokeWidth={3} />
+                        </button>
+                        <div>
+                            <div className="font-bold text-lg">{habit.title}</div>
+                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                                <span className={cn("flex items-center gap-1", habit.streak > 3 ? "text-orange-500" : "")}>
+                                    <Flame size={12} /> {habit.streak} Day Streak
+                                </span>
                             </div>
                         </div>
+                    </div>
+
+                    {/* History Dots (Last 7 Days) */}
+                    <div className="flex items-center gap-1">
+                        {last7Days.map((date, i) => {
+                            const completed = isCompleted(habit, date);
+                            return (
+                                <button
+                                    key={i}
+                                    onClick={() => toggleHabit(habit._id, date.toISOString())}
+                                    title={date.toDateString()}
+                                    className={cn(
+                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all",
+                                        completed 
+                                            ? "bg-primary text-white" 
+                                            : "bg-surface-hover text-transparent hover:bg-surface-hover/80"
+                                    )}
+                                >
+                                    <div className={cn("w-1.5 h-1.5 rounded-full", completed ? "bg-white" : "bg-gray-700")} />
+                                </button>
+                            );
+                        })}
+                        
                         <button 
-                            onClick={(e) => { e.stopPropagation(); deleteHabit(habit._id); }}
-                            className="text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-2"
+                            onClick={() => deleteHabit(habit._id)}
+                            className="ml-4 p-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                             <Trash2 size={16} />
                         </button>
-                    </motion.div>
-                );
-            })}
+                    </div>
+                </motion.div>
+            ))}
         </div>
 
-        {/* Add New */}
-        <form onSubmit={addHabit} className="mt-6 flex gap-2">
+        {/* Add Input */}
+        <form onSubmit={addHabit} className="mt-6 relative">
             <input 
                 type="text" 
                 value={newHabit}
                 onChange={(e) => setNewHabit(e.target.value)}
-                placeholder="Add a new habit..."
-                className="flex-1 bg-background border border-border rounded-lg px-4 py-3 focus:border-primary outline-none"
+                placeholder="Initialize new protocol..."
+                className="w-full bg-background border border-border rounded-xl px-5 py-4 pl-12 focus:border-primary focus:ring-1 focus:ring-primary/50 outline-none transition-all"
             />
-            <button type="submit" className="btn-primary aspect-square flex items-center justify-center p-0 w-12">
-                <Plus size={20} />
-            </button>
+            <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
         </form>
       </div>
     </div>

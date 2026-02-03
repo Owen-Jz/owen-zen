@@ -14,22 +14,26 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       const habit = await Habit.findById(id);
       if (!habit) return NextResponse.json({ success: false }, { status: 404 });
 
-      const today = new Date();
-      today.setHours(0, 0, 0, 0); // Normalize to midnight
+      // Use provided date or default to today
+      let targetDate = new Date();
+      if (body.date) {
+        targetDate = new Date(body.date);
+      }
+      targetDate.setHours(0, 0, 0, 0); // Normalize to midnight
       
-      const todayStr = today.toISOString();
-      const hasCompletedToday = habit.completedDates.some((d: Date) => 
-        new Date(d).toISOString() === todayStr
+      const targetDateStr = targetDate.toISOString();
+      const hasCompletedTarget = habit.completedDates.some((d: Date) => 
+        new Date(d).toISOString() === targetDateStr
       );
 
       let newDates = [...habit.completedDates];
       
-      if (hasCompletedToday) {
+      if (hasCompletedTarget) {
         // Uncheck
-        newDates = newDates.filter((d: Date) => new Date(d).toISOString() !== todayStr);
+        newDates = newDates.filter((d: Date) => new Date(d).toISOString() !== targetDateStr);
       } else {
         // Check
-        newDates.push(today);
+        newDates.push(targetDate);
       }
 
       // Recalculate streak
