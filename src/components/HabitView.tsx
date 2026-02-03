@@ -172,10 +172,10 @@ export const HabitView = () => {
   };
 
   const intensityColors = [
-      "bg-surface-hover", // 0
-      "bg-primary/20",    // 1
-      "bg-primary/40",    // 2
-      "bg-primary/70",    // 3
+      "bg-white/5",       // 0 (Empty but visible)
+      "bg-primary/30",    // 1
+      "bg-primary/50",    // 2
+      "bg-primary/80",    // 3
       "bg-primary"        // 4
   ];
 
@@ -263,9 +263,9 @@ export const HabitView = () => {
                                   key={dayIndex}
                                   title={`${data.date.toDateString()}: ${data.count} completions`}
                                   className={cn(
-                                      "w-3 h-3 rounded-sm transition-colors",
+                                      "w-3 h-3 rounded-sm transition-all duration-300",
                                       isFuture 
-                                        ? "bg-surface border border-dashed border-white/5 opacity-30" 
+                                        ? "bg-transparent border border-white/10 opacity-50" 
                                         : intensityColors[getIntensity(data.count)]
                                   )}
                               />
