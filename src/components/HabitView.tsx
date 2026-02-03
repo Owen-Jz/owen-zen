@@ -301,7 +301,10 @@ export const HabitView = () => {
                 </button>
                 <div className="flex gap-1">
                     {weekDays.map((d, i) => {
-                        const isToday = d.toDateString() === new Date().toDateString();
+                        // Fix Today Comparison: Use YYYY-MM-DD to avoid time/timezone mismatch
+                        const toDateString = (date: Date) => date.toISOString().split('T')[0];
+                        const isToday = toDateString(d) === toDateString(new Date());
+                        
                         return (
                             <div key={i} className={cn("w-8 text-center text-xs font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-500")}>
                                 {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
@@ -345,7 +348,10 @@ export const HabitView = () => {
                     <div className="flex items-center gap-1">
                         {weekDays.map((date, i) => {
                             const completed = isCompleted(habit, date);
-                            const isToday = date.toDateString() === new Date().toDateString();
+                            // Fix Today Comparison: Use YYYY-MM-DD
+                            const toDateString = (d: Date) => d.toISOString().split('T')[0];
+                            const isToday = toDateString(date) === toDateString(new Date());
+                            
                             return (
                                 <button
                                     key={i}
