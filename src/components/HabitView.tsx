@@ -86,20 +86,24 @@ export const HabitView = () => {
 
   const toggleHabit = async (id: string, dateStr?: string) => {
     // Default to today if no date provided
+    // IMPORTANT: Working with local dates, we need to be careful not to shift to yesterday in UTC
+    // We send the FULL ISO string of the specific moment the user clicked (or the date they selected)
+    // The backend will handle the "Day" comparison logic.
     let targetDate = new Date();
     if (dateStr) {
         targetDate = new Date(dateStr);
     }
-    targetDate.setHours(0,0,0,0);
-    const isoDate = targetDate.toISOString();
-
-    // Optimistic Update
+    
+    // For optimistic update, we also use YYYY-MM-DD comparison
+    const toDateString = (d: Date) => d.toISOString().split('T')[0];
+    const targetDayStr = toDateString(targetDate);
+    
     setHabits(habits.map(h => {
         if (h._id === id) {
-            const hasDone = h.completedDates.some(d => new Date(d).toISOString() === isoDate);
+            const hasDone = h.completedDates.some(d => toDateString(new Date(d)) === targetDayStr);
             const newDates = hasDone 
-                ? h.completedDates.filter(d => new Date(d).toISOString() !== isoDate)
-                : [...h.completedDates, isoDate];
+                ? h.completedDates.filter(d => toDateString(new Date(d)) !== targetDayStr)
+                : [...h.completedDates, targetDate.toISOString()];
             return { ...h, completedDates: newDates };
         }
         return h;
@@ -108,7 +112,7 @@ export const HabitView = () => {
     await fetch(`/api/habits/${id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "toggle", date: isoDate }),
+      body: JSON.stringify({ action: "toggle", date: targetDate.toISOString() }),
     });
     
     fetchHabits(); // Refresh for accurate streaks
@@ -121,9 +125,10 @@ export const HabitView = () => {
   };
 
   const isCompleted = (h: Habit, date: Date) => {
-      const d = new Date(date);
-      d.setHours(0,0,0,0);
-      return h.completedDates.some(cd => new Date(cd).toISOString() === d.toISOString());
+      // Compare by YYYY-MM-DD
+      const toDateString = (d: Date) => d.toISOString().split('T')[0];
+      const targetStr = toDateString(new Date(date));
+      return h.completedDates.some(cd => toDateString(new Date(cd)) === targetStr);
   };
 
   // --- Heatmap Logic ---
@@ -150,10 +155,11 @@ export const HabitView = () => {
 
   const heatmapGrid = getYearGridData().map(date => {
       if (!date) return null;
-      date.setHours(0,0,0,0);
-      const iso = date.toISOString();
+      // Compare by YYYY-MM-DD
+      const toDateString = (d: Date) => d.toISOString().split('T')[0];
+      const iso = toDateString(date);
       const count = habits.reduce((acc, h) => {
-          return acc + (h.completedDates.some(d => new Date(d).toISOString() === iso) ? 1 : 0);
+          return acc + (h.completedDates.some(d => toDateString(new Date(d)) === iso) ? 1 : 0);
       }, 0);
       return { date: new Date(date), count };
   });

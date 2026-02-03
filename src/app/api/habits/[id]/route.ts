@@ -19,20 +19,24 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (body.date) {
         targetDate = new Date(body.date);
       }
-      targetDate.setHours(0, 0, 0, 0); // Normalize to midnight
       
-      const targetDateStr = targetDate.toISOString();
+      // Normalize to YYYY-MM-DD string for comparison to avoid Timezone/UTC shifts
+      // We assume the date passed in is the correct "Day" intended by the user
+      const toDateString = (d: Date) => d.toISOString().split('T')[0];
+      const targetDateStr = toDateString(targetDate);
+      
       const hasCompletedTarget = habit.completedDates.some((d: Date) => 
-        new Date(d).toISOString() === targetDateStr
+        toDateString(new Date(d)) === targetDateStr
       );
 
       let newDates = [...habit.completedDates];
       
       if (hasCompletedTarget) {
-        // Uncheck
-        newDates = newDates.filter((d: Date) => new Date(d).toISOString() !== targetDateStr);
+        // Uncheck - remove all entries matching that day
+        newDates = newDates.filter((d: Date) => toDateString(new Date(d)) !== targetDateStr);
       } else {
-        // Check
+        // Check - add the specific date passed (or new Date if none)
+        // We save the full timestamp to preserve time info if needed later, but comparison is by day
         newDates.push(targetDate);
       }
 
