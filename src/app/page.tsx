@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle } from "lucide-react";
+import Image from "next/image";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -20,6 +21,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
+import { HabitView } from "@/components/HabitView"; // Import HabitView
 
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed";
@@ -61,6 +63,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
+    { id: "habits", label: "Habits", icon: Trophy }, 
     { id: "archive", label: "Archive", icon: Archive },
     { id: "sniper", label: "Sniper System", icon: Target },
     { id: "socials", label: "Social Hub", icon: Share2 },
@@ -84,8 +87,8 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
       )}>
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-primary to-primary-light flex items-center justify-center text-white font-bold shrink-0">
-              Z
+            <div className="w-8 h-8 relative shrink-0">
+               <Image src="/logo.svg" alt="Logo" fill className="object-contain" />
             </div>
             <span className={cn("font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 md:hidden lg:block")}>
               Owen Zen
@@ -539,10 +542,10 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : 'Good Morning, Owen.'}
+              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : 'Good Morning, Owen.'}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : "Let's stay focused today."}
+              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : "Let's stay focused today."}
             </p>
           </div>
           <button 
@@ -603,6 +606,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {activeTab === "habits" && <HabitView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
         {activeTab === "sniper" && <SniperView />}
         {activeTab === "socials" && <SocialHubView />}
