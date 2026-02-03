@@ -343,14 +343,16 @@ const TaskBoard = ({
     onUpdateStatus,
     onDelete,
     onEdit,
-    onArchive
+    onArchive,
+    onToggleSubtask
 }: { 
     tasks: Task[], 
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
     onUpdateStatus: (id: string, status: TaskStatus) => void,
     onDelete: (id: string) => void,
     onEdit: (task: Task) => void,
-    onArchive: (id: string) => void
+    onArchive: (id: string) => void,
+    onToggleSubtask: (taskId: string, index: number) => void
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), 
@@ -450,6 +452,7 @@ const TaskBoard = ({
             onUpdateStatus={onUpdateStatus}
             onEdit={onEdit}
             onArchive={onArchive}
+            onToggleSubtask={onToggleSubtask}
           />
         ))}
       </div>
@@ -593,6 +596,27 @@ export default function Dashboard() {
     }
   };
 
+  const toggleTaskSubtask = async (taskId: string, subtaskIndex: number) => {
+      const task = tasks.find(t => t._id === taskId);
+      if (!task || !task.subtasks) return;
+
+      const newSubtasks = [...task.subtasks];
+      newSubtasks[subtaskIndex].completed = !newSubtasks[subtaskIndex].completed;
+
+      const oldTasks = [...tasks];
+      setTasks(tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t));
+
+      try {
+        await fetch(`/api/tasks/${taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subtasks: newSubtasks }),
+        });
+      } catch {
+        setTasks(oldTasks);
+      }
+  };
+
   const stats = {
     pending: tasks.filter(t => t.status === "pending" && !t.isArchived).length,
     inProgress: tasks.filter(t => t.status === "in-progress" && !t.isArchived).length,
@@ -681,6 +705,7 @@ export default function Dashboard() {
                     onDelete={deleteTask}
                     onEdit={setEditingTask}
                     onArchive={archiveTask}
+                    onToggleSubtask={toggleTaskSubtask}
                 />
             )}
           </div>

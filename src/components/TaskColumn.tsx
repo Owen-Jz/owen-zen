@@ -38,13 +38,15 @@ export const SortableTaskItem = ({
   onDelete, 
   onUpdateStatus, 
   onEdit, 
-  onArchive 
+  onArchive,
+  onToggleSubtask
 }: { 
   task: Task; 
   onDelete: (id: string) => void;
   onUpdateStatus: (id: string, status: TaskStatus) => void;
   onEdit: (task: Task) => void;
   onArchive: (id: string) => void;
+  onToggleSubtask: (taskId: string, index: number) => void;
 }) => {
   const {
     attributes,
@@ -103,16 +105,45 @@ export const SortableTaskItem = ({
             {task.title}
           </span>
           {task.subtasks && task.subtasks.length > 0 && (
-              <div className="flex items-center gap-2 mt-1">
-                  <div className="w-full max-w-[100px] h-1 bg-surface-hover rounded-full overflow-hidden">
-                      <div 
-                          className="h-full bg-primary transition-all duration-300" 
-                          style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }} 
-                      />
+              <div className="mt-2 space-y-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-full max-w-[100px] h-1 bg-surface-hover rounded-full overflow-hidden">
+                        <div 
+                            className="h-full bg-primary transition-all duration-300" 
+                            style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }} 
+                        />
+                    </div>
+                    <span className="text-[10px] text-gray-500 font-mono">
+                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
+                    </span>
                   </div>
-                  <span className="text-[10px] text-gray-500 font-mono">
-                      {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
-                  </span>
+                  
+                  {/* Expanded Subtasks */}
+                  <div className="space-y-1 pl-1">
+                      {task.subtasks.map((st, i) => (
+                          <div 
+                              key={i} 
+                              onClick={(e) => {
+                                  e.stopPropagation(); // Prevent drag start
+                                  onToggleSubtask(task._id, i);
+                              }}
+                              className="flex items-start gap-2 group/sub cursor-pointer hover:bg-white/5 p-1 rounded transition-colors"
+                          >
+                              <div className={cn(
+                                  "w-3 h-3 mt-0.5 rounded-[3px] border flex items-center justify-center transition-all",
+                                  st.completed ? "bg-primary border-primary" : "border-gray-600 group-hover/sub:border-primary"
+                              )}>
+                                  {st.completed && <Check size={8} className="text-white" />}
+                              </div>
+                              <span className={cn(
+                                  "text-xs text-gray-400 transition-colors leading-tight",
+                                  st.completed && "text-gray-600 line-through"
+                              )}>
+                                  {st.title}
+                              </span>
+                          </div>
+                      ))}
+                  </div>
               </div>
           )}
           <div className="flex items-center gap-2 md:hidden">
@@ -179,7 +210,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask }: any) => {
   const { setNodeRef } = useDroppable({
     id: id,
   });
@@ -208,6 +239,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               onUpdateStatus={onUpdateStatus}
               onEdit={onEdit}
               onArchive={onArchive}
+              onToggleSubtask={onToggleSubtask}
             />
           ))}
           {/* Invisible spacer */}
