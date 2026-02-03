@@ -278,28 +278,34 @@ export const HabitView = () => {
 
       {/* --- Main List --- */}
       <div className="bg-surface/50 border border-border rounded-xl p-6">
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 Active Protocols
             </h2>
-            <div className="flex items-center gap-3">
-                <button 
-                    onClick={async () => {
-                        if (confirm("Reset to default 2026 protocols? This will clear current habits but keep history.")) {
-                            // Clear existing
-                            for (const h of habits) {
-                                await fetch(`/api/habits/${h._id}`, { method: "DELETE" });
+            <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
+                <div className="flex justify-between md:justify-end w-full md:w-auto items-center">
+                    <button 
+                        onClick={async () => {
+                            if (confirm("Reset to default 2026 protocols? This will clear current habits but keep history.")) {
+                                // Clear existing
+                                for (const h of habits) {
+                                    await fetch(`/api/habits/${h._id}`, { method: "DELETE" });
+                                }
+                                setHabits([]);
+                                // Seed new
+                                await seedDefaults();
                             }
-                            setHabits([]);
-                            // Seed new
-                            await seedDefaults();
-                        }
-                    }}
-                    className="text-xs text-gray-500 hover:text-primary underline"
-                >
-                    Reset Protocols
-                </button>
-                <div className="flex gap-1">
+                        }}
+                        className="text-xs text-gray-500 hover:text-primary underline whitespace-nowrap"
+                    >
+                        Reset Protocols
+                    </button>
+                    {/* Mobile Only Day Labels (Simple) */}
+                    <span className="md:hidden text-xs text-gray-500 font-mono">Current Week</span>
+                </div>
+                
+                {/* Desktop Day Labels */}
+                <div className="hidden md:flex gap-1">
                     {weekDays.map((d, i) => {
                         // Fix Today Comparison: Use YYYY-MM-DD to avoid time/timezone mismatch
                         const toDateString = (date: Date) => date.toISOString().split('T')[0];
@@ -320,13 +326,13 @@ export const HabitView = () => {
                 <motion.div 
                     layout
                     key={habit._id}
-                    className="group flex items-center justify-between p-4 bg-surface border border-border hover:border-primary/50 rounded-xl transition-all"
+                    className="group flex flex-col md:flex-row md:items-center justify-between p-4 bg-surface border border-border hover:border-primary/50 rounded-xl transition-all gap-4"
                 >
-                    <div className="flex items-center gap-4 flex-1">
+                    <div className="flex items-center gap-4 w-full md:w-auto">
                         <button 
                             onClick={() => toggleHabit(habit._id)}
                             className={cn(
-                                "w-10 h-10 rounded-xl flex items-center justify-center border transition-all active:scale-95",
+                                "w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center border transition-all active:scale-95",
                                 isCompleted(habit, new Date()) 
                                     ? "bg-primary border-primary text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]" 
                                     : "border-border hover:border-gray-500 text-transparent"
@@ -334,8 +340,8 @@ export const HabitView = () => {
                         >
                             <Check size={20} strokeWidth={3} />
                         </button>
-                        <div>
-                            <div className="font-bold text-lg">{habit.title}</div>
+                        <div className="min-w-0">
+                            <div className="font-bold text-lg truncate">{habit.title}</div>
                             <div className="text-xs text-gray-500 flex items-center gap-2">
                                 <span className={cn("flex items-center gap-1", habit.streak > 3 ? "text-orange-500" : "")}>
                                     <Flame size={12} /> {habit.streak} Day Streak
@@ -345,7 +351,8 @@ export const HabitView = () => {
                     </div>
 
                     {/* History Dots (Week Days) */}
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 md:gap-1">
+                        <div className="flex gap-1 flex-1 md:flex-none justify-between md:justify-start">
                         {weekDays.map((date, i) => {
                             const completed = isCompleted(habit, date);
                             // Fix Today Comparison: Use YYYY-MM-DD
@@ -353,26 +360,32 @@ export const HabitView = () => {
                             const isToday = toDateString(date) === toDateString(new Date());
                             
                             return (
-                                <button
-                                    key={i}
-                                    onClick={() => toggleHabit(habit._id, date.toISOString())}
-                                    title={date.toDateString()}
-                                    className={cn(
-                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all border",
-                                        completed 
-                                            ? "bg-primary text-white border-primary" 
-                                            : "bg-surface-hover text-transparent hover:bg-surface-hover/80",
-                                        isToday && !completed ? "border-primary/50" : "border-transparent"
-                                    )}
-                                >
-                                    <div className={cn("w-1.5 h-1.5 rounded-full", completed ? "bg-white" : "bg-gray-700")} />
-                                </button>
+                                <div key={i} className="flex flex-col items-center gap-1">
+                                    {/* Mobile Day Label */}
+                                    <span className={cn("md:hidden text-[10px] uppercase font-mono", isToday ? "text-primary font-bold" : "text-gray-600")}>
+                                        {date.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                                    </span>
+                                    <button
+                                        onClick={() => toggleHabit(habit._id, date.toISOString())}
+                                        title={date.toDateString()}
+                                        className={cn(
+                                            "w-8 h-8 rounded-lg flex items-center justify-center transition-all border",
+                                            completed 
+                                                ? "bg-primary text-white border-primary" 
+                                                : "bg-surface-hover text-transparent hover:bg-surface-hover/80",
+                                            isToday && !completed ? "border-primary/50" : "border-transparent"
+                                        )}
+                                    >
+                                        <div className={cn("w-1.5 h-1.5 rounded-full", completed ? "bg-white" : "bg-gray-700")} />
+                                    </button>
+                                </div>
                             );
                         })}
+                        </div>
                         
                         <button 
                             onClick={() => deleteHabit(habit._id)}
-                            className="ml-4 p-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="p-2 text-gray-600 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         >
                             <Trash2 size={16} />
                         </button>
