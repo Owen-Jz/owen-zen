@@ -402,11 +402,18 @@ export default function Dashboard() {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [greeting, setGreeting] = useState("Good Morning");
 
   // Load Theme
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
+    
+    // Set Greeting
+    const hour = new Date().getHours();
+    if (hour < 12) setGreeting("Good Morning");
+    else if (hour < 18) setGreeting("Good Afternoon");
+    else setGreeting("Good Evening");
   }, []);
 
   // Load Tasks
@@ -544,7 +551,7 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-8 md:mb-12">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : 'Good Morning, Owen.'}
+              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : `${greeting}, Owen.`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
               {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : "Let's stay focused today."}
