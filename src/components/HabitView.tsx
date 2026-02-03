@@ -265,12 +265,30 @@ export const HabitView = () => {
             <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 Active Protocols
             </h2>
-            <div className="flex gap-1">
-                {last7Days.map((d, i) => (
-                    <div key={i} className="w-8 text-center text-xs text-gray-500 font-mono uppercase">
-                        {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
-                    </div>
-                ))}
+            <div className="flex items-center gap-3">
+                <button 
+                    onClick={async () => {
+                        if (confirm("Reset to default 2026 protocols? This will clear current habits but keep history.")) {
+                            // Clear existing
+                            for (const h of habits) {
+                                await fetch(`/api/habits/${h._id}`, { method: "DELETE" });
+                            }
+                            setHabits([]);
+                            // Seed new
+                            await seedDefaults();
+                        }
+                    }}
+                    className="text-xs text-gray-500 hover:text-primary underline"
+                >
+                    Reset Protocols
+                </button>
+                <div className="flex gap-1">
+                    {last7Days.map((d, i) => (
+                        <div key={i} className="w-8 text-center text-xs text-gray-500 font-mono uppercase">
+                            {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                        </div>
+                    ))}
+                </div>
             </div>
         </div>
 
