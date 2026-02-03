@@ -28,6 +28,13 @@ const TaskSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  subtasks: {
+    type: [{
+      title: String,
+      completed: { type: Boolean, default: false }
+    }],
+    default: []
+  }
 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
