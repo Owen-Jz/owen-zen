@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
 import { HabitView } from "@/components/HabitView"; 
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
+import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 
 // --- Types ---
@@ -71,6 +72,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
+    { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
     { id: "habits", label: "Habits", icon: Trophy }, 
     { id: "vision", label: "Vision & Word", icon: Target }, // Added Vision Board
     { id: "archive", label: "Archive", icon: Archive },
@@ -712,6 +714,7 @@ export default function Dashboard() {
           </div>
         )}
 
+        {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
         {activeTab === "vision" && <VisionBoardView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
