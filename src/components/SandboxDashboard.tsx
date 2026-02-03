@@ -27,8 +27,8 @@ export default function SandboxDashboard() {
 
   const fetchData = async () => {
     try {
-      // Connects to the local sandbox server we just built
-      const res = await fetch('http://localhost:3005/api/dashboard');
+      // Connects to the internal Next.js API
+      const res = await fetch('/api/sandbox');
       const json = await res.json();
       setData(json);
     } catch (e) {
