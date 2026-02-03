@@ -23,6 +23,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
 import { HabitView } from "@/components/HabitView"; 
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
+import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed";
@@ -299,7 +300,7 @@ const SettingsView = () => {
       </div>
     );
 };
-const SniperView = () => <div className="p-12 text-center text-gray-500">Sniper View (Loaded)</div>;
+const SniperView = () => <SandboxDashboard />;
 const SocialHubView = () => <div className="p-12 text-center text-gray-500">Social Hub (Loaded)</div>;
 
 const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
