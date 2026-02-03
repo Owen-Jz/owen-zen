@@ -1,10 +1,5 @@
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import { SortableTaskItem } from "@/app/page"; // We need to export SortableTaskItem from page.tsx or move it here. 
-// Wait, moving SortableTaskItem here creates a circular dependency or requires refactoring.
-// Better to keep TaskColumn in page.tsx for now to avoid complexity, OR move everything to components.
-// Let's refactor cleanly: Move SortableTaskItem AND TaskColumn to this file.
-
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2 } from "lucide-react";
