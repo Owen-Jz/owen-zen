@@ -70,6 +70,8 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 // --- Components ---
 
 const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
+  const [isCollapsed, setIsCollapsed] = useState(false);
+
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
@@ -93,15 +95,16 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
       />
 
       <div className={cn(
-        "fixed left-0 top-0 h-full bg-surface border-r border-border transition-transform duration-300 z-50 w-64",
-        isOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0 md:w-20 lg:w-64"
+        "fixed left-0 top-0 h-full bg-surface border-r border-border transition-all duration-300 z-50",
+        isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0",
+        isCollapsed ? "md:w-20" : "md:w-64"
       )}>
         <div className="p-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-8 h-8 relative shrink-0">
-               <Image src="/logo.svg" alt="Logo" fill className="object-contain" />
+               <Image src="/logo.svg" alt="Owen Zen" fill className="object-contain" />
             </div>
-            <span className={cn("font-bold text-lg tracking-tight whitespace-nowrap overflow-hidden transition-all duration-300 md:hidden lg:block")}>
+            <span className={cn("font-bold text-lg tracking-tight whitespace-nowrap transition-all duration-300", isCollapsed && "md:hidden")}>
               Owen Zen
             </span>
           </div>
@@ -127,7 +130,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
                 )}
               >
                 <Icon size={20} className={cn("shrink-0", isActive && "text-primary")} />
-                <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300 md:hidden lg:block")}>
+                <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300", isCollapsed && "md:hidden")}>
                   {link.label}
                 </span>
                 {isActive && (
@@ -140,6 +143,14 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
             );
           })}
         </nav>
+
+        {/* Desktop Collapse Toggle */}
+        <button 
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 p-2 bg-surface-hover border border-border rounded-lg hover:bg-white/10 transition-colors"
+        >
+          <Menu size={16} className="text-gray-400" />
+        </button>
       </div>
     </>
   );
@@ -447,7 +458,7 @@ const TaskBoard = ({
       onDragStart={handleDragStart} 
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
         {columns.map(col => (
           <TaskColumn
             key={col.id}
@@ -481,6 +492,7 @@ export default function Dashboard() {
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
   const [activeTab, setActiveTab] = useState("tasks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [greeting, setGreeting] = useState("Good Morning");
@@ -660,12 +672,9 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className={cn(
-        "flex-1 transition-all duration-300 p-4 md:p-8 overflow-y-auto h-screen w-full",
-        "md:ml-20 lg:ml-64"
-      )}>
+      <main className="flex-1 transition-all duration-300 p-4 md:p-8 overflow-y-auto h-screen w-full md:ml-20">
         {/* Header */}
-        <header className="flex items-center justify-between mb-8 md:mb-12">
+        <header className="flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
               {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : `${greeting}, Owen.`}
@@ -683,7 +692,7 @@ export default function Dashboard() {
         </header>
 
         {activeTab === "tasks" && (
-          <div className="max-w-6xl mx-auto pb-20">
+          <div className="max-w-[1600px] mx-auto pb-20">
             <form onSubmit={addTask} className="mb-8 max-w-2xl mx-auto">
               <div className="relative">
                 <input
