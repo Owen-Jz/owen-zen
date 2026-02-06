@@ -34,6 +34,23 @@ const TaskSchema = new mongoose.Schema({
       completed: { type: Boolean, default: false }
     }],
     default: []
+  },
+  timeLogs: {
+    type: [{
+      startedAt: Date,
+      endedAt: Date,
+      duration: Number, // in seconds
+      note: String
+    }],
+    default: []
+  },
+  totalTimeSpent: {
+    type: Number,
+    default: 0 // in seconds
+  },
+  activeTimer: {
+    startedAt: Date,
+    isActive: { type: Boolean, default: false }
   }
 });
 
