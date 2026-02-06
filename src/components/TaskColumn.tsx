@@ -138,158 +138,188 @@ export const SortableTaskItem = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center justify-between p-4 bg-surface hover:bg-surface-hover border border-border rounded-r-xl transition-colors mb-3 relative",
-        priorityColors[task.priority] || priorityColors["medium"]
+        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 overflow-hidden",
+        task.activeTimer?.isActive && "ring-2 ring-primary/50"
       )}
     >
-      <div className="flex items-center gap-3 flex-1 min-w-0">
-        <button {...attributes} {...listeners} className="p-2 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white shrink-0">
-          <GripVertical size={16} />
-        </button>
-        <div className="flex flex-col gap-1 min-w-0 flex-1">
-          <span className={cn("text-sm md:text-base font-medium transition-all break-words leading-relaxed pr-2", task.status === "completed" && "text-gray-500 line-through")}>
-            {task.title}
-          </span>
-          {task.subtasks && task.subtasks.length > 0 && (
-              <div className="mt-2 space-y-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-full max-w-[100px] h-1 bg-surface-hover rounded-full overflow-hidden">
-                        <div 
-                            className="h-full bg-primary transition-all duration-300" 
-                            style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }} 
-                        />
-                    </div>
-                    <span className="text-[10px] text-gray-500 font-mono">
-                        {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
-                    </span>
-                  </div>
-                  
-                  {/* Expanded Subtasks */}
-                  <div className="space-y-1 pl-1">
-                      {task.subtasks.map((st, i) => (
-                          <div 
-                              key={i} 
-                              onClick={(e) => {
-                                  e.stopPropagation(); // Prevent drag start
-                                  onToggleSubtask(task._id, i);
-                              }}
-                              className="flex items-start gap-2 group/sub cursor-pointer hover:bg-white/5 p-1 rounded transition-colors"
-                          >
-                              <div className={cn(
-                                  "w-3 h-3 mt-0.5 rounded-[3px] border flex items-center justify-center transition-all",
-                                  st.completed ? "bg-primary border-primary" : "border-gray-600 group-hover/sub:border-primary"
-                              )}>
-                                  {st.completed && <Check size={8} className="text-white" />}
-                              </div>
-                              <span className={cn(
-                                  "text-xs text-gray-400 transition-colors leading-tight",
-                                  st.completed && "text-gray-600 line-through"
-                              )}>
-                                  {st.title}
-                              </span>
-                          </div>
-                      ))}
-                  </div>
+      {/* Priority Bar */}
+      <div className={cn(
+        "h-1 w-full",
+        task.priority === "high" ? "bg-red-500" : task.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"
+      )} />
+
+      <div className="p-4">
+        {/* Header Row */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-start gap-2 flex-1 min-w-0">
+            <button {...attributes} {...listeners} className="p-1 cursor-grab active:cursor-grabbing text-gray-500 hover:text-white shrink-0 mt-1">
+              <GripVertical size={14} />
+            </button>
+            <h4 className={cn(
+              "text-base font-semibold leading-snug break-words flex-1",
+              task.status === "completed" && "text-gray-500 line-through"
+            )}>
+              {task.title}
+            </h4>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            {task.activeTimer?.isActive && (
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-500 rounded-md text-xs font-mono">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+                {formatTime(elapsedTime)}
               </div>
-          )}
-          <div className="flex items-center gap-2 md:hidden">
-             <span className={cn("text-[10px] uppercase font-bold", task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500")}>
-               {task.priority}
-             </span>
+            )}
+            
+            <div className="relative" ref={menuRef}>
+              <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
+                <MoreVertical size={16} />
+              </button>
+
+              <AnimatePresence>
+                {menuOpen && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
+                  >
+                    <div className="p-1">
+                      <button onClick={() => handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                        <Edit2 size={14} /> Edit Task
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
+                      <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "high"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "high" ? "text-red-500" : "text-gray-300 hover:text-white")}>
+                        <div className="w-2 h-2 rounded-full bg-red-500" /> High
+                      </button>
+                      <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "medium"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "medium" ? "text-yellow-500" : "text-gray-300 hover:text-white")}>
+                        <div className="w-2 h-2 rounded-full bg-yellow-500" /> Medium
+                      </button>
+                      <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "low"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "low" ? "text-blue-500" : "text-gray-300 hover:text-white")}>
+                        <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
+                      <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                        <Circle size={14} /> Backlog
+                      </button>
+                      <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "in-progress"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                        <Clock size={14} /> In Focus
+                      </button>
+                      <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                        <Check size={14} /> Done
+                      </button>
+                      <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pinned"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                        <Pin size={14} /> Pin for Later
+                      </button>
+                      <div className="h-px bg-border my-1" />
+                      {task.status === "completed" && (
+                         <button onClick={() => handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
+                           <Archive size={14} /> Archive
+                         </button>
+                      )}
+                      <button onClick={() => handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
+                        <Trash2 size={14} /> Delete
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
-      </div>
-      
-      <div className="hidden md:flex items-center gap-2 mr-2">
-         {totalTime > 0 && (
-           <div className="flex items-center gap-1 text-xs text-gray-400 bg-white/5 px-2 py-1 rounded">
-             <Timer size={12} />
-             <span className={cn(task.activeTimer?.isActive && "text-primary animate-pulse")}>
-               {formatTime(totalTime)}
-             </span>
-           </div>
-         )}
-         <button 
-           onClick={(e) => {
-             e.stopPropagation();
-             task.activeTimer?.isActive ? onStopTimer(task._id) : onStartTimer(task._id);
-           }}
-           className={cn(
-             "p-1.5 rounded-lg border transition-all",
-             task.activeTimer?.isActive 
-               ? "bg-red-500/20 border-red-500 text-red-500 hover:bg-red-500/30" 
-               : "bg-primary/20 border-primary text-primary hover:bg-primary/30"
-           )}
-         >
-           {task.activeTimer?.isActive ? <Pause size={14} /> : <Play size={14} />}
-         </button>
-         <span className={cn(
-             "text-[10px] uppercase font-bold px-2 py-1 rounded bg-white/5",
-             task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500"
-         )}>
-             {task.priority}
-         </span>
-      </div>
 
-      <div className="relative" ref={menuRef}>
-        <button onClick={() => setMenuOpen(!menuOpen)} className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
-          <MoreVertical size={18} />
-        </button>
-
-        <AnimatePresence>
-          {menuOpen && (
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
-            >
-              <div className="p-1">
-                <button onClick={() => handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Edit2 size={14} /> Edit Task
-                </button>
-                <div className="h-px bg-border my-1" />
-                <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
-                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "high"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "high" ? "text-red-500" : "text-gray-300 hover:text-white")}>
-                  <div className="w-2 h-2 rounded-full bg-red-500" /> High
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "medium"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "medium" ? "text-yellow-500" : "text-gray-300 hover:text-white")}>
-                  <div className="w-2 h-2 rounded-full bg-yellow-500" /> Medium
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "low"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "low" ? "text-blue-500" : "text-gray-300 hover:text-white")}>
-                  <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
-                </button>
-                <div className="h-px bg-border my-1" />
-                <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Circle size={14} /> Backlog
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "in-progress"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Clock size={14} /> In Focus
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Check size={14} /> Done
-                </button>
-                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pinned"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                  <Pin size={14} /> Pin for Later
-                </button>
-                <div className="h-px bg-border my-1" />
-                {task.status === "completed" && (
-                   <button onClick={() => handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
-                     <Archive size={14} /> Archive
-                   </button>
-                )}
-                <button onClick={() => handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
-                  <Trash2 size={14} /> Delete
-                </button>
+        {/* Subtasks Section */}
+        {task.subtasks && task.subtasks.length > 0 && (
+          <div className="mb-3 space-y-2">
+            {/* Progress Bar */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-primary transition-all duration-300" 
+                  style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }} 
+                />
               </div>
-            </motion.div>
+              <span className="text-xs text-gray-500 font-mono tabular-nums">
+                {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
+              </span>
+            </div>
+            
+            {/* Subtask List (collapsed by default, first 2 visible) */}
+            <div className="space-y-1.5">
+              {task.subtasks.slice(0, 2).map((st, i) => (
+                <div 
+                  key={i} 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleSubtask(task._id, i);
+                  }}
+                  className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1.5 rounded transition-colors"
+                >
+                  <div className={cn(
+                    "w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center transition-all shrink-0",
+                    st.completed ? "bg-primary border-primary" : "border-gray-600 hover:border-primary"
+                  )}>
+                    {st.completed && <Check size={10} className="text-white" />}
+                  </div>
+                  <span className={cn(
+                    "text-xs leading-tight",
+                    st.completed ? "text-gray-600 line-through" : "text-gray-400"
+                  )}>
+                    {st.title}
+                  </span>
+                </div>
+              ))}
+              {task.subtasks.length > 2 && (
+                <button 
+                  onClick={() => onEdit(task)}
+                  className="text-xs text-gray-500 hover:text-primary ml-5 transition-colors"
+                >
+                  +{task.subtasks.length - 2} more
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Footer Row - Stats */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+          {/* Time Stat */}
+          {totalTime > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Clock size={12} />
+              <span className="font-mono">{formatTime(totalTime)}</span>
+            </div>
           )}
-        </AnimatePresence>
+
+          {/* Timer Controls */}
+          {task.activeTimer?.isActive ? (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onStopTimer(task._id);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-xs font-medium ml-auto"
+            >
+              <Pause size={12} /> Stop
+            </button>
+          ) : (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onStartTimer(task._id);
+              }}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-xs font-medium ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <Play size={12} /> Start
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );
-};
+                  
 
 // --- Task Column ---
 export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer }: any) => {
