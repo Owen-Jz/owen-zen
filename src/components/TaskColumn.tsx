@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2 } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -13,7 +13,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 // Types needed here
-type TaskStatus = "pending" | "in-progress" | "completed";
+type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
 type TaskPriority = "high" | "medium" | "low";
 
 interface SubTask {
@@ -203,6 +203,9 @@ export const SortableTaskItem = ({
                 </button>
                 <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
                   <Check size={14} /> Done
+                </button>
+                <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pinned"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                  <Pin size={14} /> Pin for Later
                 </button>
                 <div className="h-px bg-border my-1" />
                 {task.status === "completed" && (

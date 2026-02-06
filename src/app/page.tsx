@@ -27,7 +27,7 @@ import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 
 // --- Types ---
-type TaskStatus = "pending" | "in-progress" | "completed";
+type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
 type TaskPriority = "high" | "medium" | "low";
 
 interface SubTask {
@@ -384,7 +384,7 @@ const TaskBoard = ({
     // Determine target status
     let newStatus: TaskStatus | undefined;
     
-    if (["pending", "in-progress", "completed"].includes(overId)) {
+    if (["pending", "in-progress", "completed", "pinned"].includes(overId)) {
         // Dropped on a column
         newStatus = overId as TaskStatus;
     } else {
@@ -433,7 +433,8 @@ const TaskBoard = ({
   const columns: { id: TaskStatus; title: string }[] = [
     { id: "pending", title: "Backlog" },
     { id: "in-progress", title: "In Focus" },
-    { id: "completed", title: "Done" }
+    { id: "completed", title: "Done" },
+    { id: "pinned", title: "Pin for Later" }
   ];
 
   // Only show non-archived tasks
@@ -446,7 +447,7 @@ const TaskBoard = ({
       onDragStart={handleDragStart} 
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {columns.map(col => (
           <TaskColumn
             key={col.id}
@@ -641,6 +642,7 @@ export default function Dashboard() {
     pending: tasks.filter(t => t.status === "pending" && !t.isArchived).length,
     inProgress: tasks.filter(t => t.status === "in-progress" && !t.isArchived).length,
     completed: tasks.filter(t => t.status === "completed" && !t.isArchived).length,
+    pinned: tasks.filter(t => t.status === "pinned" && !t.isArchived).length,
   };
 
   return (
