@@ -66,7 +66,7 @@ export const SortableTaskItem = ({
   onArchive: (id: string) => void;
   onToggleSubtask: (taskId: string, index: number) => void;
   onUpdatePriority: (id: string, priority: TaskPriority) => void;
-  onStartTimer: (id: string) => void;
+  onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
 }) => {
   const {

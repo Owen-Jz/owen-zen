@@ -47,6 +47,7 @@ interface TimeLog {
 interface ActiveTimer {
   startedAt?: string;
   isActive: boolean;
+  sessionTitle?: string; // Title set when starting the timer
 }
 
 interface Task {
@@ -290,7 +291,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: {
               activeTimer={task.activeTimer}
               totalTimeSpent={task.totalTimeSpent || 0}
               timeLogs={task.timeLogs}
-              onStart={() => onStartTimer(task._id)}
+              onStart={(sessionTitle) => onStartTimer(task._id, sessionTitle)}
               onStop={(note) => onStopTimer(task._id, note)}
             />
           </div>
@@ -691,16 +692,16 @@ export default function Dashboard() {
       }
   };
 
-  const startTimer = async (taskId: string) => {
+  const startTimer = async (taskId: string, sessionTitle?: string) => {
     const oldTasks = [...tasks];
     const now = new Date().toISOString();
-    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: { startedAt: now, isActive: true } } : t));
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: { startedAt: now, isActive: true, sessionTitle } } : t));
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeTimer: { startedAt: now, isActive: true } }),
+        body: JSON.stringify({ activeTimer: { startedAt: now, isActive: true, sessionTitle } }),
       });
     } catch {
       setTasks(oldTasks);

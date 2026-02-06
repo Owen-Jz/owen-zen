@@ -50,7 +50,8 @@ const TaskSchema = new mongoose.Schema({
   },
   activeTimer: {
     startedAt: Date,
-    isActive: { type: Boolean, default: false }
+    isActive: { type: Boolean, default: false },
+    sessionTitle: String
   }
 });
 
