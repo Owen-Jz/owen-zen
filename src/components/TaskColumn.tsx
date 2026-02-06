@@ -319,7 +319,7 @@ export const SortableTaskItem = ({
       </div>
     </div>
   );
-                  
+};
 
 // --- Task Column ---
 export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer }: any) => {
