@@ -283,6 +283,18 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: {
              </form>
           </div>
 
+          <div>
+            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Time Tracking</label>
+            <TimeTracker
+              taskId={task._id}
+              activeTimer={task.activeTimer}
+              totalTimeSpent={task.totalTimeSpent || 0}
+              timeLogs={task.timeLogs}
+              onStart={() => onStartTimer(task._id)}
+              onStop={(note) => onStopTimer(task._id, note)}
+            />
+          </div>
+
           <div className="flex gap-3 pt-2">
             <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border border-border text-gray-400 hover:bg-white/5 transition-colors">Cancel</button>
             <button onClick={() => onSave(task._id, title, priority, subtasks)} className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium">Save Changes</button>
@@ -752,7 +764,9 @@ export default function Dashboard() {
             <EditTaskModal 
                 task={editingTask} 
                 onClose={() => setEditingTask(null)} 
-                onSave={saveEditTask} 
+                onSave={saveEditTask}
+                onStartTimer={startTimer}
+                onStopTimer={stopTimer}
             />
         )}
       </AnimatePresence>
