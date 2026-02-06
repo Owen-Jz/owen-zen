@@ -179,7 +179,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: {
   task: Task | null, 
   onClose: () => void, 
   onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
-  onStartTimer: (id: string) => void,
+  onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void
 }) => {
   const [title, setTitle] = useState(task?.title || "");
@@ -407,7 +407,7 @@ const TaskBoard = ({
     onArchive: (id: string) => void,
     onToggleSubtask: (taskId: string, index: number) => void,
     onUpdatePriority: (id: string, priority: TaskPriority) => void,
-    onStartTimer: (id: string) => void,
+    onStartTimer: (id: string, sessionTitle?: string) => void,
     onStopTimer: (id: string, note?: string) => void
 }) => {
   const sensors = useSensors(
