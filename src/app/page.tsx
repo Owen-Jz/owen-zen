@@ -347,7 +347,8 @@ const TaskBoard = ({
     onDelete,
     onEdit,
     onArchive,
-    onToggleSubtask
+    onToggleSubtask,
+    onUpdatePriority
 }: { 
     tasks: Task[], 
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -355,7 +356,8 @@ const TaskBoard = ({
     onDelete: (id: string) => void,
     onEdit: (task: Task) => void,
     onArchive: (id: string) => void,
-    onToggleSubtask: (taskId: string, index: number) => void
+    onToggleSubtask: (taskId: string, index: number) => void,
+    onUpdatePriority: (id: string, priority: TaskPriority) => void
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), 
@@ -456,6 +458,7 @@ const TaskBoard = ({
             onEdit={onEdit}
             onArchive={onArchive}
             onToggleSubtask={onToggleSubtask}
+            onUpdatePriority={onUpdatePriority}
           />
         ))}
       </div>
@@ -537,6 +540,20 @@ export default function Dashboard() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const updateTaskPriority = async (id: string, priority: TaskPriority) => {
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, priority } : t));
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ priority }),
       });
     } catch {
       setTasks(oldTasks);
@@ -709,6 +726,7 @@ export default function Dashboard() {
                     onEdit={setEditingTask}
                     onArchive={archiveTask}
                     onToggleSubtask={toggleTaskSubtask}
+                    onUpdatePriority={updateTaskPriority}
                 />
             )}
           </div>
