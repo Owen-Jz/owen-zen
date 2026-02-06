@@ -39,7 +39,8 @@ export const SortableTaskItem = ({
   onUpdateStatus, 
   onEdit, 
   onArchive,
-  onToggleSubtask
+  onToggleSubtask,
+  onUpdatePriority
 }: { 
   task: Task; 
   onDelete: (id: string) => void;
@@ -47,6 +48,7 @@ export const SortableTaskItem = ({
   onEdit: (task: Task) => void;
   onArchive: (id: string) => void;
   onToggleSubtask: (taskId: string, index: number) => void;
+  onUpdatePriority: (id: string, priority: TaskPriority) => void;
 }) => {
   const {
     attributes,
@@ -181,6 +183,17 @@ export const SortableTaskItem = ({
                   <Edit2 size={14} /> Edit Task
                 </button>
                 <div className="h-px bg-border my-1" />
+                <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
+                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "high"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "high" ? "text-red-500" : "text-gray-300 hover:text-white")}>
+                  <div className="w-2 h-2 rounded-full bg-red-500" /> High
+                </button>
+                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "medium"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "medium" ? "text-yellow-500" : "text-gray-300 hover:text-white")}>
+                  <div className="w-2 h-2 rounded-full bg-yellow-500" /> Medium
+                </button>
+                <button onClick={() => handleMenuAction(() => onUpdatePriority(task._id, "low"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "low" ? "text-blue-500" : "text-gray-300 hover:text-white")}>
+                  <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
+                </button>
+                <div className="h-px bg-border my-1" />
                 <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
                 <button onClick={() => handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
                   <Circle size={14} /> Backlog
@@ -210,7 +223,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority }: any) => {
   const { setNodeRef } = useDroppable({
     id: id,
   });
@@ -240,6 +253,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               onEdit={onEdit}
               onArchive={onArchive}
               onToggleSubtask={onToggleSubtask}
+              onUpdatePriority={onUpdatePriority}
             />
           ))}
           {/* Invisible spacer */}
