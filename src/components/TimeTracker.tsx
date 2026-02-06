@@ -1,4 +1,4 @@
-import { Play, Pause, Clock, Calendar } from "lucide-react";
+import { Play, Pause, Clock, Calendar, Trash2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -16,9 +16,10 @@ interface TimeTrackerProps {
   timeLogs?: TimeLog[];
   onStart: (sessionTitle?: string) => void;
   onStop: (note?: string) => void;
+  onDeleteLog?: (logIndex: number) => void;
 }
 
-export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop }: TimeTrackerProps) => {
+export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop, onDeleteLog }: TimeTrackerProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
@@ -149,18 +150,38 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
             exit={{ height: 0, opacity: 0 }}
             className="space-y-2 overflow-hidden"
           >
-            {timeLogs.slice().reverse().map((log, i) => (
-              <div key={i} className="p-3 bg-surface rounded-lg border border-border">
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center gap-2 text-xs text-gray-400">
-                    <Calendar size={12} />
-                    <span>{formatDate(log.startedAt)}</span>
+            {timeLogs.slice().reverse().map((log, i) => {
+              const actualIndex = timeLogs.length - 1 - i; // Reverse index for deletion
+              return (
+                <div key={i} className="p-3 bg-surface rounded-lg border border-border group hover:border-border/80 transition-all">
+                  <div className="flex justify-between items-start gap-3">
+                    <div className="flex-1 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                          <Calendar size={12} />
+                          <span>{formatDate(log.startedAt)}</span>
+                        </div>
+                        <span className="font-bold text-primary text-sm">{formatTime(log.duration)}</span>
+                      </div>
+                      {log.note ? (
+                        <div className="text-sm text-gray-300 font-medium">"{log.note}"</div>
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">No description</div>
+                      )}
+                    </div>
+                    {onDeleteLog && (
+                      <button
+                        onClick={() => onDeleteLog(actualIndex)}
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
+                        title="Delete session"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </div>
-                  <span className="font-bold text-primary text-sm">{formatTime(log.duration)}</span>
                 </div>
-                {log.note && <div className="text-sm text-gray-300 font-medium mt-1">"{log.note}"</div>}
-              </div>
-            ))}
+              );
+            })}
           </motion.div>
         )}
       </AnimatePresence>

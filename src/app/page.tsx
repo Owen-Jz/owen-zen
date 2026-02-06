@@ -293,6 +293,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: {
               timeLogs={task.timeLogs}
               onStart={(sessionTitle) => onStartTimer(task._id, sessionTitle)}
               onStop={(note) => onStopTimer(task._id, note)}
+              onDeleteLog={(logIndex) => deleteTimeLog(task._id, logIndex)}
             />
           </div>
 
@@ -741,6 +742,35 @@ export default function Dashboard() {
           timeLogs: newTimeLogs,
           totalTimeSpent: newTotalTime,
           activeTimer: { isActive: false }
+        }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const deleteTimeLog = async (taskId: string, logIndex: number) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task?.timeLogs) return;
+
+    const deletedLog = task.timeLogs[logIndex];
+    const newTimeLogs = task.timeLogs.filter((_, i) => i !== logIndex);
+    const newTotalTime = (task.totalTimeSpent || 0) - deletedLog.duration;
+
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === taskId ? {
+      ...t,
+      timeLogs: newTimeLogs,
+      totalTimeSpent: Math.max(0, newTotalTime)
+    } : t));
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeLogs: newTimeLogs,
+          totalTimeSpent: Math.max(0, newTotalTime)
         }),
       });
     } catch {
