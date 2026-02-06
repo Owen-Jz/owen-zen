@@ -175,12 +175,13 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 };
 
 // --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: { 
+const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog }: { 
   task: Task | null, 
   onClose: () => void, 
   onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
-  onStopTimer: (id: string, note?: string) => void
+  onStopTimer: (id: string, note?: string) => void,
+  onDeleteTimeLog: (id: string, logIndex: number) => void
 }) => {
   const [title, setTitle] = useState(task?.title || "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
@@ -293,7 +294,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: {
               timeLogs={task.timeLogs}
               onStart={(sessionTitle) => onStartTimer(task._id, sessionTitle)}
               onStop={(note) => onStopTimer(task._id, note)}
-              onDeleteLog={(logIndex) => deleteTimeLog(task._id, logIndex)}
+              onDeleteLog={(logIndex) => onDeleteTimeLog(task._id, logIndex)}
             />
           </div>
 
@@ -798,6 +799,7 @@ export default function Dashboard() {
                 onSave={saveEditTask}
                 onStartTimer={startTimer}
                 onStopTimer={stopTimer}
+                onDeleteTimeLog={deleteTimeLog}
             />
         )}
       </AnimatePresence>
