@@ -11,10 +11,10 @@ interface TimeLog {
 
 interface TimeTrackerProps {
   taskId: string;
-  activeTimer?: { startedAt?: string; isActive: boolean };
+  activeTimer?: { startedAt?: string; isActive: boolean; sessionTitle?: string };
   totalTimeSpent: number;
   timeLogs?: TimeLog[];
-  onStart: () => void;
+  onStart: (sessionTitle?: string) => void;
   onStop: (note?: string) => void;
 }
 
@@ -73,20 +73,29 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
   };
 
   const handleStart = () => {
-    onStart();
+    onStart(sessionTitle.trim() || undefined);
     setShowStartModal(false);
     setSessionTitle("");
   };
 
   const handleStop = () => {
-    const fullNote = sessionTitle.trim() 
-      ? `${sessionTitle.trim()}${note.trim() ? ` - ${note.trim()}` : ''}`
+    // Use the title from when timer started, or let user override
+    const finalTitle = sessionTitle.trim() || activeTimer?.sessionTitle || "";
+    const fullNote = finalTitle
+      ? `${finalTitle}${note.trim() ? ` - ${note.trim()}` : ''}`
       : note.trim();
     onStop(fullNote || undefined);
     setShowStopModal(false);
     setNote("");
     setSessionTitle("");
   };
+
+  // Pre-fill stop modal with session title from start
+  useEffect(() => {
+    if (showStopModal && activeTimer?.sessionTitle) {
+      setSessionTitle(activeTimer.sessionTitle);
+    }
+  }, [showStopModal, activeTimer?.sessionTitle]);
 
   return (
     <div className="space-y-3">
