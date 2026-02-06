@@ -26,6 +26,8 @@ import { VisionBoardView } from "@/components/VisionBoardView"; // Import Vision
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 
+import { TimeTracker } from "@/components/TimeTracker";
+
 // --- Types ---
 type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
 type TaskPriority = "high" | "medium" | "low";
@@ -33,6 +35,18 @@ type TaskPriority = "high" | "medium" | "low";
 interface SubTask {
   title: string;
   completed: boolean;
+}
+
+interface TimeLog {
+  startedAt: string;
+  endedAt?: string;
+  duration: number; // seconds
+  note?: string;
+}
+
+interface ActiveTimer {
+  startedAt?: string;
+  isActive: boolean;
 }
 
 interface Task {
@@ -44,6 +58,9 @@ interface Task {
   order: number;
   isArchived?: boolean;
   subtasks?: SubTask[]; // Added
+  timeLogs?: TimeLog[];
+  totalTimeSpent?: number; // seconds
+  activeTimer?: ActiveTimer;
 }
 
 interface Wallet {
@@ -157,7 +174,13 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 };
 
 // --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave }: { task: Task | null, onClose: () => void, onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void }) => {
+const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer }: { 
+  task: Task | null, 
+  onClose: () => void, 
+  onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
+  onStartTimer: (id: string) => void,
+  onStopTimer: (id: string, note?: string) => void
+}) => {
   const [title, setTitle] = useState(task?.title || "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
   const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
@@ -359,7 +382,9 @@ const TaskBoard = ({
     onEdit,
     onArchive,
     onToggleSubtask,
-    onUpdatePriority
+    onUpdatePriority,
+    onStartTimer,
+    onStopTimer
 }: { 
     tasks: Task[], 
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -368,7 +393,9 @@ const TaskBoard = ({
     onEdit: (task: Task) => void,
     onArchive: (id: string) => void,
     onToggleSubtask: (taskId: string, index: number) => void,
-    onUpdatePriority: (id: string, priority: TaskPriority) => void
+    onUpdatePriority: (id: string, priority: TaskPriority) => void,
+    onStartTimer: (id: string) => void,
+    onStopTimer: (id: string, note?: string) => void
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), 
@@ -471,6 +498,8 @@ const TaskBoard = ({
             onArchive={onArchive}
             onToggleSubtask={onToggleSubtask}
             onUpdatePriority={onUpdatePriority}
+            onStartTimer={onStartTimer}
+            onStopTimer={onStopTimer}
           />
         ))}
       </div>
@@ -650,6 +679,62 @@ export default function Dashboard() {
       }
   };
 
+  const startTimer = async (taskId: string) => {
+    const oldTasks = [...tasks];
+    const now = new Date().toISOString();
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: { startedAt: now, isActive: true } } : t));
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeTimer: { startedAt: now, isActive: true } }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const stopTimer = async (taskId: string, note?: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task?.activeTimer?.isActive) return;
+
+    const now = new Date().toISOString();
+    const duration = Math.floor((new Date(now).getTime() - new Date(task.activeTimer.startedAt!).getTime()) / 1000);
+    
+    const newLog: TimeLog = {
+      startedAt: task.activeTimer.startedAt!,
+      endedAt: now,
+      duration,
+      note
+    };
+
+    const newTimeLogs = [...(task.timeLogs || []), newLog];
+    const newTotalTime = (task.totalTimeSpent || 0) + duration;
+
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === taskId ? {
+      ...t,
+      timeLogs: newTimeLogs,
+      totalTimeSpent: newTotalTime,
+      activeTimer: { isActive: false }
+    } : t));
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeLogs: newTimeLogs,
+          totalTimeSpent: newTotalTime,
+          activeTimer: { isActive: false }
+        }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
   const stats = {
     pending: tasks.filter(t => t.status === "pending" && !t.isArchived).length,
     inProgress: tasks.filter(t => t.status === "in-progress" && !t.isArchived).length,
@@ -738,6 +823,8 @@ export default function Dashboard() {
                     onArchive={archiveTask}
                     onToggleSubtask={toggleTaskSubtask}
                     onUpdatePriority={updateTaskPriority}
+                    onStartTimer={startTimer}
+                    onStopTimer={stopTimer}
                 />
             )}
           </div>

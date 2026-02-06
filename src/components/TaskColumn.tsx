@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -21,6 +21,18 @@ interface SubTask {
   completed: boolean;
 }
 
+interface TimeLog {
+  startedAt: string;
+  endedAt?: string;
+  duration: number;
+  note?: string;
+}
+
+interface ActiveTimer {
+  startedAt?: string;
+  isActive: boolean;
+}
+
 interface Task {
   _id: string; 
   title: string;
@@ -30,6 +42,9 @@ interface Task {
   order: number;
   isArchived?: boolean;
   subtasks?: SubTask[];
+  timeLogs?: TimeLog[];
+  totalTimeSpent?: number;
+  activeTimer?: ActiveTimer;
 }
 
 // --- Sortable Task Item ---
@@ -40,7 +55,9 @@ export const SortableTaskItem = ({
   onEdit, 
   onArchive,
   onToggleSubtask,
-  onUpdatePriority
+  onUpdatePriority,
+  onStartTimer,
+  onStopTimer
 }: { 
   task: Task; 
   onDelete: (id: string) => void;
@@ -49,6 +66,8 @@ export const SortableTaskItem = ({
   onArchive: (id: string) => void;
   onToggleSubtask: (taskId: string, index: number) => void;
   onUpdatePriority: (id: string, priority: TaskPriority) => void;
+  onStartTimer: (id: string) => void;
+  onStopTimer: (id: string, note?: string) => void;
 }) => {
   const {
     attributes,
@@ -72,7 +91,21 @@ export const SortableTaskItem = ({
   };
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Timer tick effect
+  useEffect(() => {
+    if (!task.activeTimer?.isActive) return;
+    
+    const interval = setInterval(() => {
+      const start = new Date(task.activeTimer!.startedAt!).getTime();
+      const now = Date.now();
+      setElapsedTime(Math.floor((now - start) / 1000));
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [task.activeTimer]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,6 +121,17 @@ export const SortableTaskItem = ({
     action();
     setMenuOpen(false);
   };
+
+  const formatTime = (seconds: number) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
+
+  const totalTime = (task.totalTimeSpent || 0) + (task.activeTimer?.isActive ? elapsedTime : 0);
 
   return (
     <div
@@ -157,6 +201,28 @@ export const SortableTaskItem = ({
       </div>
       
       <div className="hidden md:flex items-center gap-2 mr-2">
+         {totalTime > 0 && (
+           <div className="flex items-center gap-1 text-xs text-gray-400 bg-white/5 px-2 py-1 rounded">
+             <Timer size={12} />
+             <span className={cn(task.activeTimer?.isActive && "text-primary animate-pulse")}>
+               {formatTime(totalTime)}
+             </span>
+           </div>
+         )}
+         <button 
+           onClick={(e) => {
+             e.stopPropagation();
+             task.activeTimer?.isActive ? onStopTimer(task._id) : onStartTimer(task._id);
+           }}
+           className={cn(
+             "p-1.5 rounded-lg border transition-all",
+             task.activeTimer?.isActive 
+               ? "bg-red-500/20 border-red-500 text-red-500 hover:bg-red-500/30" 
+               : "bg-primary/20 border-primary text-primary hover:bg-primary/30"
+           )}
+         >
+           {task.activeTimer?.isActive ? <Pause size={14} /> : <Play size={14} />}
+         </button>
          <span className={cn(
              "text-[10px] uppercase font-bold px-2 py-1 rounded bg-white/5",
              task.priority === 'high' ? "text-red-500" : task.priority === 'medium' ? "text-yellow-500" : "text-blue-500"
@@ -226,7 +292,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer }: any) => {
   const { setNodeRef } = useDroppable({
     id: id,
   });
@@ -257,6 +323,8 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               onArchive={onArchive}
               onToggleSubtask={onToggleSubtask}
               onUpdatePriority={onUpdatePriority}
+              onStartTimer={onStartTimer}
+              onStopTimer={onStopTimer}
             />
           ))}
           {/* Invisible spacer */}
