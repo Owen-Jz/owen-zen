@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -541,6 +541,7 @@ export default function Dashboard() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [greeting, setGreeting] = useState("Good Morning");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
+  const [, forceUpdate] = useState(0); // For live timer updates
 
   // Load Theme
   useEffect(() => {
@@ -554,6 +555,18 @@ export default function Dashboard() {
     else if (hour < 18) setGreeting("Good Afternoon");
     else setGreeting("Good Evening");
   }, []);
+
+  // Live timer update for active tasks
+  useEffect(() => {
+    const hasActiveTimers = tasks.some(t => t.activeTimer?.isActive);
+    if (!hasActiveTimers) return;
+
+    const interval = setInterval(() => {
+      forceUpdate(prev => prev + 1); // Trigger re-render every second
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [tasks]);
 
   // Load Tasks
   useEffect(() => {
@@ -814,6 +827,60 @@ export default function Dashboard() {
       </AnimatePresence>
 
       <main className="flex-1 transition-all duration-300 p-4 md:p-8 overflow-y-auto h-screen w-full md:ml-20">
+        {/* Active Timer Bar */}
+        <AnimatePresence>
+          {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="mb-4 md:mb-6 max-w-[1600px] mx-auto"
+            >
+              <div className="bg-surface border border-primary/30 rounded-xl p-3 md:p-4 shadow-lg">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="text-primary" size={16} />
+                  <span className="text-xs uppercase font-bold text-gray-400">Active Tasks</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {tasks.filter(t => t.activeTimer?.isActive).map(task => {
+                    const elapsed = Math.floor((Date.now() - new Date(task.activeTimer!.startedAt!).getTime()) / 1000);
+                    const hours = Math.floor(elapsed / 3600);
+                    const minutes = Math.floor((elapsed % 3600) / 60);
+                    const seconds = elapsed % 60;
+                    const timeStr = hours > 0 
+                      ? `${hours}h ${minutes}m` 
+                      : minutes > 0 
+                        ? `${minutes}m ${seconds}s` 
+                        : `${seconds}s`;
+                    
+                    return (
+                      <div
+                        key={task._id}
+                        className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-2 hover:border-primary/50 transition-all group"
+                      >
+                        <div className="flex items-center gap-2 flex-1">
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                          <span className="text-sm font-medium text-gray-300 line-clamp-1">{task.title}</span>
+                        </div>
+                        <span className="text-sm font-mono font-bold text-primary tabular-nums min-w-[70px] text-right">
+                          {timeStr}
+                        </span>
+                        <button
+                          onClick={() => stopTimer(task._id)}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-500 transition-all"
+                          title="Stop timer"
+                        >
+                          <Pause size={14} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* Header */}
         <header className="flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto">
           <div>
