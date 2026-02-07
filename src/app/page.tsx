@@ -25,6 +25,7 @@ import { HabitView } from "@/components/HabitView";
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
+import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch Later
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -95,6 +96,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
     { id: "habits", label: "Habits", icon: Trophy }, 
     { id: "vision", label: "Vision & Word", icon: Target }, // Added Vision Board
+    { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
     { id: "sniper", label: "Sniper System", icon: Crosshair },
     { id: "socials", label: "Social Hub", icon: Share2 },
@@ -882,10 +884,10 @@ export default function Dashboard() {
         <header className="flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : `${greeting}, Owen.`}
+              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : "Let's stay focused today."}
+              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : "Let's stay focused today."}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -978,6 +980,7 @@ export default function Dashboard() {
         {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
         {activeTab === "vision" && <VisionBoardView />}
+        {activeTab === "watch" && <WatchLaterView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
         {activeTab === "sniper" && <SniperView />}
         {activeTab === "socials" && <SocialHubView />}
