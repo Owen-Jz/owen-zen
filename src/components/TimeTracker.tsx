@@ -52,20 +52,39 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const now = new Date();
-    const diffDays = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Convert to Lagos time (GMT+1)
+    const lagosDate = new Date(date.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+    const lagosNow = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+    
+    const diffDays = Math.floor((lagosNow.getTime() - lagosDate.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const timeStr = lagosDate.toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true 
+    });
     
     if (diffDays === 0) {
-      return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      // Today - show full date + time for clarity
+      const dateStr = lagosDate.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric' 
+      });
+      return `Today, ${dateStr} at ${timeStr}`;
     } else if (diffDays === 1) {
-      return `Yesterday ${date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
+      return `Yesterday at ${timeStr}`;
+    } else if (diffDays < 7) {
+      // This week - show day name
+      const dayName = lagosDate.toLocaleDateString('en-US', { weekday: 'long' });
+      return `${dayName} at ${timeStr}`;
     } else {
-      return date.toLocaleDateString('en-US', { 
+      // Older - full date
+      return lagosDate.toLocaleDateString('en-US', { 
         month: 'short', 
         day: 'numeric', 
-        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined,
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
+        year: lagosDate.getFullYear() !== lagosNow.getFullYear() ? 'numeric' : undefined
+      }) + ` at ${timeStr}`;
     }
   };
 
@@ -152,27 +171,39 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
           >
             {timeLogs.slice().reverse().map((log, i) => {
               const actualIndex = timeLogs.length - 1 - i; // Reverse index for deletion
+              const startDate = new Date(log.startedAt);
+              const endDate = log.endedAt ? new Date(log.endedAt) : null;
+              
               return (
-                <div key={i} className="p-3 bg-surface rounded-lg border border-border group hover:border-border/80 transition-all">
+                <div key={i} className="p-3 bg-surface rounded-lg border border-border group hover:border-primary/30 transition-all">
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center justify-between">
+                      {/* Date and Duration */}
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           <Calendar size={12} />
                           <span>{formatDate(log.startedAt)}</span>
                         </div>
-                        <span className="font-bold text-primary text-sm">{formatTime(log.duration)}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-primary text-sm tabular-nums">{formatTime(log.duration)}</span>
+                        </div>
                       </div>
+                      
+                      {/* Session Note/Title */}
                       {log.note ? (
-                        <div className="text-sm text-gray-300 font-medium">"{log.note}"</div>
+                        <div className="text-sm text-white font-medium bg-background/50 px-3 py-2 rounded-lg border border-border/50">
+                          {log.note}
+                        </div>
                       ) : (
-                        <div className="text-sm text-gray-500 italic">No description</div>
+                        <div className="text-xs text-gray-500 italic px-2">No description</div>
                       )}
                     </div>
+                    
+                    {/* Delete Button */}
                     {onDeleteLog && (
                       <button
                         onClick={() => onDeleteLog(actualIndex)}
-                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-all"
+                        className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded transition-all shrink-0"
                         title="Delete session"
                       >
                         <Trash2 size={14} />
