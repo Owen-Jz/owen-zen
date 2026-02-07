@@ -834,43 +834,35 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="mb-4 md:mb-6 max-w-[1600px] mx-auto"
+              className="fixed top-0 left-0 md:left-20 right-0 z-50 bg-background/95 backdrop-blur-lg border-b border-primary/20 shadow-lg"
             >
-              <div className="bg-surface border border-primary/30 rounded-xl p-3 md:p-4 shadow-lg">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="text-primary" size={16} />
-                  <span className="text-xs uppercase font-bold text-gray-400">Active Tasks</span>
-                </div>
-                <div className="flex flex-wrap gap-2">
+              <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
+                <div className="flex items-center gap-4 overflow-x-auto">
                   {tasks.filter(t => t.activeTimer?.isActive).map(task => {
                     const elapsed = Math.floor((Date.now() - new Date(task.activeTimer!.startedAt!).getTime()) / 1000);
                     const hours = Math.floor(elapsed / 3600);
                     const minutes = Math.floor((elapsed % 3600) / 60);
                     const seconds = elapsed % 60;
                     const timeStr = hours > 0 
-                      ? `${hours}h ${minutes}m` 
-                      : minutes > 0 
-                        ? `${minutes}m ${seconds}s` 
-                        : `${seconds}s`;
+                      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                      : `${minutes}:${seconds.toString().padStart(2, '0')}`;
                     
                     return (
                       <div
                         key={task._id}
-                        className="flex items-center gap-3 bg-background border border-border rounded-lg px-3 py-2 hover:border-primary/50 transition-all group"
+                        className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 hover:bg-primary/15 transition-all group whitespace-nowrap"
                       >
-                        <div className="flex items-center gap-2 flex-1">
-                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                          <span className="text-sm font-medium text-gray-300 line-clamp-1">{task.title}</span>
-                        </div>
-                        <span className="text-sm font-mono font-bold text-primary tabular-nums min-w-[70px] text-right">
+                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                        <span className="text-sm font-medium text-white max-w-[200px] truncate">{task.title}</span>
+                        <span className="text-base font-mono font-bold text-primary tabular-nums">
                           {timeStr}
                         </span>
                         <button
                           onClick={() => stopTimer(task._id)}
-                          className="opacity-0 group-hover:opacity-100 p-1 text-gray-500 hover:text-red-500 transition-all"
+                          className="p-1.5 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
                           title="Stop timer"
                         >
-                          <Pause size={14} />
+                          <Pause size={12} />
                         </button>
                       </div>
                     );
@@ -880,6 +872,11 @@ export default function Dashboard() {
             </motion.div>
           )}
         </AnimatePresence>
+
+        {/* Spacer when timer bar is active */}
+        {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
+          <div className="h-16 md:h-14" />
+        )}
 
         {/* Header */}
         <header className="flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto">
