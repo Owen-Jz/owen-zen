@@ -210,7 +210,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
       <div className="bg-surface border border-border w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
-        <h3 className="text-lg font-bold mb-4">Edit Task</h3>
+        <h3 className="text-lg font-bold mb-4">Task Details</h3>
         <div className="space-y-4">
           <div>
             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Title</label>
@@ -540,14 +540,16 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [greeting, setGreeting] = useState("Good Morning");
+  const [isLofiPlaying, setIsLofiPlaying] = useState(false);
 
   // Load Theme
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
     
-    // Set Greeting
-    const hour = new Date().getHours();
+    // Set Greeting (Lagos time: GMT+1)
+    const lagosTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
+    const hour = lagosTime.getHours();
     if (hour < 12) setGreeting("Good Morning");
     else if (hour < 18) setGreeting("Good Afternoon");
     else setGreeting("Good Evening");
@@ -665,11 +667,18 @@ export default function Dashboard() {
 
   const deleteTask = async (id: string) => {
     const oldTasks = [...tasks];
+    const deletedTask = tasks.find(t => t._id === id);
+    
+    // Optimistic update: remove immediately
     setTasks(tasks.filter(t => t._id !== id));
+    
     try {
       await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      // Success - task stays deleted
     } catch {
+      // Rollback on error
       setTasks(oldTasks);
+      alert('Failed to delete task. Please try again.');
     }
   };
 
@@ -815,12 +824,37 @@ export default function Dashboard() {
               {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : "Let's stay focused today."}
             </p>
           </div>
-          <button 
-            onClick={() => setIsSidebarOpen(true)}
-            className="md:hidden p-2 bg-surface border border-border rounded-lg text-gray-300 hover:text-white"
-          >
-            <Menu size={24} />
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Lofi Girl Button */}
+            <button
+              onClick={() => {
+                if (isLofiPlaying) {
+                  setIsLofiPlaying(false);
+                } else {
+                  window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
+                  setIsLofiPlaying(true);
+                }
+              }}
+              className={clsx(
+                "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all border",
+                isLofiPlaying
+                  ? "bg-primary/20 border-primary text-primary"
+                  : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
+              )}
+              title="Play Lofi Girl on YouTube"
+            >
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z"/>
+              </svg>
+              <span className="text-sm font-medium">Lofi Girl</span>
+            </button>
+            <button 
+              onClick={() => setIsSidebarOpen(true)}
+              className="md:hidden p-2 bg-surface border border-border rounded-lg text-gray-300 hover:text-white"
+            >
+              <Menu size={24} />
+            </button>
+          </div>
         </header>
 
         {activeTab === "tasks" && (

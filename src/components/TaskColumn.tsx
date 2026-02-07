@@ -186,7 +186,7 @@ export const SortableTaskItem = ({
                   >
                     <div className="p-1">
                       <button onClick={() => handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                        <Edit2 size={14} /> Edit Task
+                        <Edit2 size={14} /> View Details
                       </button>
                       <div className="h-px bg-border my-1" />
                       <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
