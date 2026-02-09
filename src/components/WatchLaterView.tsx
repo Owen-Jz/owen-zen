@@ -17,6 +17,12 @@ export const WatchLaterView = () => {
       url: "https://www.youtube.com/watch?v=KmXfxcGhJDE",
       title: "Added Video",
       thumbnail: "https://img.youtube.com/vi/KmXfxcGhJDE/maxresdefault.jpg"
+    },
+    {
+      id: "2",
+      url: "https://youtu.be/MeDzw7FKfZk?si=rZQBIlyqTOXAPzJi",
+      title: "Watch: High-Value Video",
+      thumbnail: "https://img.youtube.com/vi/MeDzw7FKfZk/maxresdefault.jpg"
     }
   ]);
   const [newVideoUrl, setNewVideoUrl] = useState("");
