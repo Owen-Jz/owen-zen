@@ -8,7 +8,7 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import {
   DndContext,
-  closestCenter,
+  closestCorners,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -20,8 +20,8 @@ import {
   sortableKeyboardCoordinates,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { TaskColumn, SortableTaskItem } from "@/components/TaskColumn";
-import { HabitView } from "@/components/HabitView"; 
+import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
+import { HabitView } from "@/components/HabitView";
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
@@ -52,7 +52,7 @@ interface ActiveTimer {
 }
 
 interface Task {
-  _id: string; 
+  _id: string;
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
@@ -94,7 +94,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
-    { id: "habits", label: "Habits", icon: Trophy }, 
+    { id: "habits", label: "Habits", icon: Trophy },
     { id: "vision", label: "Vision & Word", icon: Target }, // Added Vision Board
     { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
@@ -106,7 +106,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 
   return (
     <>
-      <div 
+      <div
         className={cn(
           "fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300",
           isOpen ? "opacity-100" : "opacity-0 pointer-events-none"
@@ -122,7 +122,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
         <div className="p-6 flex items-center justify-between">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-8 h-8 relative shrink-0">
-               <Image src="/logo.svg" alt="Owen Zen" fill className="object-contain" />
+              <Image src="/logo.svg" alt="Owen Zen" fill className="object-contain" />
             </div>
             <span className={cn("font-bold text-lg tracking-tight whitespace-nowrap transition-all duration-300", isCollapsed && "md:hidden")}>
               Owen Zen
@@ -156,7 +156,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
                 {isActive && (
                   <motion.div
                     layoutId="active-pill"
-                    className="absolute left-0 w-1 h-6 bg-primary rounded-r-full md:left-1" 
+                    className="absolute left-0 w-1 h-6 bg-primary rounded-r-full md:left-1"
                   />
                 )}
               </button>
@@ -165,7 +165,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
         </nav>
 
         {/* Desktop Collapse Toggle */}
-        <button 
+        <button
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="hidden md:flex absolute bottom-6 left-1/2 -translate-x-1/2 p-2 bg-surface-hover border border-border rounded-lg hover:bg-white/10 transition-colors"
         >
@@ -177,9 +177,9 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 };
 
 // --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog }: { 
-  task: Task | null, 
-  onClose: () => void, 
+const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog }: {
+  task: Task | null,
+  onClose: () => void,
   onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
@@ -216,13 +216,13 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
         <div className="space-y-4">
           <div>
             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Title</label>
-            <textarea 
-              value={title} 
-              onChange={(e) => setTitle(e.target.value)} 
+            <textarea
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none min-h-[80px] resize-none"
             />
           </div>
-          
+
           <div>
             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Priority</label>
             <div className="grid grid-cols-3 gap-2">
@@ -232,7 +232,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
                   onClick={() => setPriority(p)}
                   className={cn(
                     "px-3 py-2 rounded-lg text-sm font-medium border transition-all capitalize",
-                    priority === p 
+                    priority === p
                       ? p === 'high' ? "bg-red-500/20 border-red-500 text-red-500" : p === 'medium' ? "bg-yellow-500/20 border-yellow-500 text-yellow-500" : "bg-blue-500/20 border-blue-500 text-blue-500"
                       : "border-border text-gray-400 hover:bg-white/5"
                   )}
@@ -244,47 +244,47 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
           </div>
 
           <div>
-             <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})</label>
-             <div className="space-y-2 mb-3">
-                 {subtasks.map((st, i) => (
-                     <div key={i} className="flex items-center gap-2 group">
-                         <button 
-                             onClick={() => toggleSubtask(i)}
-                             className={cn(
-                                 "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                                 st.completed ? "bg-primary border-primary text-white" : "border-gray-500"
-                             )}
-                         >
-                             {st.completed && <Check size={12} />}
-                         </button>
-                         <input 
-                             type="text" 
-                             value={st.title}
-                             onChange={(e) => {
-                                 const updated = [...subtasks];
-                                 updated[i].title = e.target.value;
-                                 setSubtasks(updated);
-                             }}
-                             className={cn("flex-1 bg-transparent outline-none border-b border-transparent focus:border-border text-sm", st.completed && "text-gray-500 line-through")}
-                         />
-                         <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                             <Trash2 size={14} />
-                         </button>
-                     </div>
-                 ))}
-             </div>
-             <form onSubmit={addSubtask} className="flex gap-2">
-                 <input 
-                    type="text" 
-                    value={newSubtask}
-                    onChange={(e) => setNewSubtask(e.target.value)}
-                    placeholder="Add subtask..."
-                    className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
-                 />
-                 <button type="submit" className="p-2 bg-surface hover:bg-white/10 rounded-lg border border-border">
-                     <Plus size={16} />
-                 </button>
-             </form>
+            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})</label>
+            <div className="space-y-2 mb-3">
+              {subtasks.map((st, i) => (
+                <div key={i} className="flex items-center gap-2 group">
+                  <button
+                    onClick={() => toggleSubtask(i)}
+                    className={cn(
+                      "w-5 h-5 rounded border flex items-center justify-center transition-all",
+                      st.completed ? "bg-primary border-primary text-white" : "border-gray-500"
+                    )}
+                  >
+                    {st.completed && <Check size={12} />}
+                  </button>
+                  <input
+                    type="text"
+                    value={st.title}
+                    onChange={(e) => {
+                      const updated = [...subtasks];
+                      updated[i].title = e.target.value;
+                      setSubtasks(updated);
+                    }}
+                    className={cn("flex-1 bg-transparent outline-none border-b border-transparent focus:border-border text-sm", st.completed && "text-gray-500 line-through")}
+                  />
+                  <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <form onSubmit={addSubtask} className="flex gap-2">
+              <input
+                type="text"
+                value={newSubtask}
+                onChange={(e) => setNewSubtask(e.target.value)}
+                placeholder="Add subtask..."
+                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
+              />
+              <button type="submit" className="p-2 bg-surface hover:bg-white/10 rounded-lg border border-border">
+                <Plus size={16} />
+              </button>
+            </form>
           </div>
 
           <div>
@@ -313,109 +313,109 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
 
 // ... SettingsView, SniperView, SocialHubView (Unchanged) ...
 const SettingsView = () => {
-    const setTheme = (theme: string) => {
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('theme', theme);
-    };
-  
-    return (
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="bg-surface border border-border rounded-xl p-6">
-          <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-            <Palette className="text-primary" /> Theme
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <button onClick={() => setTheme('')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-              <div className="w-full h-24 bg-[#0a0a0a] rounded-md mb-3 border border-[#333] relative overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#b02222]"></div>
-              </div>
-              <div className="font-medium">Zen (Default)</div>
-              <div className="text-xs text-gray-500">Dark, Red Accents</div>
-            </button>
-            
-            <button onClick={() => setTheme('cyberpunk')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-              <div className="w-full h-24 bg-[#0f0a1e] rounded-md mb-3 border border-[#4c1d95] relative overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#d946ef]"></div>
-              </div>
-              <div className="font-medium">Cyberpunk</div>
-              <div className="text-xs text-gray-500">Neon Purple & Pink</div>
-            </button>
-  
-            <button onClick={() => setTheme('matrix')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-              <div className="w-full h-24 bg-[#000000] rounded-md mb-3 border border-[#003b00] relative overflow-hidden group-hover:scale-105 transition-transform">
-                <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#008f11]"></div>
-              </div>
-              <div className="font-medium">Matrix</div>
-              <div className="text-xs text-gray-500">Terminal Green</div>
-            </button>
-          </div>
+  const setTheme = (theme: string) => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-8">
+      <div className="bg-surface border border-border rounded-xl p-6">
+        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+          <Palette className="text-primary" /> Theme
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <button onClick={() => setTheme('')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
+            <div className="w-full h-24 bg-[#0a0a0a] rounded-md mb-3 border border-[#333] relative overflow-hidden group-hover:scale-105 transition-transform">
+              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#b02222]"></div>
+            </div>
+            <div className="font-medium">Zen (Default)</div>
+            <div className="text-xs text-gray-500">Dark, Red Accents</div>
+          </button>
+
+          <button onClick={() => setTheme('cyberpunk')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
+            <div className="w-full h-24 bg-[#0f0a1e] rounded-md mb-3 border border-[#4c1d95] relative overflow-hidden group-hover:scale-105 transition-transform">
+              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#d946ef]"></div>
+            </div>
+            <div className="font-medium">Cyberpunk</div>
+            <div className="text-xs text-gray-500">Neon Purple & Pink</div>
+          </button>
+
+          <button onClick={() => setTheme('matrix')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
+            <div className="w-full h-24 bg-[#000000] rounded-md mb-3 border border-[#003b00] relative overflow-hidden group-hover:scale-105 transition-transform">
+              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#008f11]"></div>
+            </div>
+            <div className="font-medium">Matrix</div>
+            <div className="text-xs text-gray-500">Terminal Green</div>
+          </button>
         </div>
       </div>
-    );
+    </div>
+  );
 };
 const SniperView = () => <SandboxDashboard />;
 const SocialHubView = () => <div className="p-12 text-center text-gray-500">Social Hub (Loaded)</div>;
 
 const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
-    const archivedTasks = tasks.filter(t => t.isArchived);
-    
-    return (
-        <div className="max-w-4xl mx-auto space-y-6">
-            <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-400">
-                <Archive className="text-gray-500" /> Archived Tasks
-            </h2>
-            
-            {archivedTasks.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-border rounded-xl text-gray-600">
-                    Archive is empty.
-                </div>
-            ) : (
-                <div className="grid gap-3">
-                    {archivedTasks.map(task => (
-                        <div key={task._id} className="bg-surface/50 border border-border p-4 rounded-xl flex justify-between items-center opacity-70 hover:opacity-100 transition-opacity">
-                            <span className="text-gray-400 line-through">{task.title}</span>
-                            <div className="flex gap-2">
-                                <button onClick={() => onRestore(task._id)} className="p-2 text-primary hover:bg-primary/10 rounded-lg text-xs font-bold uppercase">
-                                    Restore
-                                </button>
-                                <button onClick={() => onDelete(task._id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg">
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+  const archivedTasks = tasks.filter(t => t.isArchived);
+
+  return (
+    <div className="max-w-4xl mx-auto space-y-6">
+      <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-400">
+        <Archive className="text-gray-500" /> Archived Tasks
+      </h2>
+
+      {archivedTasks.length === 0 ? (
+        <div className="text-center py-12 border border-dashed border-border rounded-xl text-gray-600">
+          Archive is empty.
         </div>
-    );
+      ) : (
+        <div className="grid gap-3">
+          {archivedTasks.map(task => (
+            <div key={task._id} className="bg-surface/50 border border-border p-4 rounded-xl flex justify-between items-center opacity-70 hover:opacity-100 transition-opacity">
+              <span className="text-gray-400 line-through">{task.title}</span>
+              <div className="flex gap-2">
+                <button onClick={() => onRestore(task._id)} className="p-2 text-primary hover:bg-primary/10 rounded-lg text-xs font-bold uppercase">
+                  Restore
+                </button>
+                <button onClick={() => onDelete(task._id)} className="p-2 text-red-500 hover:bg-red-500/10 rounded-lg">
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 // --- Task Board Component ---
-const TaskBoard = ({ 
-    tasks, 
-    setTasks, 
-    onUpdateStatus,
-    onDelete,
-    onEdit,
-    onArchive,
-    onToggleSubtask,
-    onUpdatePriority,
-    onStartTimer,
-    onStopTimer
-}: { 
-    tasks: Task[], 
-    setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
-    onUpdateStatus: (id: string, status: TaskStatus) => void,
-    onDelete: (id: string) => void,
-    onEdit: (task: Task) => void,
-    onArchive: (id: string) => void,
-    onToggleSubtask: (taskId: string, index: number) => void,
-    onUpdatePriority: (id: string, priority: TaskPriority) => void,
-    onStartTimer: (id: string, sessionTitle?: string) => void,
-    onStopTimer: (id: string, note?: string) => void
+const TaskBoard = ({
+  tasks,
+  setTasks,
+  onUpdateStatus,
+  onDelete,
+  onEdit,
+  onArchive,
+  onToggleSubtask,
+  onUpdatePriority,
+  onStartTimer,
+  onStopTimer
+}: {
+  tasks: Task[],
+  setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
+  onUpdateStatus: (id: string, status: TaskStatus) => void,
+  onDelete: (id: string) => void,
+  onEdit: (task: Task) => void,
+  onArchive: (id: string) => void,
+  onToggleSubtask: (taskId: string, index: number) => void,
+  onUpdatePriority: (id: string, priority: TaskPriority) => void,
+  onStartTimer: (id: string, sessionTitle?: string) => void,
+  onStopTimer: (id: string, note?: string) => void
 }) => {
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), 
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -438,14 +438,14 @@ const TaskBoard = ({
 
     // Determine target status
     let newStatus: TaskStatus | undefined;
-    
+
     if (["pending", "in-progress", "completed", "pinned"].includes(overId)) {
-        // Dropped on a column
-        newStatus = overId as TaskStatus;
+      // Dropped on a column
+      newStatus = overId as TaskStatus;
     } else {
-        // Dropped on a task
-        const overTask = tasks.find(t => t._id === overId);
-        if (overTask) newStatus = overTask.status;
+      // Dropped on a task
+      const overTask = tasks.find(t => t._id === overId);
+      if (overTask) newStatus = overTask.status;
     }
 
     if (!newStatus) return;
@@ -457,31 +457,31 @@ const TaskBoard = ({
 
     // Status change?
     if (activeTask.status !== newStatus) {
-        activeTask.status = newStatus;
+      activeTask.status = newStatus;
     }
-    
+
     // Reorder?
     if (activeId !== overId) {
-       const oldIndex = tasks.findIndex(t => t._id === activeId);
-       const newIndex = tasks.findIndex(t => t._id === overId);
-       newTasks = arrayMove(tasks, oldIndex, newIndex);
+      const oldIndex = tasks.findIndex(t => t._id === activeId);
+      const newIndex = tasks.findIndex(t => t._id === overId);
+      newTasks = arrayMove(tasks, oldIndex, newIndex);
     }
-    
+
     newTasks = newTasks.map((t, index) => ({ ...t, order: index }));
     setTasks(newTasks);
 
     await fetch("/api/tasks", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-            tasks: newTasks.map(t => ({ 
-                _id: t._id, 
-                order: t.order, 
-                status: t.status, 
-                priority: t.priority,
-                isArchived: t.isArchived 
-            })) 
-        }),
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tasks: newTasks.map(t => ({
+          _id: t._id,
+          order: t.order,
+          status: t.status,
+          priority: t.priority,
+          isArchived: t.isArchived
+        }))
+      }),
     });
   };
 
@@ -496,10 +496,10 @@ const TaskBoard = ({
   const visibleTasks = tasks.filter(t => !t.isArchived);
 
   return (
-    <DndContext 
-      sensors={sensors} 
-      collisionDetection={closestCenter} 
-      onDragStart={handleDragStart} 
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCorners}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
@@ -520,12 +520,16 @@ const TaskBoard = ({
           />
         ))}
       </div>
-      
-      <DragOverlay>
+
+      <DragOverlay dropAnimation={{
+        duration: 250,
+        easing: 'cubic-bezier(0.18, 0.67, 0.6, 1.22)',
+      }}>
         {activeId ? (
-            <div className="p-4 bg-surface border border-primary rounded-xl shadow-2xl opacity-90 cursor-grabbing">
-                {tasks.find(t => t._id === activeId)?.title}
-            </div>
+          (() => {
+            const task = tasks.find(t => t._id === activeId);
+            return task ? <TaskCard task={task} isOverlay /> : null;
+          })()
         ) : null}
       </DragOverlay>
     </DndContext>
@@ -549,7 +553,7 @@ export default function Dashboard() {
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
-    
+
     // Set Greeting (Lagos time: GMT+1)
     const lagosTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
     const hour = lagosTime.getHours();
@@ -635,58 +639,58 @@ export default function Dashboard() {
   };
 
   const saveEditTask = async (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => {
-      const oldTasks = [...tasks];
-      setTasks(tasks.map(t => t._id === id ? { ...t, title, priority, subtasks } : t));
-      setEditingTask(null);
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, priority, subtasks } : t));
+    setEditingTask(null);
 
-      try {
-        await fetch(`/api/tasks/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, priority, subtasks }),
-        });
-      } catch {
-        setTasks(oldTasks);
-      }
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, priority, subtasks }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const archiveTask = async (id: string) => {
-      const oldTasks = [...tasks];
-      setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: true } : t));
-      
-      try {
-        await fetch(`/api/tasks/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isArchived: true }),
-        });
-      } catch {
-        setTasks(oldTasks);
-      }
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: true } : t));
+
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isArchived: true }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const restoreTask = async (id: string) => {
-      const oldTasks = [...tasks];
-      setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: false } : t));
-      
-      try {
-        await fetch(`/api/tasks/${id}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ isArchived: false }),
-        });
-      } catch {
-        setTasks(oldTasks);
-      }
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: false } : t));
+
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isArchived: false }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const deleteTask = async (id: string) => {
     const oldTasks = [...tasks];
     const deletedTask = tasks.find(t => t._id === id);
-    
+
     // Optimistic update: remove immediately
     setTasks(tasks.filter(t => t._id !== id));
-    
+
     try {
       await fetch(`/api/tasks/${id}`, { method: "DELETE" });
       // Success - task stays deleted
@@ -698,24 +702,24 @@ export default function Dashboard() {
   };
 
   const toggleTaskSubtask = async (taskId: string, subtaskIndex: number) => {
-      const task = tasks.find(t => t._id === taskId);
-      if (!task || !task.subtasks) return;
+    const task = tasks.find(t => t._id === taskId);
+    if (!task || !task.subtasks) return;
 
-      const newSubtasks = [...task.subtasks];
-      newSubtasks[subtaskIndex].completed = !newSubtasks[subtaskIndex].completed;
+    const newSubtasks = [...task.subtasks];
+    newSubtasks[subtaskIndex].completed = !newSubtasks[subtaskIndex].completed;
 
-      const oldTasks = [...tasks];
-      setTasks(tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t));
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t));
 
-      try {
-        await fetch(`/api/tasks/${taskId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ subtasks: newSubtasks }),
-        });
-      } catch {
-        setTasks(oldTasks);
-      }
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtasks: newSubtasks }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const startTimer = async (taskId: string, sessionTitle?: string) => {
@@ -740,7 +744,7 @@ export default function Dashboard() {
 
     const now = new Date().toISOString();
     const duration = Math.floor((new Date(now).getTime() - new Date(task.activeTimer.startedAt!).getTime()) / 1000);
-    
+
     const newLog: TimeLog = {
       startedAt: task.activeTimer.startedAt!,
       endedAt: now,
@@ -813,18 +817,18 @@ export default function Dashboard() {
   return (
     <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
       <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
-      
+
       {/* Edit Modal */}
       <AnimatePresence>
         {editingTask && (
-            <EditTaskModal 
-                task={editingTask} 
-                onClose={() => setEditingTask(null)} 
-                onSave={saveEditTask}
-                onStartTimer={startTimer}
-                onStopTimer={stopTimer}
-                onDeleteTimeLog={deleteTimeLog}
-            />
+          <EditTaskModal
+            task={editingTask}
+            onClose={() => setEditingTask(null)}
+            onSave={saveEditTask}
+            onStartTimer={startTimer}
+            onStopTimer={stopTimer}
+            onDeleteTimeLog={deleteTimeLog}
+          />
         )}
       </AnimatePresence>
 
@@ -845,10 +849,10 @@ export default function Dashboard() {
                     const hours = Math.floor(elapsed / 3600);
                     const minutes = Math.floor((elapsed % 3600) / 60);
                     const seconds = elapsed % 60;
-                    const timeStr = hours > 0 
+                    const timeStr = hours > 0
                       ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
                       : `${minutes}:${seconds.toString().padStart(2, '0')}`;
-                    
+
                     return (
                       <div
                         key={task._id}
@@ -910,11 +914,11 @@ export default function Dashboard() {
               title="Play Lofi Girl on YouTube"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z"/>
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
               </svg>
               <span className="text-sm font-medium">Lofi Girl</span>
             </button>
-            <button 
+            <button
               onClick={() => setIsSidebarOpen(true)}
               className="md:hidden p-2 bg-surface border border-border rounded-lg text-gray-300 hover:text-white"
             >
@@ -934,9 +938,9 @@ export default function Dashboard() {
                   placeholder="What needs to be done?"
                   className="w-full bg-surface border border-border rounded-xl pl-4 pr-32 py-3 md:px-6 md:py-4 md:pr-36 text-base md:text-lg focus:outline-none focus:border-primary transition-colors placeholder:text-gray-600"
                 />
-                
+
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
-                  <select 
+                  <select
                     value={newPriority}
                     onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
                     className={cn(
@@ -959,20 +963,20 @@ export default function Dashboard() {
             </form>
 
             {isLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading Board...</div>
+              <div className="text-center py-8 text-gray-500">Loading Board...</div>
             ) : (
-                <TaskBoard 
-                    tasks={tasks} 
-                    setTasks={setTasks} 
-                    onUpdateStatus={updateTaskStatus}
-                    onDelete={deleteTask}
-                    onEdit={setEditingTask}
-                    onArchive={archiveTask}
-                    onToggleSubtask={toggleTaskSubtask}
-                    onUpdatePriority={updateTaskPriority}
-                    onStartTimer={startTimer}
-                    onStopTimer={stopTimer}
-                />
+              <TaskBoard
+                tasks={tasks}
+                setTasks={setTasks}
+                onUpdateStatus={updateTaskStatus}
+                onDelete={deleteTask}
+                onEdit={setEditingTask}
+                onArchive={archiveTask}
+                onToggleSubtask={toggleTaskSubtask}
+                onUpdatePriority={updateTaskPriority}
+                onStartTimer={startTimer}
+                onStopTimer={stopTimer}
+              />
             )}
           </div>
         )}
