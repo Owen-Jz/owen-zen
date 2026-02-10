@@ -24,6 +24,11 @@ const TaskSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  boardId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Board',
+    required: false, // Make it optional for migration, but ideally required
+  },
   createdAt: {
     type: Date,
     default: Date.now,
