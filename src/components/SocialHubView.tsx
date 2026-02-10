@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Edit2, Plus, X, Upload } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Image from "next/image";
+import { CldUploadWidget } from 'next-cloudinary';
 
 interface Post {
   _id: string;
@@ -26,7 +26,7 @@ export const SocialHubView = () => {
   const [platforms, setPlatforms] = useState<string[]>(["twitter"]);
   const [strategy, setStrategy] = useState("");
   const [imageIdea, setImageIdea] = useState("");
-  const [imageUrl, setImageUrl] = useState(""); // Simplified for now (URL input)
+  const [imageUrl, setImageUrl] = useState("");
   
   const fetchPosts = async () => {
     try {
@@ -253,21 +253,60 @@ export const SocialHubView = () => {
                   <div className="text-right text-xs text-gray-500 mt-1">{content.length} chars</div>
                 </div>
 
-                {/* Image URL */}
+                {/* Image Upload */}
                 <div>
-                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Image URL (Optional)</label>
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      value={imageUrl}
-                      onChange={e => setImageUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-sm text-white focus:border-primary outline-none"
-                    />
-                  </div>
-                  {imageUrl && (
-                    <div className="mt-2 h-32 bg-black/50 rounded-lg overflow-hidden border border-border">
-                       <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Visuals</label>
+                  
+                  {!imageUrl ? (
+                    <CldUploadWidget 
+                      uploadPreset="social_hub_default" // Hardcoded preset based on user input (assumed creation)
+                      onSuccess={(result: any) => {
+                        setImageUrl(result.info.secure_url);
+                      }}
+                      options={{
+                        sources: ['local', 'url', 'camera'],
+                        multiple: false,
+                        maxFiles: 1,
+                        styles: {
+                            palette: {
+                                window: "#0A0A0A",
+                                windowBorder: "#90A0B3",
+                                tabIcon: "#0E73F6",
+                                menuIcons: "#5A616A",
+                                textDark: "#000000",
+                                textLight: "#FFFFFF",
+                                link: "#0E73F6",
+                                action: "#FF620C",
+                                inactiveTabIcon: "#0E2F5A",
+                                error: "#F44235",
+                                inProgress: "#0078FF",
+                                complete: "#20B832",
+                                sourceBg: "#E4EBF1"
+                            }
+                        }
+                      }}
+                    >
+                      {({ open }) => {
+                        return (
+                          <button 
+                            onClick={() => open()}
+                            className="w-full h-32 border-2 border-dashed border-border rounded-xl flex flex-col items-center justify-center text-gray-500 hover:text-white hover:border-primary/50 hover:bg-white/5 transition-all"
+                          >
+                            <Upload size={24} className="mb-2" />
+                            <span className="text-sm font-medium">Upload Image</span>
+                          </button>
+                        );
+                      }}
+                    </CldUploadWidget>
+                  ) : (
+                    <div className="relative w-full h-48 bg-black/50 rounded-lg overflow-hidden border border-border/50 group">
+                      <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
+                      <button 
+                        onClick={() => setImageUrl("")}
+                        className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={16} />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -285,7 +324,7 @@ export const SocialHubView = () => {
                     />
                   </div>
                   <div>
-                    <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Visual Concept</label>
+                    <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Visual Concept (Notes)</label>
                     <input 
                       type="text" 
                       value={imageIdea}
