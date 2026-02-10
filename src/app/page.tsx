@@ -28,6 +28,7 @@ import { VisionBoardView } from "@/components/VisionBoardView"; // Import Vision
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch Later
+import { SocialHubView } from "@/components/SocialHubView"; // Import SocialHub
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -356,7 +357,8 @@ const SettingsView = () => {
   );
 };
 const SniperView = () => <SandboxDashboard />;
-const SocialHubView = () => <div className="p-12 text-center text-gray-500">Social Hub (Loaded)</div>;
+// SocialHubView imported from components
+
 
 const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
   const archivedTasks = tasks.filter(t => t.isArchived);

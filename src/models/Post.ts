@@ -4,7 +4,13 @@ const PostSchema = new mongoose.Schema({
   content: {
     type: String,
     required: [true, 'Please provide content for the post.'],
-    maxlength: [280, 'Content cannot be more than 280 characters for Twitter compatibility'],
+    maxlength: [500, 'Content cannot be more than 500 characters'], // Increased for LinkedIn/IG
+  },
+  imageIdea: {
+    type: String,
+  },
+  strategy: {
+    type: String,
   },
   platforms: {
     type: [String], // ["twitter", "linkedin", "instagram"]
