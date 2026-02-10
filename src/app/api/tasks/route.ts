@@ -2,12 +2,29 @@ import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    console.log("Attributes: GET /api/tasks called");
+    const { searchParams } = new URL(req.url);
+    const boardId = searchParams.get('boardId');
+    console.log("Attributes: GET /api/tasks called", boardId ? `for board ${boardId}` : "for all tasks (or default)");
     await dbConnect();
+
+    const filter = boardId ? { boardId } : { boardId: null }; // Start with boardId: null for default tasks, or maybe { $or: [{ boardId: null }, { boardId: { $exists: false } }] }
+    // Actually, let's make it so if boardId is provided, we filter by it. If not provided, we show tasks with no boardId.
+
+    // Better strategy:
+    // If boardId is provided, filter: { boardId }
+    // If boardId is NOT provided, filter: { $or: [{ boardId: null }, { boardId: { $exists: false } }] }
+
+    // BUT, the user might want ALL tasks if they are in "All" mode? The prompt implies specific boards.
+    // Let's assume default view (no board selected) shows tasks without a board.
+
+    const query = boardId
+      ? { boardId }
+      : { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
+
     // Sort by 'order' ascending (so 0 is top), then by createdAt
-    const tasks = await Task.find({}).sort({ order: 1, createdAt: -1 });
+    const tasks = await Task.find(query).sort({ order: 1, createdAt: -1 });
     return NextResponse.json({ success: true, data: tasks });
   } catch (error) {
     console.error("Attributes: GET /api/tasks error:", error);
@@ -19,10 +36,16 @@ export async function POST(req: Request) {
   try {
     await dbConnect();
     const body = await req.json();
+    const { boardId } = body;
 
     // Auto-assign order: put at the top (0) or bottom? 
     // Let's put at bottom: find max order and add 1
-    const lastTask = await Task.findOne().sort({ order: -1 });
+    // Filter by boardId
+    const query = boardId
+      ? { boardId }
+      : { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
+
+    const lastTask = await Task.findOne(query).sort({ order: -1 });
     const newOrder = lastTask && lastTask.order !== undefined ? lastTask.order + 1 : 0;
 
     const task = await Task.create({ ...body, order: newOrder });

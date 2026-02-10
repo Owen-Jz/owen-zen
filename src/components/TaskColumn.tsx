@@ -139,15 +139,16 @@ export const TaskCard = forwardRef<HTMLDivElement, {
       ref={ref}
       style={style}
       className={cn(
-        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 overflow-hidden",
+        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 relative",
         task.activeTimer?.isActive && "ring-2 ring-primary/50",
         isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-2 ring-primary z-50 bg-surface-hover",
+        menuOpen && "z-40",
         isDragging && !isOverlay && "opacity-30 grayscale"
       )}
     >
       {/* Priority Bar */}
       <div className={cn(
-        "h-1 w-full",
+        "h-1 w-full rounded-t-xl",
         task.priority === "high" ? "bg-red-500" : task.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"
       )} />
 

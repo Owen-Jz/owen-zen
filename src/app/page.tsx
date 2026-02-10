@@ -9,6 +9,8 @@ import { twMerge } from "tailwind-merge";
 import {
   DndContext,
   closestCorners,
+  closestCenter,
+  rectIntersection,
   KeyboardSensor,
   PointerSensor,
   useSensor,
@@ -498,7 +500,7 @@ const TaskBoard = ({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={rectIntersection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
@@ -536,8 +538,19 @@ const TaskBoard = ({
   );
 };
 
+// --- Board Interface ---
+interface Board {
+  _id: string;
+  title: string;
+}
+
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [boards, setBoards] = useState<Board[]>([]); // New: Boards state
+  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null); // New: Current Board
+  const [isCreatingBoard, setIsCreatingBoard] = useState(false); // New: Create Board UI
+  const [newBoardTitle, setNewBoardTitle] = useState(""); // New: New Board Title
+
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
   const [activeTab, setActiveTab] = useState("tasks");
@@ -574,11 +587,38 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [tasks]);
 
-  // Load Tasks
+  // Load Boards
+  useEffect(() => {
+    const fetchBoards = async () => {
+      try {
+        const res = await fetch("/api/boards");
+        const json = await res.json();
+        if (json.success) {
+          setBoards(json.data);
+          // If we have boards and no current board, select the first one?
+          // Or keep "All" / "Default" view as null?
+          // Let's assume user wants to see specific boards. 
+          // If no board is selected, maybe default to the first one if available, or keep null for "uncategorized"
+          if (json.data.length > 0 && !currentBoardId) {
+            // Optional: Auto-select first board
+            // setCurrentBoardId(json.data[0]._id);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch boards", error);
+      }
+    };
+    fetchBoards();
+  }, []); // Run once on mount
+
+  // Load Tasks (DEPENDS ON currentBoardId)
   useEffect(() => {
     const fetchTasks = async () => {
+      setIsLoading(true);
       try {
-        const res = await fetch("/api/tasks");
+        // Fetch tasks for the current board (or all/uncategorized if null)
+        const url = currentBoardId ? `/api/tasks?boardId=${currentBoardId}` : "/api/tasks";
+        const res = await fetch(url);
         const json = await res.json();
         if (json.success) setTasks(json.data);
       } catch (error) {
@@ -588,7 +628,28 @@ export default function Dashboard() {
       }
     };
     fetchTasks();
-  }, []);
+  }, [currentBoardId]); // Refetch when board changes
+
+  const createBoard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBoardTitle.trim()) return;
+    try {
+      const res = await fetch("/api/boards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title: newBoardTitle }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setBoards([...boards, json.data]);
+        setCurrentBoardId(json.data._id); // Switch to new board
+        setNewBoardTitle("");
+        setIsCreatingBoard(false);
+      }
+    } catch (error) {
+      console.error("Failed to create board", error);
+    }
+  };
 
   const addTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -597,7 +658,11 @@ export default function Dashboard() {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newTask, priority: newPriority }),
+        body: JSON.stringify({
+          title: newTask,
+          priority: newPriority,
+          boardId: currentBoardId // Associate with current board
+        }),
       });
       const json = await res.json();
       if (json.success) {
@@ -929,6 +994,62 @@ export default function Dashboard() {
 
         {activeTab === "tasks" && (
           <div className="max-w-[1600px] mx-auto pb-20">
+            {/* Board Selector */}
+            <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => setCurrentBoardId(null)}
+                className={cn(
+                  "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
+                  currentBoardId === null
+                    ? "bg-primary/10 border-primary text-primary"
+                    : "bg-surface border-border text-gray-400 hover:text-white hover:bg-surface-hover"
+                )}
+              >
+                All Tasks
+              </button>
+
+              {boards.map(board => (
+                <button
+                  key={board._id}
+                  onClick={() => setCurrentBoardId(board._id)}
+                  className={cn(
+                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative",
+                    currentBoardId === board._id
+                      ? "bg-primary/10 border-primary text-primary"
+                      : "bg-surface border-border text-gray-400 hover:text-white hover:bg-surface-hover"
+                  )}
+                >
+                  {board.title}
+                </button>
+              ))}
+
+              {isCreatingBoard ? (
+                <form onSubmit={createBoard} className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                  <input
+                    autoFocus
+                    type="text"
+                    value={newBoardTitle}
+                    onChange={(e) => setNewBoardTitle(e.target.value)}
+                    placeholder="Board Name..."
+                    className="w-32 bg-surface text-sm px-3 py-2 rounded-lg border border-primary focus:outline-none text-white placeholder-gray-500"
+                    onBlur={() => !newBoardTitle && setIsCreatingBoard(false)}
+                  />
+                  <button type="submit" className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                    <Check size={14} />
+                  </button>
+                  <button type="button" onClick={() => setIsCreatingBoard(false)} className="p-2 text-gray-500 hover:text-white">
+                    <X size={14} />
+                  </button>
+                </form>
+              ) : (
+                <button
+                  onClick={() => setIsCreatingBoard(true)}
+                  className="px-3 py-2 rounded-lg border border-dashed border-border text-gray-500 hover:text-white hover:border-gray-400 transition-all flex items-center gap-1.5 text-xs uppercase font-bold tracking-wide ml-2 whitespace-nowrap"
+                >
+                  <Plus size={14} /> Add Board
+                </button>
+              )}
+            </div>
             <form onSubmit={addTask} className="mb-8 max-w-2xl mx-auto">
               <div className="relative">
                 <input
