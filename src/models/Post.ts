@@ -9,6 +9,9 @@ const PostSchema = new mongoose.Schema({
   imageIdea: {
     type: String,
   },
+  imageUrl: {
+    type: String, // Direct URL to the image
+  },
   strategy: {
     type: String,
   },
