@@ -13,6 +13,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 interface Habit {
   _id: string;
   title: string;
+  description?: string;
   category: string;
   streak: number;
   completedDates: string[];
@@ -37,13 +38,46 @@ export const HabitView = () => {
 
   const seedDefaults = async () => {
       const defaults = [
-          { title: "Morning Devotion & Prayer", category: "mindset" }, // Faith
-          { title: "Gym (Push/Pull/Legs)", category: "health" },       // Cut Phase
-          { title: "Track Macros (2000kcal)", category: "health" },    // Cut Phase
-          { title: "Deep Work (4h)", category: "work" },               // Coding/Agency
-          { title: "Ship Code (GitHub)", category: "learning" },       // Consistency Gap
-          { title: "No Porn/Junk", category: "mindset" },              // Purity/Discipline
-          { title: "Outreach/Content (1h)", category: "work" }         // Agency/Growth
+          { 
+            title: "Wake Up at Fixed Time", 
+            category: "mindset",
+            description: "Pick a time (e.g. 6:00am). No snoozing. Brain loves predictability. Control wake-up = control life."
+          },
+          { 
+            title: "Move Your Body (Daily)", 
+            category: "health",
+            description: "Gym, walk, or jog. Gym days: train hard. Non-gym days: 7–10k steps. Stagnant body = lazy mind."
+          },
+          { 
+            title: "Eat Simple Meals", 
+            category: "health",
+            description: "High protein, simple carbs, controlled fats. No emotional eating. If food is chaotic, focus is chaotic."
+          },
+          { 
+            title: "3–4 Hours Deep Work", 
+            category: "work",
+            description: "Phone on DND. One task, one outcome. Focus for 3 hours or forget scaling."
+          },
+          { 
+            title: "One Money-Moving Action", 
+            category: "work",
+            description: "Lead outreach, improve sales page, send proposal, ship feature, or close follow-up."
+          },
+          { 
+            title: "Track Inputs (Truth)", 
+            category: "work",
+            description: "Did I train? Eat properly? Deep work? Move money forward? Just truth on paper, no fluff."
+          },
+          { 
+            title: "Control Dopamine", 
+            category: "mindset",
+            description: "No porn, no scrolling, no 'rewarding' for nothing. Earn motivation through effort."
+          },
+          { 
+            title: "Sleep at Fixed Time", 
+            category: "health",
+            description: "Same bedtime. Screens off 60m before. Sleep is discipline, not laziness. Tired = stupid decisions."
+          }
       ];
       for (const d of defaults) {
           await fetch("/api/habits", {
@@ -342,9 +376,14 @@ export const HabitView = () => {
                         </button>
                         <div className="min-w-0">
                             <div className="font-bold text-lg truncate">{habit.title}</div>
-                            <div className="text-xs text-gray-500 flex items-center gap-2">
+                            {habit.description && (
+                              <div className="text-[10px] text-gray-400 leading-tight mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
+                                {habit.description}
+                              </div>
+                            )}
+                            <div className="text-[10px] text-gray-500 flex items-center gap-2 mt-1">
                                 <span className={cn("flex items-center gap-1", habit.streak > 3 ? "text-orange-500" : "")}>
-                                    <Flame size={12} /> {habit.streak} Day Streak
+                                    <Flame size={10} /> {habit.streak} Day Streak
                                 </span>
                             </div>
                         </div>
