@@ -1,15 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Edit2, Plus, X, Upload } from "lucide-react";
+import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Edit2, Plus, X, Upload, ArrowRight, Sparkles, Database } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CldUploadWidget } from 'next-cloudinary';
+import { clsx } from "clsx";
 
 interface Post {
   _id: string;
   content: string;
   platforms: string | string[];
   status: string;
+  type: 'idea' | 'draft';
+  source?: 'manual' | 'ai_curator';
   imageIdea?: string;
   strategy?: string;
   imageUrl?: string;
@@ -21,13 +24,18 @@ export const SocialHubView = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingPost, setEditingPost] = useState<Post | null>(null);
 
+  // Filtered Lists
+  const ideas = posts.filter(p => p.type === 'idea');
+  const drafts = posts.filter(p => p.type === 'draft');
+
   // Form State
   const [content, setContent] = useState("");
   const [platforms, setPlatforms] = useState<string[]>(["twitter"]);
   const [strategy, setStrategy] = useState("");
   const [imageIdea, setImageIdea] = useState("");
   const [imageUrl, setImageUrl] = useState("");
-  
+  const [postType, setPostType] = useState<'idea' | 'draft'>('draft');
+
   const fetchPosts = async () => {
     try {
       const res = await fetch("/api/posts");
@@ -46,7 +54,7 @@ export const SocialHubView = () => {
     fetchPosts();
   }, []);
 
-  const openModal = (post?: Post) => {
+  const openModal = (post?: Post, defaultType: 'idea' | 'draft' = 'draft') => {
     if (post) {
       setEditingPost(post);
       setContent(post.content);
@@ -54,6 +62,7 @@ export const SocialHubView = () => {
       setStrategy(post.strategy || "");
       setImageIdea(post.imageIdea || "");
       setImageUrl(post.imageUrl || "");
+      setPostType(post.type);
     } else {
       setEditingPost(null);
       setContent("");
@@ -61,17 +70,25 @@ export const SocialHubView = () => {
       setStrategy("");
       setImageIdea("");
       setImageUrl("");
+      setPostType(defaultType);
     }
     setIsModalOpen(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const payload = { content, platforms, strategy, imageIdea, imageUrl, status: "draft" };
+    const payload = { 
+        content, 
+        platforms, 
+        strategy, 
+        imageIdea, 
+        imageUrl, 
+        type: postType,
+        status: "draft" 
+    };
     
     try {
       if (editingPost) {
-        // Update
         const res = await fetch(`/api/posts/${editingPost._id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -79,7 +96,6 @@ export const SocialHubView = () => {
         });
         if (res.ok) fetchPosts();
       } else {
-        // Create
         const res = await fetch("/api/posts", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -94,7 +110,7 @@ export const SocialHubView = () => {
   };
 
   const deletePost = async (id: string) => {
-    if (!confirm("Delete this draft?")) return;
+    if (!confirm("Delete this item?")) return;
     setPosts(posts.filter(p => p._id !== id));
     try {
       await fetch(`/api/posts/${id}`, { method: "DELETE" });
@@ -102,6 +118,22 @@ export const SocialHubView = () => {
       console.error("Failed to delete", e);
       fetchPosts();
     }
+  };
+
+  const convertToDraft = async (post: Post) => {
+      // Optimistic update
+      setPosts(posts.map(p => p._id === post._id ? { ...p, type: 'draft' } : p));
+      
+      try {
+          await fetch(`/api/posts/${post._id}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ type: 'draft' })
+          });
+      } catch (e) {
+          console.error("Failed to convert", e);
+          fetchPosts();
+      }
   };
 
   const togglePlatform = (p: string) => {
@@ -114,95 +146,161 @@ export const SocialHubView = () => {
 
   const getPlatformIcon = (platform: string) => {
     switch (platform?.toLowerCase()) {
-      case "twitter": return <Twitter size={16} className="text-blue-400" />;
-      case "linkedin": return <Linkedin size={16} className="text-blue-600" />;
-      case "instagram": return <Instagram size={16} className="text-pink-500" />;
-      default: return <div className="text-xs font-bold text-gray-500">{platform}</div>;
+      case "twitter": return <Twitter size={14} className="text-blue-400" />;
+      case "linkedin": return <Linkedin size={14} className="text-blue-600" />;
+      case "instagram": return <Instagram size={14} className="text-pink-500" />;
+      default: return <div className="text-[10px] font-bold text-gray-500">{platform}</div>;
     }
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-[1600px] mx-auto h-[calc(100vh-140px)] animate-in fade-in duration-500 flex flex-col">
+      <div className="flex items-center justify-between mb-6 shrink-0">
         <div>
-          <h2 className="text-2xl font-bold text-white">Social Command Center</h2>
-          <p className="text-gray-400 text-sm">Draft, schedule, and strategize your personal brand.</p>
+          <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+             Social Engine <span className="text-xs bg-primary/20 text-primary px-2 py-1 rounded-full">v1.0</span>
+          </h2>
+          <p className="text-gray-400 text-sm">Curate ideas and ship content.</p>
         </div>
-        <button 
-          onClick={() => openModal()}
-          className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl hover:brightness-110 transition-all text-sm font-medium"
-        >
-          <Plus size={16} /> New Draft
-        </button>
+        <div className="flex gap-3">
+            <button 
+            onClick={() => openModal(undefined, 'idea')}
+            className="flex items-center gap-2 px-4 py-2 bg-surface border border-border text-gray-300 hover:text-white rounded-xl hover:bg-white/5 transition-all text-sm font-medium"
+            >
+            <Lightbulb size={16} /> Add Idea
+            </button>
+            <button 
+            onClick={() => openModal(undefined, 'draft')}
+            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-xl hover:brightness-110 transition-all text-sm font-medium"
+            >
+            <Edit2 size={16} /> New Draft
+            </button>
+        </div>
       </div>
 
-      {loading ? (
-        <div className="text-center py-20 text-gray-500">Loading Content Engine...</div>
-      ) : posts.length === 0 ? (
-        <div className="text-center py-20 text-gray-500 border border-dashed border-border rounded-xl">
-          No drafts found. Start creating!
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {posts.map((post) => (
-            <motion.div
-              key={post._id}
-              layout
-              className="bg-surface border border-border rounded-xl p-6 hover:border-primary/30 transition-all group flex flex-col h-full"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex gap-2 p-2 bg-background rounded-lg border border-border">
-                    {Array.isArray(post.platforms) 
-                      ? post.platforms.map(p => <span key={p}>{getPlatformIcon(p)}</span>)
-                      : getPlatformIcon(post.platforms)
-                    }
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 h-full min-h-0">
+          
+          {/* --- LEFT: INSPIRATION BUCKET --- */}
+          <div className="flex flex-col h-full bg-surface/30 border border-border rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-border bg-surface/50 backdrop-blur-sm flex justify-between items-center sticky top-0 z-10">
+                  <div className="flex items-center gap-2">
+                      <Database size={18} className="text-purple-400" />
+                      <h3 className="font-bold text-gray-200">Inspiration Bucket</h3>
+                      <span className="bg-white/10 text-gray-400 px-2 py-0.5 rounded text-xs">{ideas.length}</span>
                   </div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-gray-500 border border-gray-700/50 px-2 py-0.5 rounded-full">
-                    {post.status}
-                  </span>
-                </div>
-                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                  <button onClick={() => openModal(post)} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white"><Edit2 size={14} /></button>
-                  <button onClick={() => deletePost(post._id)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
-                </div>
+              </div>
+              
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                  {ideas.length === 0 ? (
+                      <div className="h-40 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-border rounded-xl">
+                          <Sparkles size={24} className="mb-2 opacity-50" />
+                          <p className="text-sm">Bucket empty.</p>
+                          <p className="text-xs">AI Curator runs daily at 8am.</p>
+                      </div>
+                  ) : (
+                      ideas.map(post => (
+                          <motion.div 
+                              layout
+                              key={post._id}
+                              className="bg-background border border-border p-4 rounded-xl group hover:border-purple-500/30 transition-all relative"
+                          >
+                              <div className="flex justify-between items-start mb-3">
+                                  <span className={clsx(
+                                      "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border",
+                                      post.source === 'ai_curator' ? "bg-purple-500/10 border-purple-500/20 text-purple-400" : "bg-gray-800 border-gray-700 text-gray-400"
+                                  )}>
+                                      {post.source === 'ai_curator' ? 'AI Found' : 'Manual Idea'}
+                                  </span>
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                      <button onClick={() => openModal(post)} className="p-1.5 hover:bg-white/5 rounded text-gray-400"><Edit2 size={12} /></button>
+                                      <button onClick={() => deletePost(post._id)} className="p-1.5 hover:bg-red-500/10 text-gray-400 hover:text-red-500 rounded"><Trash2 size={12} /></button>
+                                  </div>
+                              </div>
+                              <p className="text-sm text-gray-300 line-clamp-3 mb-4 leading-relaxed">{post.content}</p>
+                              
+                              {/* Strategy Tag */}
+                              {post.strategy && (
+                                  <div className="flex items-center gap-2 text-xs text-gray-500 mb-4 bg-surface p-2 rounded-lg">
+                                      <Lightbulb size={12} />
+                                      <span className="truncate">{post.strategy}</span>
+                                  </div>
+                              )}
+
+                              <button 
+                                  onClick={() => convertToDraft(post)}
+                                  className="w-full py-2 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-colors"
+                              >
+                                  Move to Drafts <ArrowRight size={12} />
+                              </button>
+                          </motion.div>
+                      ))
+                  )}
+              </div>
+          </div>
+
+          {/* --- RIGHT: DRAFTS PIPELINE --- */}
+          <div className="flex flex-col h-full bg-surface/30 border border-border rounded-2xl overflow-hidden">
+              <div className="p-4 border-b border-border bg-surface/50 backdrop-blur-sm flex justify-between items-center sticky top-0 z-10">
+                  <div className="flex items-center gap-2">
+                      <Edit2 size={18} className="text-primary" />
+                      <h3 className="font-bold text-gray-200">Production Pipeline</h3>
+                      <span className="bg-white/10 text-gray-400 px-2 py-0.5 rounded text-xs">{drafts.length}</span>
+                  </div>
               </div>
 
-              {/* Image Preview if available */}
-              {post.imageUrl && (
-                <div className="mb-4 relative w-full h-48 bg-black/50 rounded-lg overflow-hidden border border-border/50">
-                  <img src={post.imageUrl} alt="Post visual" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
-                </div>
-              )}
+              <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+                  {drafts.length === 0 ? (
+                      <div className="h-40 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-border rounded-xl">
+                          <p className="text-sm">No active drafts.</p>
+                      </div>
+                  ) : (
+                      drafts.map(post => (
+                        <motion.div
+                            key={post._id}
+                            layout
+                            className="bg-background border border-border rounded-xl p-5 hover:border-primary/30 transition-all group"
+                        >
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex gap-1 p-1.5 bg-surface rounded-lg border border-border">
+                                        {Array.isArray(post.platforms) 
+                                            ? post.platforms.map(p => <span key={p}>{getPlatformIcon(p)}</span>)
+                                            : getPlatformIcon(post.platforms)
+                                        }
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button onClick={() => openModal(post)} className="p-2 hover:bg-white/5 rounded-lg text-gray-400 hover:text-white"><Edit2 size={14} /></button>
+                                    <button onClick={() => deletePost(post._id)} className="p-2 hover:bg-red-500/10 rounded-lg text-gray-400 hover:text-red-500"><Trash2 size={14} /></button>
+                                </div>
+                            </div>
 
-              <div className="bg-background rounded-lg p-4 border border-border/50 text-sm text-gray-300 whitespace-pre-wrap mb-4 flex-grow font-medium leading-relaxed">
-                {post.content}
-              </div>
+                            {/* Image Preview */}
+                            {post.imageUrl && (
+                                <div className="mb-4 relative w-full h-40 bg-black/50 rounded-lg overflow-hidden border border-border/50">
+                                    <img src={post.imageUrl} alt="Post visual" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                </div>
+                            )}
 
-              <div className="space-y-3 mt-auto">
-                {post.strategy && (
-                  <div className="flex gap-3 text-xs bg-blue-500/5 border border-blue-500/10 p-3 rounded-lg">
-                    <Lightbulb size={14} className="text-blue-400 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-blue-400 block mb-0.5">Strategy</span>
-                      <span className="text-blue-200/80">{post.strategy}</span>
-                    </div>
-                  </div>
-                )}
-                {post.imageIdea && !post.imageUrl && (
-                  <div className="flex gap-3 text-xs bg-purple-500/5 border border-purple-500/10 p-3 rounded-lg">
-                    <ImageIcon size={14} className="text-purple-400 shrink-0 mt-0.5" />
-                    <div>
-                      <span className="font-bold text-purple-400 block mb-0.5">Visual Concept</span>
-                      <span className="text-purple-200/80">{post.imageIdea}</span>
-                    </div>
-                  </div>
-                )}
+                            <div className="text-sm text-gray-200 whitespace-pre-wrap mb-4 font-medium leading-relaxed">
+                                {post.content}
+                            </div>
+                            
+                            {post.imageIdea && !post.imageUrl && (
+                                <div className="flex gap-3 text-xs bg-purple-500/5 border border-purple-500/10 p-3 rounded-lg mt-3">
+                                    <ImageIcon size={14} className="text-purple-400 shrink-0 mt-0.5" />
+                                    <div>
+                                        <span className="font-bold text-purple-400 block mb-0.5">Missing Visual</span>
+                                        <span className="text-purple-200/80">{post.imageIdea}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </motion.div>
+                      ))
+                  )}
               </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
+          </div>
+      </div>
 
       {/* Draft Modal */}
       <AnimatePresence>
@@ -215,11 +313,31 @@ export const SocialHubView = () => {
               className="bg-surface border border-border w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
               <div className="p-4 border-b border-border flex justify-between items-center bg-surface sticky top-0">
-                <h3 className="text-lg font-bold text-white">{editingPost ? "Edit Draft" : "New Social Draft"}</h3>
+                <h3 className="text-lg font-bold text-white">
+                    {editingPost ? "Edit Item" : (postType === 'idea' ? "New Inspiration Idea" : "New Social Draft")}
+                </h3>
                 <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10"><X size={20} /></button>
               </div>
               
               <div className="p-6 overflow-y-auto custom-scrollbar space-y-5">
+                {/* Type Selector (Hidden if editing) */}
+                {!editingPost && (
+                    <div className="flex gap-2 p-1 bg-background rounded-xl border border-border">
+                        <button 
+                            onClick={() => setPostType('idea')}
+                            className={clsx("flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all", postType === 'idea' ? "bg-purple-500 text-white" : "text-gray-500 hover:text-white")}
+                        >
+                            Inspiration Idea
+                        </button>
+                        <button 
+                            onClick={() => setPostType('draft')}
+                            className={clsx("flex-1 py-2 text-xs font-bold uppercase rounded-lg transition-all", postType === 'draft' ? "bg-primary text-white" : "text-gray-500 hover:text-white")}
+                        >
+                            Ready Draft
+                        </button>
+                    </div>
+                )}
+
                 {/* Platforms */}
                 <div>
                   <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Platforms</label>
@@ -243,23 +361,25 @@ export const SocialHubView = () => {
 
                 {/* Content */}
                 <div>
-                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Content</label>
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">
+                      {postType === 'idea' ? 'Rough Notes / Idea' : 'Post Content'}
+                  </label>
                   <textarea 
                     value={content}
                     onChange={e => setContent(e.target.value)}
-                    placeholder="What's on your mind?"
+                    placeholder={postType === 'idea' ? "Saw a cool trend about..." : "What's on your mind?"}
                     className="w-full h-32 bg-background border border-border rounded-xl p-4 text-sm text-white focus:border-primary outline-none resize-none"
                   />
                   <div className="text-right text-xs text-gray-500 mt-1">{content.length} chars</div>
                 </div>
 
-                {/* Image Upload */}
+                {/* Image Upload (Only for Drafts usually, but enabled for ideas too) */}
                 <div>
                   <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Visuals</label>
                   
                   {!imageUrl ? (
                     <CldUploadWidget 
-                      uploadPreset="social_hub_default" // Hardcoded preset based on user input (assumed creation)
+                      uploadPreset="social_hub_default"
                       onSuccess={(result: any) => {
                         setImageUrl(result.info.secure_url);
                       }}
@@ -342,7 +462,7 @@ export const SocialHubView = () => {
                   disabled={!content.trim()}
                   className="w-full py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {editingPost ? "Save Changes" : "Create Draft"}
+                  {editingPost ? "Save Changes" : (postType === 'idea' ? "Save to Bucket" : "Create Draft")}
                 </button>
               </div>
             </motion.div>
