@@ -19,6 +19,16 @@ const PostSchema = new mongoose.Schema({
     type: [String], // ["twitter", "linkedin", "instagram"]
     required: true,
   },
+  type: {
+    type: String,
+    enum: ['idea', 'draft'],
+    default: 'draft',
+  },
+  source: {
+    type: String,
+    enum: ['manual', 'ai_curator'],
+    default: 'manual',
+  },
   status: {
     type: String,
     enum: ['draft', 'scheduled', 'published', 'failed'],
