@@ -29,6 +29,7 @@ import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
 import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch Later
 import { SocialHubView } from "@/components/SocialHubView"; // Import SocialHub
+import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -405,7 +406,8 @@ const TaskBoard = ({
   onToggleSubtask,
   onUpdatePriority,
   onStartTimer,
-  onStopTimer
+  onStopTimer,
+  onFocus
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -416,7 +418,8 @@ const TaskBoard = ({
   onToggleSubtask: (taskId: string, index: number) => void,
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
-  onStopTimer: (id: string, note?: string) => void
+  onStopTimer: (id: string, note?: string) => void,
+  onFocus: (task: Task) => void
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -521,6 +524,7 @@ const TaskBoard = ({
             onUpdatePriority={onUpdatePriority}
             onStartTimer={onStartTimer}
             onStopTimer={onStopTimer}
+            onFocus={onFocus}
           />
         ))}
       </div>
@@ -560,6 +564,7 @@ export default function Dashboard() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [focusedTask, setFocusedTask] = useState<Task | null>(null); // Focus Mode State
   const [greeting, setGreeting] = useState("Good Morning");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0); // For live timer updates
@@ -854,11 +859,18 @@ export default function Dashboard() {
     const newTotalTime = (task.totalTimeSpent || 0) - deletedLog.duration;
 
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === taskId ? {
+    const updatedTasks = tasks.map(t => t._id === taskId ? {
       ...t,
       timeLogs: newTimeLogs,
       totalTimeSpent: Math.max(0, newTotalTime)
-    } : t));
+    } : t);
+    
+    setTasks(updatedTasks);
+    
+    // Update focused task if it's the one being modified
+    if (focusedTask && focusedTask._id === taskId) {
+      setFocusedTask(updatedTasks.find(t => t._id === taskId) || null);
+    }
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
@@ -873,6 +885,21 @@ export default function Dashboard() {
       setTasks(oldTasks);
     }
   };
+
+  // Helper to sync focused task with main task list state updates
+  // Whenever tasks change, if we have a focused task, update its reference
+  useEffect(() => {
+    if (focusedTask) {
+      const updatedRef = tasks.find(t => t._id === focusedTask._id);
+      if (updatedRef) {
+        // Only update if something actually changed to avoid render loops if using object identity
+        // JSON stringify is cheap for single task
+        if (JSON.stringify(updatedRef) !== JSON.stringify(focusedTask)) {
+          setFocusedTask(updatedRef);
+        }
+      }
+    }
+  }, [tasks, focusedTask]);
 
   const stats = {
     pending: tasks.filter(t => t.status === "pending" && !t.isArchived).length,
@@ -895,6 +922,23 @@ export default function Dashboard() {
             onStartTimer={startTimer}
             onStopTimer={stopTimer}
             onDeleteTimeLog={deleteTimeLog}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Focus Mode Overlay */}
+      <AnimatePresence>
+        {focusedTask && (
+          <FocusOverlay
+            task={focusedTask}
+            onClose={() => setFocusedTask(null)}
+            onToggleSubtask={toggleTaskSubtask}
+            onStartTimer={startTimer}
+            onStopTimer={stopTimer}
+            onCompleteTask={(id) => {
+              updateTaskStatus(id, "completed");
+              setFocusedTask(null);
+            }}
           />
         )}
       </AnimatePresence>
@@ -1099,6 +1143,7 @@ export default function Dashboard() {
                 onUpdatePriority={updateTaskPriority}
                 onStartTimer={startTimer}
                 onStopTimer={stopTimer}
+                onFocus={setFocusedTask}
               />
             )}
           </div>
