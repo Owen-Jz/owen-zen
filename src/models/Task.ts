@@ -57,7 +57,9 @@ const TaskSchema = new mongoose.Schema({
     startedAt: Date,
     isActive: { type: Boolean, default: false },
     sessionTitle: String
-  }
+  },
+  scheduledDate: { type: Date },
+  googleEventId: { type: String }
 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
