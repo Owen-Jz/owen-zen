@@ -5,21 +5,31 @@ import { NextResponse } from "next/server";
 
 // Initialize Google Auth
 const getGoogleCalendar = async () => {
-    // We need to load the service account from env or file
-    // Assuming we can use the same method as the scripts or env vars
-    // Since this is server-side in Next.js, we should use process.env.GOOGLE_SERVICE_ACCOUNT_JSON
-    // But previously we used a file path. Let's check if we can read the file or if we need to use env.
-    
-    // Quick fix: Just read the file for now, but in production (Vercel), we should use ENV.
-    // For now, I'll try to use the file path which works on this VPS, but for Vercel deploy we need ENV.
-    // Let's implement a fallback.
+    // Priority 1: Use Environment Variable (Production/Vercel)
+    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+        try {
+            const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
+            const auth = new google.auth.GoogleAuth({
+                credentials,
+                scopes: ['https://www.googleapis.com/auth/calendar'],
+            });
+            return google.calendar({ version: 'v3', auth });
+        } catch (e) {
+            console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON", e);
+        }
+    }
 
-    const auth = new google.auth.GoogleAuth({
-        keyFile: '/home/ubuntu/.config/google/service_account.json', // Only works on this machine
-        // credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '{}'), // For Vercel
-        scopes: ['https://www.googleapis.com/auth/calendar'],
-    });
-    return google.calendar({ version: 'v3', auth });
+    // Priority 2: Fallback to local file path (Local Dev / VPS)
+    // Note: This path will fail on Vercel, so we catch the error gracefully
+    try {
+        const auth = new google.auth.GoogleAuth({
+            keyFile: '/home/ubuntu/.config/google/service_account.json', 
+            scopes: ['https://www.googleapis.com/auth/calendar'],
+        });
+        return google.calendar({ version: 'v3', auth });
+    } catch (e) {
+        throw new Error("Could not initialize Google Calendar auth. Missing GOOGLE_SERVICE_ACCOUNT_JSON env var or local key file.");
+    }
 };
 
 export async function POST(req: Request) {
@@ -36,7 +46,6 @@ export async function POST(req: Request) {
     const calendar = await getGoogleCalendar();
     const calendarId = 'owendigitals@gmail.com';
     
-    // Parse date (Assume it's ISO string for the start of the day or specific time)
     const startDate = new Date(date);
     const endDate = new Date(startDate);
     endDate.setHours(startDate.getHours() + 1); // Default 1 hour duration
@@ -46,7 +55,7 @@ export async function POST(req: Request) {
       description: `Task Priority: ${task.priority}\n\nScheduled via Owen Zen Dashboard.`,
       start: {
         dateTime: startDate.toISOString(),
-        timeZone: 'Africa/Lagos', // Hardcoded per user preference
+        timeZone: 'Africa/Lagos',
       },
       end: {
         dateTime: endDate.toISOString(),
