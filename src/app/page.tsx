@@ -30,6 +30,7 @@ import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
 import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch Later
 import { SocialHubView } from "@/components/SocialHubView"; // Import SocialHub
 import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
+import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -1158,11 +1159,7 @@ export default function Dashboard() {
         {activeTab === "socials" && <SocialHubView />}
         {activeTab === "settings" && <SettingsView />}
 
-        {activeTab === "calendar" && (
-          <div className="flex items-center justify-center h-96 text-gray-500 text-sm">
-            Calendar Module Coming Soon...
-          </div>
-        )}
+        {activeTab === "calendar" && <CalendarView />}
       </main>
     </div>
   );
