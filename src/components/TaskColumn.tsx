@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2 } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -58,6 +58,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onUpdatePriority?: (id: string, priority: TaskPriority) => void;
   onStartTimer?: (id: string, sessionTitle?: string) => void;
   onStopTimer?: (id: string, note?: string) => void;
+  onFocus?: (task: Task) => void;
   style?: React.CSSProperties;
   attributes?: any;
   listeners?: any;
@@ -73,6 +74,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
+  onFocus,
   style,
   attributes,
   listeners,
@@ -193,6 +195,9 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                       <div className="p-1">
                         <button onClick={() => onEdit && handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
                           <Edit2 size={14} /> View Details
+                        </button>
+                        <button onClick={() => onFocus && handleMenuAction(() => onFocus(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 hover:text-primary rounded-lg text-left font-bold">
+                          <Maximize2 size={14} /> Focus Mode
                         </button>
                         <div className="h-px bg-border my-1" />
                         <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
@@ -344,7 +349,8 @@ export const SortableTaskItem = ({
   onToggleSubtask,
   onUpdatePriority,
   onStartTimer,
-  onStopTimer
+  onStopTimer,
+  onFocus
 }: {
   task: Task;
   onDelete: (id: string) => void;
@@ -355,6 +361,7 @@ export const SortableTaskItem = ({
   onUpdatePriority: (id: string, priority: TaskPriority) => void;
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
+  onFocus: (task: Task) => void;
 }) => {
   const {
     attributes,
@@ -385,6 +392,7 @@ export const SortableTaskItem = ({
       onUpdatePriority={onUpdatePriority}
       onStartTimer={onStartTimer}
       onStopTimer={onStopTimer}
+      onFocus={onFocus}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
@@ -393,7 +401,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus }: any) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
   });
@@ -429,6 +437,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               onUpdatePriority={onUpdatePriority}
               onStartTimer={onStartTimer}
               onStopTimer={onStopTimer}
+              onFocus={onFocus}
             />
           ))}
           {/* Invisible spacer */}
