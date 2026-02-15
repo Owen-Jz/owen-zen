@@ -31,6 +31,7 @@ import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch La
 import { SocialHubView } from "@/components/SocialHubView"; // Import SocialHub
 import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
 import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
+import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -99,8 +100,8 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
-    { id: "habits", label: "Habits", icon: Trophy },
-    { id: "vision", label: "Vision & Word", icon: Target }, // Added Vision Board
+    { id: "habits", label: "Habits", icon: Trophy }, 
+    { id: "roadmap", label: "2026 Roadmap", icon: Target }, // Replaced Vision
     { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
     { id: "sniper", label: "Sniper System", icon: Crosshair },
@@ -605,7 +606,7 @@ export default function Dashboard() {
           setBoards(json.data);
           // If we have boards and no current board, select the first one?
           // Or keep "All" / "Default" view as null?
-          // Let's assume user wants to see specific boards. 
+          // Let's assume user wants to see specific boards.
           // If no board is selected, maybe default to the first one if available, or keep null for "uncategorized"
           if (json.data.length > 0 && !currentBoardId) {
             // Optional: Auto-select first board
@@ -865,9 +866,9 @@ export default function Dashboard() {
       timeLogs: newTimeLogs,
       totalTimeSpent: Math.max(0, newTotalTime)
     } : t);
-    
+
     setTasks(updatedTasks);
-    
+
     // Update focused task if it's the one being modified
     if (focusedTask && focusedTask._id === taskId) {
       setFocusedTask(updatedTasks.find(t => t._id === taskId) || null);
@@ -1152,7 +1153,7 @@ export default function Dashboard() {
 
         {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
-        {activeTab === "vision" && <VisionBoardView />}
+        {activeTab === "roadmap" && <RoadmapView />}
         {activeTab === "watch" && <WatchLaterView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
         {activeTab === "sniper" && <SniperView />}
