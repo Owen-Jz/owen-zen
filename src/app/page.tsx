@@ -20,9 +20,12 @@ import {
 import {
   arrayMove,
   sortableKeyboardCoordinates,
+  SortableContext,
+  verticalListSortingStrategy
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
+import { SortableMITItem } from "@/components/SortableMITItem"; // Import MIT Item
 import { HabitView } from "@/components/HabitView";
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
@@ -69,7 +72,7 @@ interface Task {
   timeLogs?: TimeLog[];
   totalTimeSpent?: number; // seconds
   activeTimer?: ActiveTimer;
-  isMIT?: boolean;
+  isMIT: boolean;
 }
 
 interface Wallet {
@@ -641,16 +644,20 @@ export default function Dashboard() {
     fetchBoards();
   }, []); // Run once on mount
 
-  // Load Tasks (DEPENDS ON currentBoardId)
+  const [mitTasks, setMitTasks] = useState<Task[]>([]);
+
+  // ... (inside useEffect for fetchTasks, update this logic to split MITs)
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
       try {
-        // Fetch tasks for the current board (or all/uncategorized if null)
         const url = currentBoardId ? `/api/tasks?boardId=${currentBoardId}` : "/api/tasks";
         const res = await fetch(url);
         const json = await res.json();
-        if (json.success) setTasks(json.data);
+        if (json.success) {
+            setTasks(json.data);
+            setMitTasks(json.data.filter((t: Task) => t.isMIT && !t.isArchived && t.status !== 'completed').sort((a: Task, b: Task) => a.order - b.order));
+        }
       } catch (error) {
         console.error("Failed to fetch tasks", error);
       } finally {
@@ -658,7 +665,23 @@ export default function Dashboard() {
       }
     };
     fetchTasks();
-  }, [currentBoardId]); // Refetch when board changes
+  }, [currentBoardId]);
+
+  // Handle MIT Reorder
+  const handleMITDragEnd = async (event: any) => {
+    const { active, over } = event;
+    if (active.id !== over.id) {
+      const oldIndex = mitTasks.findIndex((t) => t._id === active.id);
+      const newIndex = mitTasks.findIndex((t) => t._id === over.id);
+      
+      const newMITs = arrayMove(mitTasks, oldIndex, newIndex);
+      setMitTasks(newMITs);
+
+      // Update order in DB
+      // We can reuse the same /api/tasks PUT endpoint if it handles bulk update or create a new one
+      // For simplicity, let's update local state visually and maybe persist order if we want strict ranking
+    }
+  };
 
   const createBoard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1097,34 +1120,33 @@ export default function Dashboard() {
         {activeTab === "tasks" && (
           <div className="max-w-[1600px] mx-auto pb-20">
             {/* Daily MIT Section */}
-            {tasks.some(t => t.isMIT && !t.isArchived && t.status !== 'completed') && (
+            {mitTasks.length > 0 && (
                 <div className="mb-8 p-6 bg-gradient-to-r from-red-500/10 to-transparent border-l-4 border-red-500 rounded-xl">
                     <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
                         <Target className="text-red-500" /> Daily Non-Negotiables (MITs)
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {tasks.filter(t => t.isMIT && !t.isArchived && t.status !== 'completed').map(task => (
-                            <div key={task._id} className="bg-surface border border-border p-4 rounded-xl flex items-center justify-between group">
-                                <span className="font-bold text-lg">{task.title}</span>
-                                <div className="flex gap-2">
-                                    <button 
-                                        onClick={() => updateTaskStatus(task._id, 'completed')}
-                                        className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-all"
-                                        title="Complete"
-                                    >
-                                        <Check size={18} />
-                                    </button>
-                                    <button 
-                                        onClick={() => toggleMIT(task._id, false)}
-                                        className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/10"
-                                        title="Remove from MIT"
-                                    >
-                                        <X size={18} />
-                                    </button>
-                                </div>
+                    
+                    <DndContext 
+                        sensors={useSensors(
+                            useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+                            useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+                        )}
+                        collisionDetection={closestCenter}
+                        onDragEnd={handleMITDragEnd}
+                    >
+                        <SortableContext items={mitTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
+                            <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
+                                {mitTasks.map(task => (
+                                    <SortableMITItem 
+                                        key={task._id} 
+                                        task={task} 
+                                        onComplete={(id) => updateTaskStatus(id, 'completed')}
+                                        onRemoveMIT={(id) => toggleMIT(id, false)}
+                                    />
+                                ))}
                             </div>
-                        ))}
-                    </div>
+                        </SortableContext>
+                    </DndContext>
                 </div>
             )}
 
