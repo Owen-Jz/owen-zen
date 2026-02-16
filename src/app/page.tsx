@@ -422,7 +422,7 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
   );
 }
 
-const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
+export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [boards, setBoards] = useState<Board[]>([]); // New: Boards state
   const [currentBoardId, setCurrentBoardId] = useState<string | null>(null); // New: Current Board
