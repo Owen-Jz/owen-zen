@@ -69,6 +69,7 @@ interface Task {
   timeLogs?: TimeLog[];
   totalTimeSpent?: number; // seconds
   activeTimer?: ActiveTimer;
+  isMIT?: boolean;
 }
 
 interface Wallet {
@@ -100,7 +101,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
-    { id: "habits", label: "Habits", icon: Trophy }, 
+    { id: "habits", label: "Habits", icon: Trophy },
     { id: "roadmap", label: "2026 Roadmap", icon: Target }, // Replaced Vision
     { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
@@ -183,18 +184,20 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
 };
 
 // --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog }: {
+const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog, onToggleMIT }: {
   task: Task | null,
   onClose: () => void,
   onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
-  onDeleteTimeLog: (id: string, logIndex: number) => void
+  onDeleteTimeLog: (id: string, logIndex: number) => void,
+  onToggleMIT: (id: string, isMIT: boolean) => void
 }) => {
   const [title, setTitle] = useState(task?.title || "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
   const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
   const [newSubtask, setNewSubtask] = useState("");
+  const [isMIT, setIsMIT] = useState(task?.isMIT || false);
 
   if (!task) return null;
 
@@ -227,6 +230,24 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
               onChange={(e) => setTitle(e.target.value)}
               className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none min-h-[80px] resize-none"
             />
+          </div>
+
+          <div>
+            <label className="flex items-center gap-3 bg-surface/50 border border-border p-3 rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
+                <input
+                    type="checkbox"
+                    checked={isMIT}
+                    onChange={(e) => {
+                        setIsMIT(e.target.checked);
+                        onToggleMIT(task._id, e.target.checked);
+                    }}
+                    className="w-5 h-5 rounded border-gray-500 text-primary focus:ring-primary"
+                />
+                <div>
+                    <span className="block font-bold text-sm">Mark as Daily MIT</span>
+                    <span className="text-xs text-gray-500">Most Important Task (Non-Negotiable)</span>
+                </div>
+            </label>
           </div>
 
           <div>
@@ -866,9 +887,9 @@ export default function Dashboard() {
       timeLogs: newTimeLogs,
       totalTimeSpent: Math.max(0, newTotalTime)
     } : t);
-
+    
     setTasks(updatedTasks);
-
+    
     // Update focused task if it's the one being modified
     if (focusedTask && focusedTask._id === taskId) {
       setFocusedTask(updatedTasks.find(t => t._id === taskId) || null);
@@ -886,6 +907,38 @@ export default function Dashboard() {
     } catch {
       setTasks(oldTasks);
     }
+  };
+
+  const toggleMIT = async (taskId: string, isMIT: boolean) => {
+    const oldTasks = [...tasks];
+    const updatedTasks = tasks.map(t => t._id === taskId ? { ...t, isMIT } : t);
+    setTasks(updatedTasks);
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isMIT }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const deleteBoard = async (boardId: string) => {
+      if(!confirm("Delete this board and all its tasks?")) return;
+      
+      try {
+          await fetch(`/api/boards/${boardId}`, { method: "DELETE" });
+          setBoards(boards.filter(b => b._id !== boardId));
+          setCurrentBoardId(null); // Reset to All Tasks
+          // Optionally refetch tasks to clear deleted ones from state if they were loaded
+          const res = await fetch("/api/tasks");
+          const json = await res.json();
+          if (json.success) setTasks(json.data);
+      } catch (error) {
+          console.error("Failed to delete board", error);
+      }
   };
 
   // Helper to sync focused task with main task list state updates
@@ -924,6 +977,7 @@ export default function Dashboard() {
             onStartTimer={startTimer}
             onStopTimer={stopTimer}
             onDeleteTimeLog={deleteTimeLog}
+            onToggleMIT={toggleMIT}
           />
         )}
       </AnimatePresence>
@@ -1042,6 +1096,38 @@ export default function Dashboard() {
 
         {activeTab === "tasks" && (
           <div className="max-w-[1600px] mx-auto pb-20">
+            {/* Daily MIT Section */}
+            {tasks.some(t => t.isMIT && !t.isArchived && t.status !== 'completed') && (
+                <div className="mb-8 p-6 bg-gradient-to-r from-red-500/10 to-transparent border-l-4 border-red-500 rounded-xl">
+                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
+                        <Target className="text-red-500" /> Daily Non-Negotiables (MITs)
+                    </h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {tasks.filter(t => t.isMIT && !t.isArchived && t.status !== 'completed').map(task => (
+                            <div key={task._id} className="bg-surface border border-border p-4 rounded-xl flex items-center justify-between group">
+                                <span className="font-bold text-lg">{task.title}</span>
+                                <div className="flex gap-2">
+                                    <button 
+                                        onClick={() => updateTaskStatus(task._id, 'completed')}
+                                        className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-all"
+                                        title="Complete"
+                                    >
+                                        <Check size={18} />
+                                    </button>
+                                    <button 
+                                        onClick={() => toggleMIT(task._id, false)}
+                                        className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/10"
+                                        title="Remove from MIT"
+                                    >
+                                        <X size={18} />
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Board Selector */}
             <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
               <button
@@ -1061,13 +1147,25 @@ export default function Dashboard() {
                   key={board._id}
                   onClick={() => setCurrentBoardId(board._id)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative",
+                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
                     currentBoardId === board._id
                       ? "bg-primary/10 border-primary text-primary"
                       : "bg-surface border-border text-gray-400 hover:text-white hover:bg-surface-hover"
                   )}
                 >
                   {board.title}
+                  {currentBoardId === board._id && (
+                      <span 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            deleteBoard(board._id);
+                        }}
+                        className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
+                        title="Delete Board"
+                      >
+                          <Trash2 size={12} />
+                      </span>
+                  )}
                 </button>
               ))}
 

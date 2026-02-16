@@ -59,7 +59,9 @@ const TaskSchema = new mongoose.Schema({
     sessionTitle: String
   },
   scheduledDate: { type: Date },
-  googleEventId: { type: String }
+  googleEventId: { type: String },
+  isMIT: { type: Boolean, default: false },
+  mitDate: { type: Date } // To track which day it was assigned as MIT
 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
