@@ -92,6 +92,11 @@ interface Post {
   scheduledFor?: string;
 }
 
+interface Board {
+  _id: string;
+  title: string;
+}
+
 // --- Utils ---
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
