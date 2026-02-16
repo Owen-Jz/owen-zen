@@ -25,7 +25,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
-import { SortableMITItem } from "@/components/SortableMITItem"; // Import MIT Item
+import { MITList } from "@/components/MITList"; // Import MIT List Component
 import { HabitView } from "@/components/HabitView";
 import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
 import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
@@ -644,9 +644,7 @@ export default function Dashboard() {
     fetchBoards();
   }, []); // Run once on mount
 
-  const [mitTasks, setMitTasks] = useState<Task[]>([]);
-
-  // ... (inside useEffect for fetchTasks, update this logic to split MITs)
+  // Load Tasks (DEPENDS ON currentBoardId)
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
@@ -656,7 +654,6 @@ export default function Dashboard() {
         const json = await res.json();
         if (json.success) {
             setTasks(json.data);
-            setMitTasks(json.data.filter((t: Task) => t.isMIT && !t.isArchived && t.status !== 'completed').sort((a: Task, b: Task) => a.order - b.order));
         }
       } catch (error) {
         console.error("Failed to fetch tasks", error);
@@ -666,22 +663,6 @@ export default function Dashboard() {
     };
     fetchTasks();
   }, [currentBoardId]);
-
-  // Handle MIT Reorder
-  const handleMITDragEnd = async (event: any) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      const oldIndex = mitTasks.findIndex((t) => t._id === active.id);
-      const newIndex = mitTasks.findIndex((t) => t._id === over.id);
-      
-      const newMITs = arrayMove(mitTasks, oldIndex, newIndex);
-      setMitTasks(newMITs);
-
-      // Update order in DB
-      // We can reuse the same /api/tasks PUT endpoint if it handles bulk update or create a new one
-      // For simplicity, let's update local state visually and maybe persist order if we want strict ranking
-    }
-  };
 
   const createBoard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1120,35 +1101,12 @@ export default function Dashboard() {
         {activeTab === "tasks" && (
           <div className="max-w-[1600px] mx-auto pb-20">
             {/* Daily MIT Section */}
-            {mitTasks.length > 0 && (
-                <div className="mb-8 p-6 bg-gradient-to-r from-red-500/10 to-transparent border-l-4 border-red-500 rounded-xl">
-                    <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
-                        <Target className="text-red-500" /> Daily Non-Negotiables (MITs)
-                    </h2>
-                    
-                    <DndContext 
-                        sensors={useSensors(
-                            useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-                            useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
-                        )}
-                        collisionDetection={closestCenter}
-                        onDragEnd={handleMITDragEnd}
-                    >
-                        <SortableContext items={mitTasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
-                            <div className="grid grid-cols-1 md:grid-cols-1 gap-2">
-                                {mitTasks.map(task => (
-                                    <SortableMITItem 
-                                        key={task._id} 
-                                        task={task} 
-                                        onComplete={(id) => updateTaskStatus(id, 'completed')}
-                                        onRemoveMIT={(id) => toggleMIT(id, false)}
-                                    />
-                                ))}
-                            </div>
-                        </SortableContext>
-                    </DndContext>
-                </div>
-            )}
+            <MITList 
+                tasks={tasks}
+                setTasks={setTasks}
+                onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
+                onToggleMIT={toggleMIT}
+            />
 
             {/* Board Selector */}
             <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
