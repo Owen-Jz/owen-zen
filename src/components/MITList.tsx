@@ -5,18 +5,43 @@ import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboa
 import { Target } from "lucide-react";
 import { SortableMITItem } from "@/components/SortableMITItem";
 
+// Detailed Task Interface matching page.tsx
+interface SubTask {
+  title: string;
+  completed: boolean;
+}
+
+interface TimeLog {
+  startedAt: string;
+  endedAt?: string;
+  duration: number;
+  note?: string;
+}
+
+interface ActiveTimer {
+  startedAt?: string;
+  isActive: boolean;
+  sessionTitle?: string;
+}
+
 interface Task {
-    _id: string;
-    title: string;
-    isMIT: boolean;
-    order: number;
-    isArchived?: boolean;
-    status: string;
+  _id: string;
+  title: string;
+  status: string; // or TaskStatus if imported
+  priority: string; // or TaskPriority
+  createdAt: string;
+  order: number;
+  isArchived?: boolean;
+  subtasks?: SubTask[];
+  timeLogs?: TimeLog[];
+  totalTimeSpent?: number;
+  activeTimer?: ActiveTimer;
+  isMIT: boolean;
 }
 
 interface MITListProps {
     tasks: Task[];
-    setTasks: (tasks: Task[]) => void;
+    setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     onUpdateStatus: (id: string, status: string) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
 }
@@ -33,23 +58,49 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITLis
     const handleDragEnd = (event: any) => {
         const { active, over } = event;
         if (active.id !== over.id) {
-            const oldIndex = tasks.findIndex((t) => t._id === active.id);
-            const newIndex = tasks.findIndex((t) => t._id === over.id);
+            // Finding index in the FULL list is tricky because we are sorting a subset
+            // For true reordering of MITs, we should probably just reorder them relative to each other
+            // But updating the main 'tasks' state requires mapping back
             
-            // Reorder in full list context requires careful handling
-            // Better to reorder just the MIT subset visually or update order field
-            // For simplicity, let's just use arrayMove on the full list if indices are correct, 
-            // but since we are filtering, indices might not match.
-            // Correct approach: Reorder mitTasks locally, then update their 'order' property in the main list.
+            // Simplified Logic: 
+            // 1. Get the current sorted MIT list
+            const currentMITs = [...mitTasks];
+            const oldIndex = currentMITs.findIndex(t => t._id === active.id);
+            const newIndex = currentMITs.findIndex(t => t._id === over.id);
             
-            const oldMitIndex = mitTasks.findIndex(t => t._id === active.id);
-            const newMitIndex = mitTasks.findIndex(t => t._id === over.id);
+            // 2. Reorder the subset
+            const reorderedMITs = arrayMove(currentMITs, oldIndex, newIndex);
             
-            const newMITs = arrayMove(mitTasks, oldMitIndex, newMitIndex);
+            // 3. Create a map of ID -> New Order
+            const orderMap = new Map();
+            reorderedMITs.forEach((t, i) => orderMap.set(t._id, i));
             
-            // Update the main tasks array with new orders for these MIT items
-            // This is complex to do purely client-side without a dedicated API for reordering
-            // For now, let's just visual update
+            // 4. Update the main tasks list 'order' field for these items
+            // Note: This might conflict with the main board order. 
+            // Ideally, MITs should have a separate 'mitOrder' field. 
+            // For now, let's just visually update by updating the state locally if possible, 
+            // but since we rely on 'tasks' prop, we must update the parent.
+            
+            // Constraint: We can't easily reorder the main list based on a subset drag without messing up non-MIT items.
+            // PROPOSAL: Just swapping the 'order' values of the dragged items in the main list.
+            
+            const newTasks = tasks.map(t => {
+                if (t._id === active.id) {
+                    return { ...t, order: reorderedMITs[newIndex].order }; // Swap order values? No, that assumes clean swapping.
+                }
+                if (t._id === over.id) {
+                    return { ...t, order: reorderedMITs[oldIndex].order };
+                }
+                return t;
+            });
+            
+            // Actually, simplest 'visual' fix for now is just allowing the drag but not persisting complex reorder until we add 'mitOrder'.
+            // Or just swap them in the main array.
+             const mainOldIndex = tasks.findIndex(t => t._id === active.id);
+             const mainNewIndex = tasks.findIndex(t => t._id === over.id);
+             
+             const reorderedMain = arrayMove(tasks, mainOldIndex, mainNewIndex);
+             setTasks(reorderedMain);
         }
     };
 
