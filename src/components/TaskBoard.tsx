@@ -1,5 +1,5 @@
 // --- Task Board Component ---
-const TaskBoard = ({
+export const TaskBoard = ({
   tasks,
   setTasks,
   onUpdateStatus,
