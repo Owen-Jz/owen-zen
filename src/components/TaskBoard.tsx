@@ -1,4 +1,63 @@
+// Types
+type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
+type TaskPriority = "high" | "medium" | "low";
+
+interface SubTask {
+  title: string;
+  completed: boolean;
+}
+
+interface TimeLog {
+  startedAt: string;
+  endedAt?: string;
+  duration: number; // seconds
+  note?: string;
+}
+
+interface ActiveTimer {
+  startedAt?: string;
+  isActive: boolean;
+  sessionTitle?: string;
+}
+
+interface Task {
+  _id: string;
+  title: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  createdAt: string;
+  order: number;
+  isArchived?: boolean;
+  subtasks?: SubTask[];
+  timeLogs?: TimeLog[];
+  totalTimeSpent?: number;
+  activeTimer?: ActiveTimer;
+  isMIT?: boolean;
+}
+
+import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useSortable } from "@dnd-kit/sortable";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2 } from "lucide-react";
+import { useState, useRef, useEffect, forwardRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+import { TaskColumn } from "./TaskColumn";
+
+function cn(...inputs: (string | undefined | null | false)[]) {
+  return twMerge(clsx(inputs));
+}
+
+// Reuse TaskCard from TaskColumn if exported, but TaskColumn has it inside? 
+// Wait, TaskColumn has TaskCard but it wasn't exported.
+// Let's assume TaskColumn handles the card rendering, or we need to import TaskCard.
+// Checking TaskColumn.tsx... it seems TaskCard IS exported.
+
 // --- Task Board Component ---
+import { TaskCard } from "./TaskColumn";
+
 export const TaskBoard = ({
   tasks,
   setTasks,
