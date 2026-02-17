@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Target, Lock, CheckCircle2, AlertTriangle, ArrowRight, ShieldCheck, Trophy, Heart, Briefcase } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Trash2, ChevronRight, ChevronDown, Circle, CheckCircle2, Loader2 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -10,209 +9,327 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-export const RoadmapView = () => {
-  // In a real app, these states would be fetched from DB
-  const [tiers, setTiers] = useState([
-    {
-      id: 1,
-      title: "Foundation",
-      icon: ShieldCheck,
-      color: "blue",
-      status: "in-progress", // locked, in-progress, completed
-      goals: [
-        { id: "g1", text: "$3k–$5k Consistent Monthly Income", done: false, note: "3 consecutive stable months minimum." }
-      ]
-    },
-    {
-      id: 2,
-      title: "Stability",
-      icon: Lock,
-      color: "emerald",
-      status: "locked",
-      goals: [
-        { id: "g2", text: "Emergency Fund (6 Months Expenses)", done: false, note: "$12k saved." },
-        { id: "g3", text: "Move Into Own Apartment", done: false, note: "Only after income is stable for 3+ months." }
-      ]
-    },
-    {
-      id: 3,
-      title: "Reward",
-      icon: Trophy,
-      color: "amber",
-      status: "locked",
-      goals: [
-        { id: "g4", text: "Buy 2018 Camry SE (White)", done: false, note: "Only if Income ≥ $5k/mo & Fund intact." }
-      ]
-    },
-    {
-      id: 4,
-      title: "Impact",
-      icon: Heart,
-      color: "rose",
-      status: "locked",
-      goals: [
-        { id: "g5", text: "Gift Parents 1M", done: false, note: "From overflow, not sacrifice." }
-      ]
-    },
-    {
-      id: 5,
-      title: "The Engine",
-      icon: Briefcase,
-      color: "violet",
-      status: "locked",
-      goals: [
-        { id: "g6", text: "Startup: YOU", done: false, note: "Skill, Positioning, Leverage." }
-      ]
-    }
-  ]);
+interface Goal {
+  _id: string;
+  title: string;
+  status: 'pending' | 'in-progress' | 'achieved';
+  parentId?: string | null;
+  children?: Goal[];
+}
 
-  const toggleGoal = (tierIndex: number, goalIndex: number) => {
-    const newTiers = [...tiers];
-    const goal = newTiers[tierIndex].goals[goalIndex];
-    goal.done = !goal.done;
-    
-    // Check if tier is complete
-    const allDone = newTiers[tierIndex].goals.every(g => g.done);
-    if (allDone) {
-        newTiers[tierIndex].status = "completed";
-        // Unlock next
-        if (tierIndex + 1 < newTiers.length) {
-            newTiers[tierIndex + 1].status = "in-progress";
-        }
-    } else {
-        // If unchecking, might need to lock future tiers? 
-        // For simplicity, we just toggle done state for now.
-        newTiers[tierIndex].status = "in-progress";
-    }
+const GoalItem = ({
+  goal,
+  onUpdate,
+  onDelete,
+  onAddSubGoal
+}: {
+  goal: Goal,
+  onUpdate: (id: string, updates: Partial<Goal>) => void,
+  onDelete: (id: string) => void,
+  onAddSubGoal: (parentId: string) => void
+}) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editTitle, setEditTitle] = useState(goal.title);
 
-    setTiers(newTiers);
+  const hasChildren = goal.children && goal.children.length > 0;
+
+  const handleToggleStatus = () => {
+    const newStatus = goal.status === 'achieved' ? 'pending' : 'achieved';
+    onUpdate(goal._id, { status: newStatus });
+  };
+
+  const handleSaveTitle = () => {
+    if (editTitle.trim() !== goal.title) {
+      onUpdate(goal._id, { title: editTitle });
+    }
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') handleSaveTitle();
+    if (e.key === 'Escape') {
+      setEditTitle(goal.title);
+      setIsEditing(false);
+    }
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-12 animate-in fade-in duration-700 py-8">
-      
-      {/* Header */}
-      <div className="text-center space-y-4 mb-16">
-        <h1 className="text-4xl md:text-6xl font-black uppercase tracking-tighter italic">
-            2026: The Year of <span className="text-primary">Sovereignty</span>
-        </h1>
-        <p className="text-gray-400 max-w-2xl mx-auto text-lg">
-            Transition from <span className="text-white font-bold">Supported Talent</span> → <span className="text-white font-bold">Financially Independent Operator</span>.
-        </p>
+    <div className="group animate-in fade-in slide-in-from-left-2 duration-300 mb-2">
+      <div className={cn(
+        "flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors group/item border border-transparent hover:border-white/10",
+        goal.status === 'achieved' && "opacity-60"
+      )}>
+        {/* Expand Toggle */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "p-1 rounded hover:bg-white/10 text-gray-500 transition-colors shrink-0",
+            !hasChildren && "opacity-0 pointer-events-none"
+          )}
+        >
+          {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+        </button>
+
+        {/* Checkbox */}
+        <button
+          onClick={handleToggleStatus}
+          className={cn(
+            "shrink-0 transition-colors",
+            goal.status === 'achieved' ? "text-primary/70" : "text-gray-600 hover:text-gray-400"
+          )}
+        >
+          {goal.status === 'achieved' ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+        </button>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0 ml-1">
+          {isEditing ? (
+            <input
+              autoFocus
+              type="text"
+              value={editTitle}
+              onChange={(e) => setEditTitle(e.target.value)}
+              onBlur={handleSaveTitle}
+              onKeyDown={handleKeyDown}
+              className="w-full bg-transparent border-b border-primary outline-none py-0.5 text-base font-medium"
+            />
+          ) : (
+            <div
+              onClick={() => setIsEditing(true)}
+              className={cn(
+                "py-0.5 text-base font-medium cursor-text break-words select-none",
+                goal.status === 'achieved' && "line-through text-gray-500"
+              )}
+            >
+              {goal.title}
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-1 transition-opacity">
+          <button
+            onClick={() => onAddSubGoal(goal._id)}
+            className="p-1.5 text-gray-500 hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
+            title="Add Sub-goal"
+          >
+            <Plus size={14} />
+          </button>
+          <button
+            onClick={() => onDelete(goal._id)}
+            className="p-1.5 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-md transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+        </div>
       </div>
 
-      {/* Tiers */}
-      <div className="relative space-y-24 before:absolute before:left-8 md:before:left-1/2 before:top-0 before:bottom-0 before:w-px before:bg-gradient-to-b before:from-primary/50 before:via-border before:to-transparent before:-z-10">
-          
-          {tiers.map((tier, i) => {
-              const isLocked = tier.status === "locked";
-              const isCompleted = tier.status === "completed";
-              const Icon = tier.icon;
-              const alignRight = i % 2 !== 0;
-
-              return (
-                  <motion.div 
-                    key={tier.id}
-                    initial={{ opacity: 0, y: 50 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true, margin: "-100px" }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                    className={cn(
-                        "relative flex flex-col md:flex-row items-center gap-8 md:gap-16",
-                        alignRight ? "md:flex-row-reverse" : ""
-                    )}
-                  >
-                      {/* Center Node */}
-                      <div className={cn(
-                          "absolute left-8 md:left-1/2 -translate-x-1/2 w-12 h-12 rounded-full border-4 flex items-center justify-center z-10 transition-all duration-500 bg-background",
-                          isCompleted ? "border-primary text-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]" : 
-                          isLocked ? "border-border text-gray-700 bg-surface" : "border-white text-white animate-pulse"
-                      )}>
-                          {isCompleted ? <CheckCircle2 size={24} /> : <span className="font-black text-lg">{tier.id}</span>}
-                      </div>
-
-                      {/* Content Card */}
-                      <div className={cn(
-                          "w-full md:w-1/2 ml-16 md:ml-0 p-6 md:p-8 rounded-2xl border transition-all duration-500 relative overflow-hidden group",
-                          isLocked ? "bg-surface/10 border-border/20 opacity-50 grayscale" : "bg-surface/40 border-border hover:border-primary/30"
-                      )}>
-                          {/* Background Glow */}
-                          {!isLocked && (
-                              <div className={cn("absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] opacity-10 pointer-events-none -translate-y-1/2 translate-x-1/2", 
-                                tier.color === "blue" ? "bg-blue-500" :
-                                tier.color === "emerald" ? "bg-emerald-500" :
-                                tier.color === "amber" ? "bg-amber-500" :
-                                tier.color === "rose" ? "bg-rose-500" : "bg-violet-500"
-                              )} />
-                          )}
-
-                          <div className="flex items-center gap-4 mb-6">
-                              <div className={cn("p-3 rounded-xl", isLocked ? "bg-white/5" : "bg-white/10 text-white")}>
-                                  <Icon size={24} />
-                              </div>
-                              <div>
-                                  <div className="text-xs font-bold uppercase tracking-widest text-gray-500">Tier {tier.id}</div>
-                                  <h2 className="text-2xl font-bold">{tier.title}</h2>
-                              </div>
-                          </div>
-
-                          <div className="space-y-4">
-                              {tier.goals.map((goal, gIndex) => (
-                                  <div 
-                                    key={goal.id} 
-                                    onClick={() => !isLocked && toggleGoal(i, gIndex)}
-                                    className={cn(
-                                        "flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer",
-                                        isLocked ? "border-transparent" : "border-border/50 hover:bg-white/5",
-                                        goal.done ? "bg-primary/10 border-primary/30" : ""
-                                    )}
-                                  >
-                                      <div className={cn(
-                                          "w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5 transition-all",
-                                          goal.done ? "bg-primary border-primary text-white" : "border-gray-600",
-                                          isLocked && "border-gray-800"
-                                      )}>
-                                          {goal.done && <CheckCircle2 size={14} />}
-                                      </div>
-                                      <div>
-                                          <div className={cn("font-medium", goal.done && "text-gray-400 line-through")}>
-                                              {goal.text}
-                                          </div>
-                                          {goal.note && (
-                                              <div className="text-xs text-gray-500 mt-1">{goal.note}</div>
-                                          )}
-                                      </div>
-                                  </div>
-                              ))}
-                          </div>
-
-                          {isLocked && (
-                              <div className="absolute inset-0 flex items-center justify-center bg-black/60 backdrop-blur-[2px]">
-                                  <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-gray-800 text-gray-500 text-xs font-bold uppercase tracking-widest">
-                                      <Lock size={12} /> Locked - Complete Tier {tier.id - 1} First
-                                  </div>
-                              </div>
-                          )}
-                      </div>
-                  </motion.div>
-              );
-          })}
-
-      </div>
-      
-      {/* The Choice */}
-      <div className="mt-32 p-8 md:p-12 rounded-3xl border border-red-500/30 bg-gradient-to-br from-red-950/30 to-black text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-          <AlertTriangle size={48} className="mx-auto text-red-500 mb-6" />
-          <h3 className="text-2xl md:text-3xl font-bold mb-4">The Final Question</h3>
-          <p className="text-lg text-gray-300 max-w-xl mx-auto mb-8">
-              If December 31st 2026 comes and you achieved only ONE thing... would you rather it be the Camry or $5k/month stable income?
-          </p>
-          <div className="inline-block px-6 py-3 rounded-full bg-red-500/10 border border-red-500/50 text-red-400 font-bold uppercase tracking-widest text-sm">
-              Choose Carefully
+      {/* Children */}
+      {hasChildren && isExpanded && (
+        <div className="pl-6 md:pl-9 relative border-l border-white/5 ml-3 md:ml-4 my-1">
+          <div className="pl-2">
+            {goal.children!.map(child => (
+              <GoalItem
+                key={child._id}
+                goal={child}
+                onUpdate={onUpdate}
+                onDelete={onDelete}
+                onAddSubGoal={onAddSubGoal}
+              />
+            ))}
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export const RoadmapView = () => {
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [newTopLevelGoal, setNewTopLevelGoal] = useState("");
+
+  // Build tree structure locally from flat list
+  const buildTree = (items: Goal[]) => {
+    // Deep clone to avoid mutating state directly during construct
+    const itemMap = new Map<string, Goal>();
+    const roots: Goal[] = [];
+
+    // Initialize map with copies
+    items.forEach(item => {
+      itemMap.set(item._id, { ...item, children: [] });
+    });
+
+    // Build hierarchy
+    items.forEach(item => {
+      const node = itemMap.get(item._id)!;
+      if (item.parentId) {
+        const parent = itemMap.get(item.parentId);
+        if (parent) {
+          parent.children?.push(node);
+        } else {
+          roots.push(node); // Orphaned or parent not in current set
+        }
+      } else {
+        roots.push(node);
+      }
+    });
+
+    return roots;
+  };
+
+  const fetchGoals = async () => {
+    try {
+      const res = await fetch("/api/goals");
+      const json = await res.json();
+      if (json.success) {
+        setGoals(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch goals", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchGoals();
+  }, []);
+
+  const addGoal = async (title: string, parentId: string | null = null) => {
+    try {
+      const res = await fetch("/api/goals", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, parentId, year: 2026 })
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGoals(prev => [...prev, json.data]);
+        return true;
+      }
+    } catch (error) {
+      console.error("Failed to add goal", error);
+    }
+    return false;
+  };
+
+  const updateGoal = async (id: string, updates: Partial<Goal>) => {
+    // Optimistic update
+    const originalGoals = [...goals];
+    setGoals(prev => prev.map(g => g._id === id ? { ...g, ...updates } : g));
+
+    try {
+      await fetch(`/api/goals/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates)
+      });
+    } catch (error) {
+      setGoals(originalGoals);
+      console.error("Failed to update goal", error);
+    }
+  };
+
+  const deleteGoal = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this goal?")) return;
+
+    // Recursive removal in local state
+    const getDescendantIds = (parentId: string, allGoals: Goal[]): string[] => {
+      const children = allGoals.filter(g => g.parentId === parentId);
+      let ids = children.map(c => c._id);
+      children.forEach(c => {
+        ids = [...ids, ...getDescendantIds(c._id, allGoals)];
+      });
+      return ids;
+    };
+
+    const idsToRemove = [id, ...getDescendantIds(id, goals)];
+    const originalGoals = [...goals];
+
+    setGoals(prev => prev.filter(g => !idsToRemove.includes(g._id)));
+
+    try {
+      await fetch(`/api/goals/${id}`, { method: "DELETE" });
+    } catch (error) {
+      setGoals(originalGoals);
+      console.error("Delete failed", error);
+    }
+  };
+
+  const handleAddTopLevel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTopLevelGoal.trim()) return;
+    const success = await addGoal(newTopLevelGoal);
+    if (success) setNewTopLevelGoal("");
+  };
+
+  const handleAddSubGoal = async (parentId: string) => {
+    // Simple prompt for now, could be inline input in future
+    const title = prompt("Enter sub-goal / idea:");
+    if (title && title.trim()) {
+      await addGoal(title, parentId);
+    }
+  };
+
+  const tree = buildTree(goals);
+
+  return (
+    <div className="max-w-4xl mx-auto py-12 px-6">
+      <div className="mb-12 text-center md:text-left">
+        <h1 className="text-4xl md:text-5xl font-bold mb-4 tracking-tight">2026: The Year of <span className="text-primary">Sovereignty</span></h1>
+        <p className="text-gray-400 text-lg">Define your vision. Structure your path. Execute relentlessly.</p>
       </div>
 
+      {isLoading ? (
+        <div className="flex justify-center py-20">
+          <Loader2 className="animate-spin text-primary" size={32} />
+        </div>
+      ) : (
+        <div className="space-y-8 animate-in fade-in duration-500">
+          {/* Input Area */}
+          <form onSubmit={handleAddTopLevel} className="relative group">
+            <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-transparent to-transparent rounded-xl opacity-0 group-hover:opacity-100 transition-opacity blur-xl" />
+            <input
+              type="text"
+              value={newTopLevelGoal}
+              onChange={(e) => setNewTopLevelGoal(e.target.value)}
+              placeholder="What is your main objective?"
+              className="w-full bg-surface/50 backdrop-blur-sm border border-border rounded-xl px-6 py-5 pl-14 focus:border-primary outline-none transition-all placeholder:text-gray-500 text-lg shadow-lg relative z-10"
+            />
+            <Plus className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-500 z-20" size={24} />
+            {newTopLevelGoal.trim() && (
+              <button
+                type="submit"
+                className="absolute right-3 top-1/2 -translate-y-1/2 px-5 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-all shadow-lg z-20"
+              >
+                Add Goal
+              </button>
+            )}
+          </form>
+
+          {/* Goal Tree */}
+          {tree.length === 0 ? (
+            <div className="text-center py-20 border border-dashed border-white/10 rounded-2xl bg-surface/20">
+              <p className="text-gray-500">No goals set yet.</p>
+            </div>
+          ) : (
+            <div className="bg-surface/20 border border-white/5 rounded-2xl p-6 md:p-8 min-h-[300px]">
+              {tree.map(rootGoal => (
+                <GoalItem
+                  key={rootGoal._id}
+                  goal={rootGoal}
+                  onUpdate={updateGoal}
+                  onDelete={deleteGoal}
+                  onAddSubGoal={handleAddSubGoal}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
