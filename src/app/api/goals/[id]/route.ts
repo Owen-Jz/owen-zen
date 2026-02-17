@@ -2,11 +2,11 @@ import dbConnect from "@/lib/db";
 import Goal from "@/models/Goal";
 import { NextResponse } from "next/server";
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await dbConnect();
         const body = await req.json();
-        const { id } = params;
+        const { id } = await params;
 
         const goal = await Goal.findByIdAndUpdate(id, body, { new: true });
         return NextResponse.json({ success: true, data: goal });
@@ -16,10 +16,10 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await dbConnect();
-        const { id } = params;
+        const { id } = await params;
 
         // Recursive delete helper (or use cascading if possible, but manual is safer here)
         const recursiveDelete = async (goalId: string) => {
