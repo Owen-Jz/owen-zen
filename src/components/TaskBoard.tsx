@@ -32,7 +32,7 @@ interface Task {
   timeLogs?: TimeLog[];
   totalTimeSpent?: number;
   activeTimer?: ActiveTimer;
-  isMIT?: boolean;
+  isMIT: boolean;
 }
 
 import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";

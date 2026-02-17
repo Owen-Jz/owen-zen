@@ -24,11 +24,14 @@ interface ActiveTimer {
     sessionTitle?: string;
 }
 
+type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
+type TaskPriority = "high" | "medium" | "low";
+
 interface Task {
     _id: string;
     title: string;
-    status: string; // or TaskStatus if imported
-    priority: string; // or TaskPriority
+    status: TaskStatus;
+    priority: TaskPriority;
     createdAt: string;
     order: number;
     isArchived?: boolean;
@@ -42,7 +45,7 @@ interface Task {
 interface MITListProps {
     tasks: Task[];
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
-    onUpdateStatus: (id: string, status: string) => void;
+    onUpdateStatus: (id: string, status: TaskStatus) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
 }
 
