@@ -225,11 +225,9 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                           <Pin size={14} /> Pin for Later
                         </button>
                         <div className="h-px bg-border my-1" />
-                        {task.status === "completed" && (
-                          <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
-                            <Archive size={14} /> Archive
-                          </button>
-                        )}
+                        <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
+                          <Archive size={14} /> Archive
+                        </button>
                         <button onClick={() => onDelete && handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
                           <Trash2 size={14} /> Delete
                         </button>

@@ -27,13 +27,22 @@ export async function POST(req: Request) {
                 const imageResponse = await fetch(imageUrl);
                 if (!imageResponse.ok) throw new Error("Failed to fetch image");
 
-                const imageBuffer = Buffer.from(await imageResponse.arrayBuffer());
+                const arrayBuffer = await imageResponse.arrayBuffer();
+                const imageBuffer = Buffer.from(arrayBuffer);
+
+                // Get mime type from response headers or infer from URL
+                const mimeType = imageResponse.headers.get('content-type') || 'image/jpeg';
+                // Twitter requires specific mime types (image/jpeg, image/png, image/gif, image/webp)
 
                 // Upload media (v1.1 endpoint is required for media upload currently)
-                mediaId = await client.v1.uploadMedia(imageBuffer, { mimeType: 'image/jpeg' }); // Default to jpeg, twitter handles conversion
-            } catch (mediaError) {
+                mediaId = await client.v1.uploadMedia(imageBuffer, { mimeType });
+            } catch (mediaError: any) {
                 console.error("Media upload failed:", mediaError);
-                return NextResponse.json({ success: false, error: 'Failed to upload image to Twitter' }, { status: 500 });
+                // Return detailed error if possible
+                return NextResponse.json({
+                    success: false,
+                    error: 'Failed to upload image to Twitter: ' + (mediaError.message || 'Unknown error')
+                }, { status: 500 });
             }
         }
 

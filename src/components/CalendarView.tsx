@@ -19,6 +19,7 @@ interface Task {
   status: string;
   priority: string;
   scheduledDate?: string;
+  isArchived?: boolean;
 }
 
 // Draggable Task Component
@@ -101,7 +102,7 @@ export const CalendarView = () => {
     try {
       const res = await fetch("/api/tasks");
       const json = await res.json();
-      if (json.success) setTasks(json.data);
+      if (json.success) setTasks(json.data.filter((t: any) => !t.isArchived));
     } finally {
       setLoading(false);
     }
