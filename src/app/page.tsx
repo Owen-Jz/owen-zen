@@ -131,7 +131,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
       />
 
       <div className={cn(
-        "fixed left-0 top-0 h-full bg-surface border-r border-border transition-all duration-300 z-50",
+        "fixed left-0 top-0 h-full bg-surface/80 backdrop-blur-xl border-r border-white/5 transition-all duration-300 z-50",
         isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0",
         isCollapsed ? "md:w-20" : "md:w-64"
       )}>
@@ -229,7 +229,7 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
 
   return (
     <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="bg-surface border border-border w-full max-w-lg rounded-2xl p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div className="card-glass w-full max-w-lg p-8 shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-white/10">
         <h3 className="text-lg font-bold mb-4">Task Details</h3>
         <div className="space-y-4">
           <div>
@@ -237,25 +237,25 @@ const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDel
             <textarea
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none min-h-[80px] resize-none"
+              className="w-full bg-black/20 border border-white/5 rounded-xl p-3 focus:border-primary/50 focus:bg-black/40 outline-none min-h-[80px] resize-none transition-all placeholder:text-gray-600"
             />
           </div>
 
           <div>
-            <label className="flex items-center gap-3 bg-surface/50 border border-border p-3 rounded-xl cursor-pointer hover:bg-surface-hover transition-colors">
-                <input
-                    type="checkbox"
-                    checked={isMIT}
-                    onChange={(e) => {
-                        setIsMIT(e.target.checked);
-                        onToggleMIT(task._id, e.target.checked);
-                    }}
-                    className="w-5 h-5 rounded border-gray-500 text-primary focus:ring-primary"
-                />
-                <div>
-                    <span className="block font-bold text-sm">Mark as Daily MIT</span>
-                    <span className="text-xs text-gray-500">Most Important Task (Non-Negotiable)</span>
-                </div>
+            <label className="flex items-center gap-3 bg-white/5 border border-white/5 p-3 rounded-xl cursor-pointer hover:bg-white/10 transition-colors group">
+              <input
+                type="checkbox"
+                checked={isMIT}
+                onChange={(e) => {
+                  setIsMIT(e.target.checked);
+                  onToggleMIT(task._id, e.target.checked);
+                }}
+                className="w-5 h-5 rounded border-gray-500 text-primary focus:ring-primary"
+              />
+              <div>
+                <span className="block font-bold text-sm">Mark as Daily MIT</span>
+                <span className="text-xs text-gray-500">Most Important Task (Non-Negotiable)</span>
+              </div>
             </label>
           </div>
 
@@ -504,7 +504,7 @@ export default function Dashboard() {
         const res = await fetch(url);
         const json = await res.json();
         if (json.success) {
-            setTasks(json.data);
+          setTasks(json.data);
         }
       } catch (error) {
         console.error("Failed to fetch tasks", error);
@@ -742,9 +742,9 @@ export default function Dashboard() {
       timeLogs: newTimeLogs,
       totalTimeSpent: Math.max(0, newTotalTime)
     } : t);
-    
+
     setTasks(updatedTasks);
-    
+
     // Update focused task if it's the one being modified
     if (focusedTask && focusedTask._id === taskId) {
       setFocusedTask(updatedTasks.find(t => t._id === taskId) || null);
@@ -781,19 +781,19 @@ export default function Dashboard() {
   };
 
   const deleteBoard = async (boardId: string) => {
-      if(!confirm("Delete this board and all its tasks?")) return;
-      
-      try {
-          await fetch(`/api/boards/${boardId}`, { method: "DELETE" });
-          setBoards(boards.filter(b => b._id !== boardId));
-          setCurrentBoardId(null); // Reset to All Tasks
-          // Optionally refetch tasks to clear deleted ones from state if they were loaded
-          const res = await fetch("/api/tasks");
-          const json = await res.json();
-          if (json.success) setTasks(json.data);
-      } catch (error) {
-          console.error("Failed to delete board", error);
-      }
+    if (!confirm("Delete this board and all its tasks?")) return;
+
+    try {
+      await fetch(`/api/boards/${boardId}`, { method: "DELETE" });
+      setBoards(boards.filter(b => b._id !== boardId));
+      setCurrentBoardId(null); // Reset to All Tasks
+      // Optionally refetch tasks to clear deleted ones from state if they were loaded
+      const res = await fetch("/api/tasks");
+      const json = await res.json();
+      if (json.success) setTasks(json.data);
+    } catch (error) {
+      console.error("Failed to delete board", error);
+    }
   };
 
   // Helper to sync focused task with main task list state updates
@@ -862,7 +862,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-0 left-0 md:left-20 right-0 z-50 bg-background/95 backdrop-blur-lg border-b border-primary/20 shadow-lg"
+              className="fixed top-0 left-0 md:left-20 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl"
             >
               <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
                 <div className="flex items-center gap-4 overflow-x-auto">
@@ -952,11 +952,11 @@ export default function Dashboard() {
         {activeTab === "tasks" && (
           <div className="max-w-[1600px] mx-auto pb-20">
             {/* Daily MIT Section */}
-            <MITList 
-                tasks={tasks}
-                setTasks={setTasks}
-                onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
-                onToggleMIT={toggleMIT}
+            <MITList
+              tasks={tasks}
+              setTasks={setTasks}
+              onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
+              onToggleMIT={toggleMIT}
             />
 
             {/* Board Selector */}
@@ -966,8 +966,8 @@ export default function Dashboard() {
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
                   currentBoardId === null
-                    ? "bg-primary/10 border-primary text-primary"
-                    : "bg-surface border-border text-gray-400 hover:text-white hover:bg-surface-hover"
+                    ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                    : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
                 )}
               >
                 All Tasks
@@ -980,22 +980,22 @@ export default function Dashboard() {
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
                     currentBoardId === board._id
-                      ? "bg-primary/10 border-primary text-primary"
-                      : "bg-surface border-border text-gray-400 hover:text-white hover:bg-surface-hover"
+                      ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                      : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
                   )}
                 >
                   {board.title}
                   {currentBoardId === board._id && (
-                      <span 
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            deleteBoard(board._id);
-                        }}
-                        className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
-                        title="Delete Board"
-                      >
-                          <Trash2 size={12} />
-                      </span>
+                    <span
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteBoard(board._id);
+                      }}
+                      className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
+                      title="Delete Board"
+                    >
+                      <Trash2 size={12} />
+                    </span>
                   )}
                 </button>
               ))}
@@ -1034,7 +1034,7 @@ export default function Dashboard() {
                   value={newTask}
                   onChange={(e) => setNewTask(e.target.value)}
                   placeholder="What needs to be done?"
-                  className="w-full bg-surface border border-border rounded-xl pl-4 pr-32 py-3 md:px-6 md:py-4 md:pr-36 text-base md:text-lg focus:outline-none focus:border-primary transition-colors placeholder:text-gray-600"
+                  className="w-full card-glass pl-4 pr-32 py-4 md:px-6 md:py-5 md:pr-36 text-base md:text-lg focus:outline-none focus:border-primary/50 focus:bg-black/40 transition-all placeholder:text-gray-600 shadow-xl"
                 />
 
                 <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-2">
