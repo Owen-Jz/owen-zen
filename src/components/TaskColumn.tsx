@@ -141,17 +141,20 @@ export const TaskCard = forwardRef<HTMLDivElement, {
       ref={ref}
       style={style}
       className={cn(
-        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 relative",
-        task.activeTimer?.isActive && "ring-2 ring-primary/50",
-        isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-2 ring-primary z-50 bg-surface-hover",
-        menuOpen && "z-40",
+        "group mb-3 hover:border-white/10 hover:shadow-2xl hover:-translate-y-1 relative overflow-visible transition-all duration-300",
+        "bg-surface/60 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl", // Manually apply card-glass styles minus overflow-hidden
+        task.activeTimer?.isActive && "ring-1 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary),0.2)] bg-surface/80",
+        isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-1 ring-primary z-50 bg-surface",
+        menuOpen ? "z-[60]" : "z-0", // Ensure high z-index when menu is open
         isDragging && !isOverlay && "opacity-30 grayscale"
       )}
     >
-      {/* Priority Bar */}
+      {/* Priority Bar (Restored) */}
       <div className={cn(
-        "h-1 w-full rounded-t-xl",
-        task.priority === "high" ? "bg-red-500" : task.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"
+        "h-[3px] w-full rounded-t-xl bg-gradient-to-r",
+        task.priority === "high" ? "from-red-500 to-red-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
+          task.priority === "medium" ? "from-orange-400 to-yellow-500 shadow-[0_0_10px_rgba(251,146,60,0.5)]" :
+            "from-blue-400 to-blue-500 shadow-[0_0_10px_rgba(96,165,250,0.5)]"
       )} />
 
       <div className="p-4">
@@ -163,8 +166,8 @@ export const TaskCard = forwardRef<HTMLDivElement, {
               <GripVertical size={14} />
             </button>
             <h4 className={cn(
-              "text-base font-semibold leading-snug break-words flex-1",
-              task.status === "completed" && "text-gray-500 line-through"
+              "text-sm font-medium leading-relaxed pr-6 text-gray-200 group-hover:text-white transition-colors",
+              task.status === "completed" && "text-gray-500 line-through decoration-gray-600"
             )}>
               {task.title}
             </h4>
@@ -172,15 +175,15 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
           <div className="flex items-center gap-2 shrink-0">
             {task.activeTimer?.isActive && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-500 rounded-md text-xs font-mono">
-                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
+              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold tracking-wide border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse">
+                <Timer size={10} className="animate-spin-slow" />
                 {formatTime(elapsedTime)}
               </div>
             )}
 
             {!isOverlay && (
               <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100">
                   <MoreVertical size={16} />
                 </button>
 
@@ -244,14 +247,15 @@ export const TaskCard = forwardRef<HTMLDivElement, {
         {task.subtasks && task.subtasks.length > 0 && (
           <div className="mb-3 space-y-2">
             {/* Progress Bar */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Subtasks</span>
+              <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-primary transition-all duration-300"
+                  className="h-full bg-gradient-to-r from-primary to-primary-light transition-all duration-300 rounded-full"
                   style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-gray-500 font-mono tabular-nums">
+              <span className="text-[10px] text-gray-400 font-mono">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
               </span>
             </div>
@@ -265,17 +269,17 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     e.stopPropagation();
                     if (onToggleSubtask) onToggleSubtask(task._id, i);
                   }}
-                  className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1.5 rounded transition-colors"
+                  className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-1.5 -mx-1.5 rounded-lg transition-colors group/sub"
                 >
                   <div className={cn(
-                    "w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center transition-all shrink-0",
-                    st.completed ? "bg-primary border-primary" : "border-gray-600 hover:border-primary"
+                    "w-3.5 h-3.5 mt-0.5 rounded-full border flex items-center justify-center transition-all shrink-0",
+                    st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50"
                   )}>
-                    {st.completed && <Check size={10} className="text-white" />}
+                    {st.completed && <Check size={8} className="text-white" />}
                   </div>
                   <span className={cn(
-                    "text-xs leading-tight",
-                    st.completed ? "text-gray-600 line-through" : "text-gray-400"
+                    "text-xs leading-tight transition-colors",
+                    st.completed ? "text-gray-500 line-through" : "text-gray-400 group-hover/sub:text-gray-300"
                   )}>
                     {st.title}
                   </span>
@@ -408,8 +412,8 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col transition-all duration-200",
-        isOver && "bg-surface-hover/50 border-primary/50 shadow-lg ring-1 ring-primary/20 scale-[1.01]"
+        "bg-surface/30 backdrop-blur-sm p-4 rounded-2xl border border-white/5 min-h-[500px] flex flex-col transition-all duration-300 relative",
+        isOver && "bg-white/5 border-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.1)] ring-1 ring-primary/20 scale-[1.01]"
       )}
     >
       <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">

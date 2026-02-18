@@ -1,5 +1,6 @@
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { SpotlightEffect } from "@/components/SpotlightEffect";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -18,7 +19,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.variable} antialiased min-h-screen`}>
+      <body className={`${manrope.variable} antialiased min-h-screen relative`}>
+        <SpotlightEffect />
         {children}
       </body>
     </html>

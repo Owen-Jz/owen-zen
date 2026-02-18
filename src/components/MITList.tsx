@@ -107,7 +107,7 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITLis
     if (mitTasks.length === 0) return null;
 
     return (
-        <div className="mb-8 p-6 bg-gradient-to-r from-red-500/10 to-transparent border-l-4 border-red-500 rounded-xl">
+        <div className="mb-8 p-6 card-glass border-l-4 border-l-red-500 shadow-[0_0_25px_rgba(220,38,38,0.15)] bg-gradient-to-r from-red-600/10 to-transparent">
             <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-white">
                 <Target className="text-red-500" /> Daily Non-Negotiables (MITs)
             </h2>
