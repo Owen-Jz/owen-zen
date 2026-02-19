@@ -1,25 +1,21 @@
-import { Play, Pause, Clock, Calendar, Trash2 } from "lucide-react";
+import { Play, Pause, Clock, Calendar, Trash2, Square } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-
-interface TimeLog {
-  startedAt: string;
-  endedAt?: string;
-  duration: number;
-  note?: string;
-}
+import { TimeLog, ActiveTimer } from "@/types";
 
 interface TimeTrackerProps {
   taskId: string;
-  activeTimer?: { startedAt?: string; isActive: boolean; sessionTitle?: string };
+  activeTimer?: ActiveTimer;
   totalTimeSpent: number;
   timeLogs?: TimeLog[];
   onStart: (sessionTitle?: string) => void;
   onStop: (note?: string) => void;
+  onPause?: () => void;
+  onResume?: () => void;
   onDeleteLog?: (logIndex: number) => void;
 }
 
-export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop, onDeleteLog }: TimeTrackerProps) => {
+export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop, onPause, onResume, onDeleteLog }: TimeTrackerProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
@@ -32,11 +28,11 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
     if (activeTimer?.isActive && activeTimer.startedAt) {
       const interval = setInterval(() => {
         const elapsed = Math.floor((Date.now() - new Date(activeTimer.startedAt!).getTime()) / 1000);
-        setCurrentTime(elapsed);
+        setCurrentTime((activeTimer.accumulatedTime || 0) + elapsed);
       }, 1000);
       return () => clearInterval(interval);
     } else {
-      setCurrentTime(0);
+      setCurrentTime(activeTimer?.accumulatedTime || 0);
     }
   }, [activeTimer]);
 
@@ -49,46 +45,35 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
     return `${s}s`;
   };
 
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
+  const formatDate = (startedAt: string, endedAt?: string) => {
+    const startDate = new Date(startedAt);
+    const endDate = endedAt ? new Date(endedAt) : null;
     const now = new Date();
-    
-    // Convert to Lagos time (GMT+1)
-    const lagosDate = new Date(date.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
-    const lagosNow = new Date(now.toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
-    
-    const diffDays = Math.floor((lagosNow.getTime() - lagosDate.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const timeStr = lagosDate.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit',
-      hour12: true 
-    });
-    
-    if (diffDays === 0) {
-      // Today - show full date + time for clarity
-      const dateStr = lagosDate.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric' 
-      });
-      return `Today, ${dateStr} at ${timeStr}`;
-    } else if (diffDays === 1) {
-      return `Yesterday at ${timeStr}`;
-    } else if (diffDays < 7) {
-      // This week - show day name
-      const dayName = lagosDate.toLocaleDateString('en-US', { weekday: 'long' });
-      return `${dayName} at ${timeStr}`;
-    } else {
-      // Older - full date
-      return lagosDate.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric', 
-        year: lagosDate.getFullYear() !== lagosNow.getFullYear() ? 'numeric' : undefined
-      }) + ` at ${timeStr}`;
+
+    const isToday = startDate.toDateString() === now.toDateString();
+    const yesterday = new Date(now);
+    yesterday.setDate(yesterday.getDate() - 1);
+    const isYesterday = startDate.toDateString() === yesterday.toDateString();
+
+    let dateStr = '';
+    if (isToday) dateStr = 'Today';
+    else if (isYesterday) dateStr = 'Yesterday';
+    else dateStr = startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: startDate.getFullYear() !== now.getFullYear() ? 'numeric' : undefined });
+
+    const timeStr = startDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+    if (endDate) {
+      const endTimeStr = endDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      return `${dateStr} • ${timeStr} - ${endTimeStr}`;
     }
+
+    return `${dateStr} • ${timeStr}`;
   };
 
   const handleStartClick = () => {
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+    setSessionTitle(dateStr);
     setShowStartModal(true);
   };
 
@@ -134,12 +119,35 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
         </div>
 
         {activeTimer?.isActive ? (
-          <button
-            onClick={() => setShowStopModal(true)}
-            className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
-          >
-            <Pause size={14} /> Stop
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPause && onPause()}
+              className="flex items-center gap-2 px-3 py-2 bg-yellow-500/20 text-yellow-500 rounded-lg hover:bg-yellow-500/30 transition-all text-sm font-medium"
+            >
+              <Pause size={14} /> Pause
+            </button>
+            <button
+              onClick={() => setShowStopModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
+            >
+              <Square size={14} /> Stop
+            </button>
+          </div>
+        ) : activeTimer?.accumulatedTime !== undefined && activeTimer.accumulatedTime > 0 ? (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onResume && onResume()}
+              className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-sm font-medium"
+            >
+              <Play size={14} /> Continue
+            </button>
+            <button
+              onClick={() => setShowStopModal(true)}
+              className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
+            >
+              <Square size={14} /> Stop
+            </button>
+          </div>
         ) : (
           <button
             onClick={handleStartClick}
@@ -173,7 +181,7 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
               const actualIndex = timeLogs.length - 1 - i; // Reverse index for deletion
               const startDate = new Date(log.startedAt);
               const endDate = log.endedAt ? new Date(log.endedAt) : null;
-              
+
               return (
                 <div key={i} className="p-3 bg-surface rounded-lg border border-border group hover:border-primary/30 transition-all">
                   <div className="flex justify-between items-start gap-3">
@@ -182,13 +190,13 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
                       <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-xs text-gray-400">
                           <Calendar size={12} />
-                          <span>{formatDate(log.startedAt)}</span>
+                          <span>{formatDate(log.startedAt, log.endedAt)}</span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-bold text-primary text-sm tabular-nums">{formatTime(log.duration)}</span>
                         </div>
                       </div>
-                      
+
                       {/* Session Note/Title */}
                       {log.note ? (
                         <div className="text-sm text-white font-medium bg-background/50 px-3 py-2 rounded-lg border border-border/50">
@@ -198,7 +206,7 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
                         <div className="text-xs text-gray-500 italic px-2">No description</div>
                       )}
                     </div>
-                    
+
                     {/* Delete Button */}
                     {onDeleteLog && (
                       <button
@@ -239,6 +247,7 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
                   placeholder="e.g., Fix login bug, Design homepage, Review PRs..."
                   className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none text-sm"
                   autoFocus
+                  onFocus={(e) => e.target.select()}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') handleStart();
                   }}

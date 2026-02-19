@@ -6,6 +6,10 @@ const TaskSchema = new mongoose.Schema({
     required: [true, 'Please provide a title for this task.'],
     maxlength: [500, 'Title cannot be more than 500 characters'],
   },
+  description: {
+    type: String,
+    default: '',
+  },
   status: {
     type: String,
     enum: ['pending', 'in-progress', 'completed', 'pinned'],
@@ -56,7 +60,8 @@ const TaskSchema = new mongoose.Schema({
   activeTimer: {
     startedAt: Date,
     isActive: { type: Boolean, default: false },
-    sessionTitle: String
+    sessionTitle: String,
+    accumulatedTime: { type: Number, default: 0 }
   },
   scheduledDate: { type: Date },
   googleEventId: { type: String },
