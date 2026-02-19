@@ -39,13 +39,13 @@ interface FocusOverlayProps {
   onCompleteTask: (taskId: string) => void;
 }
 
-export const FocusOverlay = ({ 
-  task, 
-  onClose, 
-  onToggleSubtask, 
-  onStartTimer, 
+export const FocusOverlay = ({
+  task,
+  onClose,
+  onToggleSubtask,
+  onStartTimer,
   onStopTimer,
-  onCompleteTask 
+  onCompleteTask
 }: FocusOverlayProps) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [sessionTitle, setSessionTitle] = useState("");
@@ -64,7 +64,7 @@ export const FocusOverlay = ({
       const now = Date.now();
       setElapsedTime(Math.floor((now - start) / 1000));
     };
-    
+
     calculateTime();
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
@@ -78,7 +78,11 @@ export const FocusOverlay = ({
   };
 
   const handleStop = () => {
-    onStopTimer(task._id, stopNote);
+    const sessionTitle = task.activeTimer?.sessionTitle || "";
+    const fullNote = sessionTitle
+      ? `${sessionTitle}${stopNote.trim() ? ` - ${stopNote.trim()}` : ''}`
+      : stopNote.trim();
+    onStopTimer(task._id, fullNote);
     setShowStopModal(false);
     setStopNote("");
   };
@@ -97,7 +101,7 @@ export const FocusOverlay = ({
     >
       {/* Top Bar */}
       <div className="absolute top-6 right-6 flex items-center gap-4">
-        <button 
+        <button
           onClick={onClose}
           className="p-3 rounded-full bg-surface border border-border text-gray-400 hover:text-white hover:bg-surface-hover transition-all group"
           title="Exit Focus Mode"
@@ -108,7 +112,7 @@ export const FocusOverlay = ({
 
       {/* Main Content */}
       <div className="w-full max-w-3xl flex flex-col items-center gap-12 text-center">
-        
+
         {/* Timer Display */}
         <div className="relative group">
           <div className={cn(
@@ -117,11 +121,15 @@ export const FocusOverlay = ({
           )}>
             {task.activeTimer?.isActive ? formatTime(elapsedTime) : formatTime(task.totalTimeSpent || 0)}
           </div>
-          
+
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
             {!task.activeTimer?.isActive ? (
               <button
-                onClick={() => onStartTimer(task._id, "Deep Work Session")}
+                onClick={() => {
+                  const now = new Date();
+                  const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
+                  onStartTimer(task._id, dateStr);
+                }}
                 className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-bold text-lg hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
               >
                 <Play size={20} fill="currentColor" /> Start Focus
@@ -139,7 +147,7 @@ export const FocusOverlay = ({
 
         {/* Task Info */}
         <div className="space-y-6 max-w-2xl w-full">
-          <motion.h2 
+          <motion.h2
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             className="text-3xl md:text-5xl font-bold text-gray-200 leading-tight"
@@ -156,14 +164,14 @@ export const FocusOverlay = ({
               </div>
               <div className="space-y-3">
                 {task.subtasks.map((st, i) => (
-                  <motion.div 
+                  <motion.div
                     key={i}
                     layout
                     onClick={() => onToggleSubtask(task._id, i)}
                     className={cn(
                       "flex items-center gap-4 p-4 rounded-xl cursor-pointer transition-all border",
-                      st.completed 
-                        ? "bg-primary/5 border-primary/20 opacity-60" 
+                      st.completed
+                        ? "bg-primary/5 border-primary/20 opacity-60"
                         : "bg-background border-border hover:border-primary/50"
                     )}
                   >

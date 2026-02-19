@@ -25,14 +25,17 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
-import { MITList } from "@/components/MITList"; // Import MIT List Component
-import { TaskBoard } from "@/components/TaskBoard"; // Move TaskBoard out
+import { EditTaskModal } from "@/components/EditTaskModal";
+import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board } from "@/types";
+import { MITList } from "@/components/MITList";
+import { TaskBoard } from "@/components/TaskBoard";
 import { HabitView } from "@/components/HabitView";
-import { VisionBoardView } from "@/components/VisionBoardView"; // Import VisionBoard
-import { AnalyticsView } from "@/components/AnalyticsView"; // Import Analytics
-import SandboxDashboard from "@/components/SandboxDashboard"; // Import Sandbox
-import { WatchLaterView } from "@/components/WatchLaterView"; // Import Watch Later
-import { SocialHubView } from "@/components/SocialHubView"; // Import SocialHub
+import { VisionBoardView } from "@/components/VisionBoardView";
+import { AnalyticsView } from "@/components/AnalyticsView";
+import SandboxDashboard from "@/components/SandboxDashboard";
+import { WatchLaterView } from "@/components/WatchLaterView";
+import { SocialHubView } from "@/components/SocialHubView";
+
 import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
 import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
 import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
@@ -40,41 +43,7 @@ import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
 import { TimeTracker } from "@/components/TimeTracker";
 
 // --- Types ---
-type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
-type TaskPriority = "high" | "medium" | "low";
-
-interface SubTask {
-  title: string;
-  completed: boolean;
-}
-
-interface TimeLog {
-  startedAt: string;
-  endedAt?: string;
-  duration: number; // seconds
-  note?: string;
-}
-
-interface ActiveTimer {
-  startedAt?: string;
-  isActive: boolean;
-  sessionTitle?: string; // Title set when starting the timer
-}
-
-interface Task {
-  _id: string;
-  title: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  createdAt: string;
-  order: number;
-  isArchived?: boolean;
-  subtasks?: SubTask[]; // Added
-  timeLogs?: TimeLog[];
-  totalTimeSpent?: number; // seconds
-  activeTimer?: ActiveTimer;
-  isMIT: boolean;
-}
+// Shared types imported from "@/types"
 
 interface Wallet {
   _id: string;
@@ -92,10 +61,6 @@ interface Post {
   scheduledFor?: string;
 }
 
-interface Board {
-  _id: string;
-  title: string;
-}
 
 // --- Utils ---
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -189,160 +154,6 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
         </button>
       </div>
     </>
-  );
-};
-
-// --- Edit Modal ---
-const EditTaskModal = ({ task, onClose, onSave, onStartTimer, onStopTimer, onDeleteTimeLog, onToggleMIT }: {
-  task: Task | null,
-  onClose: () => void,
-  onSave: (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => void,
-  onStartTimer: (id: string, sessionTitle?: string) => void,
-  onStopTimer: (id: string, note?: string) => void,
-  onDeleteTimeLog: (id: string, logIndex: number) => void,
-  onToggleMIT: (id: string, isMIT: boolean) => void
-}) => {
-  const [title, setTitle] = useState(task?.title || "");
-  const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
-  const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
-  const [newSubtask, setNewSubtask] = useState("");
-  const [isMIT, setIsMIT] = useState(task?.isMIT || false);
-
-  if (!task) return null;
-
-  const addSubtask = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSubtask.trim()) return;
-    setSubtasks([...subtasks, { title: newSubtask, completed: false }]);
-    setNewSubtask("");
-  };
-
-  const toggleSubtask = (index: number) => {
-    const updated = [...subtasks];
-    updated[index].completed = !updated[index].completed;
-    setSubtasks(updated);
-  };
-
-  const removeSubtask = (index: number) => {
-    setSubtasks(subtasks.filter((_, i) => i !== index));
-  };
-
-  return (
-    <div className="fixed inset-0 bg-black/60 z-[60] flex items-center justify-center p-4 backdrop-blur-sm">
-      <div className="card-glass w-full max-w-lg p-8 shadow-2xl max-h-[90vh] overflow-y-auto ring-1 ring-white/10">
-        <h3 className="text-lg font-bold mb-4">Task Details</h3>
-        <div className="space-y-4">
-          <div>
-            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Title</label>
-            <textarea
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full bg-black/20 border border-white/5 rounded-xl p-3 focus:border-primary/50 focus:bg-black/40 outline-none min-h-[80px] resize-none transition-all placeholder:text-gray-600"
-            />
-          </div>
-
-          <div>
-            <label className="flex items-center gap-3 bg-white/5 border border-white/5 p-3 rounded-xl cursor-pointer hover:bg-white/10 transition-colors group">
-              <input
-                type="checkbox"
-                checked={isMIT}
-                onChange={(e) => {
-                  setIsMIT(e.target.checked);
-                  onToggleMIT(task._id, e.target.checked);
-                }}
-                className="w-5 h-5 rounded border-gray-500 text-primary focus:ring-primary"
-              />
-              <div>
-                <span className="block font-bold text-sm">Mark as Daily MIT</span>
-                <span className="text-xs text-gray-500">Most Important Task (Non-Negotiable)</span>
-              </div>
-            </label>
-          </div>
-
-          <div>
-            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Priority</label>
-            <div className="grid grid-cols-3 gap-2">
-              {(['high', 'medium', 'low'] as const).map((p) => (
-                <button
-                  key={p}
-                  onClick={() => setPriority(p)}
-                  className={cn(
-                    "px-3 py-2 rounded-lg text-sm font-medium border transition-all capitalize",
-                    priority === p
-                      ? p === 'high' ? "bg-red-500/20 border-red-500 text-red-500" : p === 'medium' ? "bg-yellow-500/20 border-yellow-500 text-yellow-500" : "bg-blue-500/20 border-blue-500 text-blue-500"
-                      : "border-border text-gray-400 hover:bg-white/5"
-                  )}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Subtasks ({subtasks.filter(s => s.completed).length}/{subtasks.length})</label>
-            <div className="space-y-2 mb-3">
-              {subtasks.map((st, i) => (
-                <div key={i} className="flex items-center gap-2 group">
-                  <button
-                    onClick={() => toggleSubtask(i)}
-                    className={cn(
-                      "w-5 h-5 rounded border flex items-center justify-center transition-all",
-                      st.completed ? "bg-primary border-primary text-white" : "border-gray-500"
-                    )}
-                  >
-                    {st.completed && <Check size={12} />}
-                  </button>
-                  <input
-                    type="text"
-                    value={st.title}
-                    onChange={(e) => {
-                      const updated = [...subtasks];
-                      updated[i].title = e.target.value;
-                      setSubtasks(updated);
-                    }}
-                    className={cn("flex-1 bg-transparent outline-none border-b border-transparent focus:border-border text-sm", st.completed && "text-gray-500 line-through")}
-                  />
-                  <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-            </div>
-            <form onSubmit={addSubtask} className="flex gap-2">
-              <input
-                type="text"
-                value={newSubtask}
-                onChange={(e) => setNewSubtask(e.target.value)}
-                placeholder="Add subtask..."
-                className="flex-1 bg-background border border-border rounded-lg px-3 py-2 text-sm focus:border-primary outline-none"
-              />
-              <button type="submit" className="p-2 bg-surface hover:bg-white/10 rounded-lg border border-border">
-                <Plus size={16} />
-              </button>
-            </form>
-          </div>
-
-          <div>
-            <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">Time Tracking</label>
-            <TimeTracker
-              taskId={task._id}
-              activeTimer={task.activeTimer}
-              totalTimeSpent={task.totalTimeSpent || 0}
-              timeLogs={task.timeLogs}
-              onStart={(sessionTitle) => onStartTimer(task._id, sessionTitle)}
-              onStop={(note) => onStopTimer(task._id, note)}
-              onDeleteLog={(logIndex) => onDeleteTimeLog(task._id, logIndex)}
-            />
-          </div>
-
-          <div className="flex gap-3 pt-2">
-            <button onClick={onClose} className="flex-1 px-4 py-3 rounded-xl border border-border text-gray-400 hover:bg-white/5 transition-colors">Cancel</button>
-            <button onClick={() => onSave(task._id, title, priority, subtasks)} className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium">Save Changes</button>
-          </div>
-        </div>
-      </div>
-    </div>
   );
 };
 
@@ -588,16 +399,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, priority: TaskPriority, subtasks: SubTask[]) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[]) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, priority, subtasks } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks } : t));
     setEditingTask(null);
 
     try {
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, priority, subtasks }),
+        body: JSON.stringify({ title, description, priority, subtasks }),
       });
     } catch {
       setTasks(oldTasks);
@@ -675,13 +486,15 @@ export default function Dashboard() {
   const startTimer = async (taskId: string, sessionTitle?: string) => {
     const oldTasks = [...tasks];
     const now = new Date().toISOString();
-    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: { startedAt: now, isActive: true, sessionTitle } } : t));
+    // New timer starts with 0 accumulated time
+    const newActiveTimer: ActiveTimer = { startedAt: now, isActive: true, sessionTitle, accumulatedTime: 0 };
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: newActiveTimer } : t));
 
     try {
       await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activeTimer: { startedAt: now, isActive: true, sessionTitle } }),
+        body: JSON.stringify({ activeTimer: newActiveTimer }),
       });
     } catch {
       setTasks(oldTasks);
@@ -690,16 +503,27 @@ export default function Dashboard() {
 
   const stopTimer = async (taskId: string, note?: string) => {
     const task = tasks.find(t => t._id === taskId);
-    if (!task?.activeTimer?.isActive) return;
+    if (!task?.activeTimer) return; // Allow stopping even if paused
 
     const now = new Date().toISOString();
-    const duration = Math.floor((new Date(now).getTime() - new Date(task.activeTimer.startedAt!).getTime()) / 1000);
+    let duration = (task.activeTimer.accumulatedTime || 0);
+
+    // Add current elapsed time if active
+    if (task.activeTimer.isActive && task.activeTimer.startedAt) {
+      duration += Math.floor((new Date(now).getTime() - new Date(task.activeTimer.startedAt).getTime()) / 1000);
+    }
+
+    // Use original start time if available, or now if weirdly missing
+    const originalStart = task.activeTimer.startedAt || now;
+
+    // If note is passed (from UI modal), use it. otherwise fallback to session title
+    const finalNote = note !== undefined ? note : task.activeTimer.sessionTitle;
 
     const newLog: TimeLog = {
-      startedAt: task.activeTimer.startedAt!,
+      startedAt: originalStart,
       endedAt: now,
       duration,
-      note
+      note: finalNote
     };
 
     const newTimeLogs = [...(task.timeLogs || []), newLog];
@@ -710,7 +534,7 @@ export default function Dashboard() {
       ...t,
       timeLogs: newTimeLogs,
       totalTimeSpent: newTotalTime,
-      activeTimer: { isActive: false }
+      activeTimer: undefined // Timer cleared
     } : t));
 
     try {
@@ -720,8 +544,65 @@ export default function Dashboard() {
         body: JSON.stringify({
           timeLogs: newTimeLogs,
           totalTimeSpent: newTotalTime,
-          activeTimer: { isActive: false }
+          activeTimer: null // Clear on server
         }),
+      });
+    } catch (error) {
+      console.error("Failed to stop timer:", error);
+      setTasks(oldTasks);
+    }
+  };
+
+  const pauseTimer = async (taskId: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task?.activeTimer?.isActive || !task.activeTimer.startedAt) return;
+
+    const oldTasks = [...tasks];
+    const now = new Date().toISOString();
+    const currentElapsed = Math.floor((new Date(now).getTime() - new Date(task.activeTimer.startedAt).getTime()) / 1000);
+    const newAccumulated = (task.activeTimer.accumulatedTime || 0) + currentElapsed;
+
+    const updatedActiveTimer: ActiveTimer = {
+      ...task.activeTimer,
+      isActive: false,
+      accumulatedTime: newAccumulated
+      // startedAt remains, sessionTitle remains
+    };
+
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: updatedActiveTimer } : t));
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeTimer: updatedActiveTimer }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const resumeTimer = async (taskId: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (task?.activeTimer?.isActive) return; // Already running
+
+    const oldTasks = [...tasks];
+    const now = new Date().toISOString();
+
+    // Resume: set startedAt to now, keep accumulatedTime
+    const updatedActiveTimer: ActiveTimer = {
+      ...(task?.activeTimer || { sessionTitle: "Resumed Session", accumulatedTime: 0 }),
+      startedAt: now,
+      isActive: true,
+    };
+
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: updatedActiveTimer } : t));
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ activeTimer: updatedActiveTimer }),
       });
     } catch {
       setTasks(oldTasks);
@@ -796,20 +677,47 @@ export default function Dashboard() {
     }
   };
 
+  const moveTaskToBoard = async (taskId: string, boardId: string | null) => {
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, boardId: boardId || undefined } : t));
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ boardId: boardId }),
+      });
+      // If we moved the task away from the current board view, remove it from local state
+      if (currentBoardId !== null && boardId !== currentBoardId) {
+        setTasks(prev => prev.filter(t => t._id !== taskId));
+      }
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
   // Helper to sync focused task with main task list state updates
-  // Whenever tasks change, if we have a focused task, update its reference
   useEffect(() => {
     if (focusedTask) {
       const updatedRef = tasks.find(t => t._id === focusedTask._id);
       if (updatedRef) {
-        // Only update if something actually changed to avoid render loops if using object identity
-        // JSON stringify is cheap for single task
         if (JSON.stringify(updatedRef) !== JSON.stringify(focusedTask)) {
           setFocusedTask(updatedRef);
         }
       }
     }
   }, [tasks, focusedTask]);
+
+  // Helper to sync editing task with main task list state updates
+  useEffect(() => {
+    if (editingTask) {
+      const updatedRef = tasks.find(t => t._id === editingTask._id);
+      if (updatedRef) {
+        if (JSON.stringify(updatedRef) !== JSON.stringify(editingTask)) {
+          setEditingTask(updatedRef);
+        }
+      }
+    }
+  }, [tasks, editingTask]);
 
   const stats = {
     pending: tasks.filter(t => t.status === "pending" && !t.isArchived).length,
@@ -827,17 +735,22 @@ export default function Dashboard() {
         {editingTask && (
           <EditTaskModal
             task={editingTask}
+            boards={boards}
             onClose={() => setEditingTask(null)}
             onSave={saveEditTask}
             onStartTimer={startTimer}
             onStopTimer={stopTimer}
+            onPauseTimer={pauseTimer}
+            onResumeTimer={resumeTimer}
             onDeleteTimeLog={deleteTimeLog}
             onToggleMIT={toggleMIT}
+            onMoveToBoard={moveTaskToBoard}
+            onArchive={archiveTask}
+            onDelete={deleteTask}
           />
         )}
       </AnimatePresence>
 
-      {/* Focus Mode Overlay */}
       <AnimatePresence>
         {focusedTask && (
           <FocusOverlay
@@ -1074,7 +987,11 @@ export default function Dashboard() {
                 onUpdatePriority={updateTaskPriority}
                 onStartTimer={startTimer}
                 onStopTimer={stopTimer}
+                onPauseTimer={pauseTimer}
+                onResumeTimer={resumeTimer}
                 onFocus={setFocusedTask}
+                onMoveToBoard={moveTaskToBoard}
+                boards={boards}
               />
             )}
           </div>
@@ -1091,6 +1008,6 @@ export default function Dashboard() {
 
         {activeTab === "calendar" && <CalendarView />}
       </main>
-    </div>
+    </div >
   );
 }

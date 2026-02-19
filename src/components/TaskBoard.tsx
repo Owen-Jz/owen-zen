@@ -1,39 +1,4 @@
-// Types
-type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
-type TaskPriority = "high" | "medium" | "low";
-
-interface SubTask {
-  title: string;
-  completed: boolean;
-}
-
-interface TimeLog {
-  startedAt: string;
-  endedAt?: string;
-  duration: number; // seconds
-  note?: string;
-}
-
-interface ActiveTimer {
-  startedAt?: string;
-  isActive: boolean;
-  sessionTitle?: string;
-}
-
-interface Task {
-  _id: string;
-  title: string;
-  status: TaskStatus;
-  priority: TaskPriority;
-  createdAt: string;
-  order: number;
-  isArchived?: boolean;
-  subtasks?: SubTask[];
-  timeLogs?: TimeLog[];
-  totalTimeSpent?: number;
-  activeTimer?: ActiveTimer;
-  isMIT: boolean;
-}
+import { Task, TaskStatus, TaskPriority, Board, ActiveTimer, TimeLog, SubTask } from "@/types";
 
 import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -69,7 +34,11 @@ export const TaskBoard = ({
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
-  onFocus
+  onPauseTimer,
+  onResumeTimer,
+  onFocus,
+  onMoveToBoard,
+  boards = []
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -81,7 +50,11 @@ export const TaskBoard = ({
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
-  onFocus: (task: Task) => void
+  onPauseTimer?: (id: string) => void,
+  onResumeTimer?: (id: string) => void,
+  onFocus: (task: Task) => void,
+  onMoveToBoard?: (taskId: string, boardId: string | null) => void,
+  boards?: Board[]
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -186,7 +159,11 @@ export const TaskBoard = ({
             onUpdatePriority={onUpdatePriority}
             onStartTimer={onStartTimer}
             onStopTimer={onStopTimer}
+            onPauseTimer={onPauseTimer}
+            onResumeTimer={onResumeTimer}
             onFocus={onFocus}
+            onMoveToBoard={onMoveToBoard}
+            boards={boards}
           />
         ))}
       </div>
