@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2 } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -12,6 +12,12 @@ import { Task, TaskStatus, TaskPriority } from "@/types/task";
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
+
+// Helper for formatting date
+const formatDate = (dateString: string | Date | undefined) => {
+  if (!dateString) return "";
+  return new Date(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+};
 
 // --- Task Card Component ---
 export const TaskCard = forwardRef<HTMLDivElement, {
@@ -263,13 +269,38 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
         {/* Footer Row - Stats */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          {/* Time Stat */}
-          {totalTime > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500">
-              <Clock size={12} />
-              <span className="font-mono">{formatTime(totalTime)}</span>
-            </div>
-          )}
+          {/* Left side: Date + Time */}
+          <div className="flex items-center gap-3">
+            {/* Creation Date */}
+            {task.createdAt && (
+              <div className="flex items-center gap-1 text-[10px] text-gray-600">
+                <CalendarDays size={10} />
+                <span>{formatDate(task.createdAt)}</span>
+              </div>
+            )}
+            {/* Due Date */}
+            {task.dueDate && (
+              <div className={cn(
+                "flex items-center gap-1 text-[10px] font-medium border px-1.5 py-0.5 rounded",
+                new Date().toISOString().split('T')[0] > new Date(task.dueDate).toISOString().split('T')[0] && task.status !== "completed"
+                  ? "text-red-400 border-red-500/30 bg-red-500/10"
+                  : "text-gray-400 border-gray-700"
+              )}>
+                <CalendarDays size={10} />
+                <span>
+                  {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                  {new Date().toISOString().split('T')[0] > new Date(task.dueDate).toISOString().split('T')[0] && task.status !== "completed" && " (Overdue)"}
+                </span>
+              </div>
+            )}
+            {/* Time Stat */}
+            {totalTime > 0 && (
+              <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                <Clock size={12} />
+                <span className="font-mono">{formatTime(totalTime)}</span>
+              </div>
+            )}
+          </div>
 
           {/* Timer Controls - Hide in Overlay if needed, or keep static */}
           {!isOverlay && (

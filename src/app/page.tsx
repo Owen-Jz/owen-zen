@@ -400,16 +400,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[]) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate } : t));
     setEditingTask(null);
 
     try {
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, priority, subtasks }),
+        body: JSON.stringify({ title, description, priority, subtasks, dueDate }),
       });
     } catch {
       setTasks(oldTasks);
@@ -646,6 +646,53 @@ export default function Dashboard() {
     }
   };
 
+  const addManualTimeLog = async (taskId: string, duration: number, note: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task) return;
+
+    const now = new Date();
+    const endedAt = now.toISOString();
+    // Approximate start time based on duration
+    const startedAt = new Date(now.getTime() - duration * 1000).toISOString();
+
+    const newLog: TimeLog = {
+      startedAt,
+      endedAt,
+      duration,
+      note
+    };
+
+    const newTimeLogs = [...(task.timeLogs || []), newLog];
+    const newTotalTime = (task.totalTimeSpent || 0) + duration;
+
+    const oldTasks = [...tasks];
+    const updatedTasks = tasks.map(t => t._id === taskId ? {
+      ...t,
+      timeLogs: newTimeLogs,
+      totalTimeSpent: newTotalTime
+    } : t);
+
+    setTasks(updatedTasks);
+
+    // Update focused task if it's the one being modified
+    if (focusedTask && focusedTask._id === taskId) {
+      setFocusedTask(updatedTasks.find(t => t._id === taskId) || null);
+    }
+
+    try {
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          timeLogs: newTimeLogs,
+          totalTimeSpent: newTotalTime
+        }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
   const toggleMIT = async (taskId: string, isMIT: boolean) => {
     const oldTasks = [...tasks];
     const updatedTasks = tasks.map(t => t._id === taskId ? { ...t, isMIT } : t);
@@ -744,6 +791,7 @@ export default function Dashboard() {
             onPauseTimer={pauseTimer}
             onResumeTimer={resumeTimer}
             onDeleteTimeLog={deleteTimeLog}
+            onAddManualTimeLog={addManualTimeLog}
             onToggleMIT={toggleMIT}
             onMoveToBoard={moveTaskToBoard}
             onArchive={archiveTask}

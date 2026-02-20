@@ -64,6 +64,7 @@ const TaskSchema = new mongoose.Schema({
     accumulatedTime: { type: Number, default: 0 }
   },
   scheduledDate: { type: Date },
+  dueDate: { type: Date },
   googleEventId: { type: String },
   isMIT: { type: Boolean, default: false },
   mitDate: { type: Date } // To track which day it was assigned as MIT

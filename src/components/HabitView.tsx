@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap } from "lucide-react";
+import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -232,219 +232,230 @@ export const HabitView = () => {
     const weekDays = getCurrentWeekDays();
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500">
+        <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
 
-            {/* --- Top Stats --- */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <div className="card-glass p-6 flex items-center gap-4 hover:-translate-y-1 hover:bg-surface/80 transition-all">
-                    <div className="p-3 bg-primary/10 rounded-lg text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)]"><Trophy size={24} /></div>
+            {/* --- Top Stats (Compact) --- */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-primary/20 transition-all">
                     <div>
-                        <div className="text-2xl font-bold">{habits.filter(h => isCompleted(h, new Date())).length} / {habits.length}</div>
-                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Today's Protocol</div>
-                    </div>
-                </div>
-                <div className="card-glass p-6 flex items-center gap-4 hover:-translate-y-1 hover:bg-surface/80 transition-all">
-                    <div className="p-3 bg-orange-500/10 rounded-lg text-orange-500 shadow-[0_0_15px_rgba(249,115,22,0.3)]"><Flame size={24} /></div>
-                    <div>
-                        <div className="text-2xl font-bold">{Math.max(0, ...habits.map(h => h.streak))}</div>
-                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Best Streak</div>
-                    </div>
-                </div>
-                <div className="card-glass p-6 flex items-center gap-4 hover:-translate-y-1 hover:bg-surface/80 transition-all">
-                    <div className="p-3 bg-blue-500/10 rounded-lg text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]"><Activity size={24} /></div>
-                    <div>
-                        <div className="text-2xl font-bold">{habits.reduce((acc, h) => acc + h.completedDates.length, 0)}</div>
-                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Reps</div>
-                    </div>
-                </div>
-                <div className="card-glass p-6 flex items-center gap-4 hover:-translate-y-1 hover:bg-surface/80 transition-all">
-                    <div className="p-3 bg-purple-500/10 rounded-lg text-purple-500 shadow-[0_0_15px_rgba(168,85,247,0.3)]"><Zap size={24} /></div>
-                    <div>
-                        <div className="text-2xl font-bold">{habits.length > 0 ? Math.round((habits.filter(h => isCompleted(h, new Date())).length / habits.length) * 100) : 0}%</div>
-                        <div className="text-xs text-gray-500 uppercase font-bold tracking-wider">Daily Rate</div>
-                    </div>
-                </div>
-            </div>
-
-            {/* --- Heatmap --- */}
-            <div className="card-glass p-6 overflow-x-auto shadow-[0_4px_20px_rgba(0,0,0,0.2)]">
-                <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider flex items-center gap-2">
-                        <Activity size={16} /> 2026 Consistency Graph
-                    </h3>
-                    <div className="flex gap-2 text-xs text-gray-500">
-                        <span>Less</span>
-                        <div className="flex gap-1">
-                            {intensityColors.map(c => <div key={c} className={cn("w-3 h-3 rounded-sm", c)} />)}
+                        <div className="text-sm text-gray-500 font-medium">Today</div>
+                        <div className="text-xl font-bold text-white mt-1">
+                            {habits.filter(h => isCompleted(h, new Date())).length} <span className="text-gray-600 text-sm">/ {habits.length}</span>
                         </div>
-                        <span>More</span>
                     </div>
+                    <Trophy size={20} className="text-primary opacity-80" />
                 </div>
-                <div className="flex gap-1 min-w-max pb-2">
-                    {/* Render Weeks (Columns) */}
-                    {Array.from({ length: Math.ceil(heatmapGrid.length / 7) }).map((_, weekIndex) => (
-                        <div key={weekIndex} className="flex flex-col gap-1">
-                            {Array.from({ length: 7 }).map((_, dayIndex) => {
-                                const flatIndex = weekIndex * 7 + dayIndex;
-                                const data = heatmapGrid[flatIndex];
-
-                                // If no data (end of year padding) or null (start padding), render empty cell
-                                if (!data) return <div key={dayIndex} className="w-3 h-3" />;
-
-                                const isFuture = data.date > new Date();
-                                return (
-                                    <div
-                                        key={dayIndex}
-                                        title={`${data.date.toDateString()}: ${data.count} completions`}
-                                        className={cn(
-                                            "w-3 h-3 rounded-sm transition-all duration-300",
-                                            isFuture
-                                                ? "bg-transparent border border-white/10 opacity-50"
-                                                : intensityColors[getIntensity(data.count)]
-                                        )}
-                                    />
-                                );
-                            })}
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-orange-500/20 transition-all">
+                    <div>
+                        <div className="text-sm text-gray-500 font-medium">Best Streak</div>
+                        <div className="text-xl font-bold text-white mt-1">
+                            {Math.max(0, ...habits.map(h => h.streak))} <span className="text-xs text-gray-600">days</span>
                         </div>
-                    ))}
+                    </div>
+                    <Flame size={20} className="text-orange-500 opacity-80" />
+                </div>
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-blue-500/20 transition-all">
+                    <div>
+                        <div className="text-sm text-gray-500 font-medium">Total Reps</div>
+                        <div className="text-xl font-bold text-white mt-1">
+                            {habits.reduce((acc, h) => acc + h.completedDates.length, 0)}
+                        </div>
+                    </div>
+                    <Activity size={20} className="text-blue-500 opacity-80" />
+                </div>
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-purple-500/20 transition-all">
+                    <div>
+                        <div className="text-sm text-gray-500 font-medium">Rate</div>
+                        <div className="text-xl font-bold text-white mt-1">
+                            {habits.length > 0 ? Math.round((habits.filter(h => isCompleted(h, new Date())).length / habits.length) * 100) : 0}%
+                        </div>
+                    </div>
+                    <Zap size={20} className="text-purple-500 opacity-80" />
                 </div>
             </div>
 
             {/* --- Main List --- */}
-            <div className="card-glass p-6">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-                    <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                        Active Protocols
-                    </h2>
-                    <div className="flex flex-col md:flex-row md:items-center gap-3 w-full md:w-auto">
-                        <div className="flex justify-between md:justify-end w-full md:w-auto items-center">
-                            <button
-                                onClick={async () => {
-                                    if (confirm("Reset to default 2026 protocols? This will clear current habits but keep history.")) {
-                                        // Clear existing
-                                        for (const h of habits) {
-                                            await fetch(`/api/habits/${h._id}`, { method: "DELETE" });
-                                        }
-                                        setHabits([]);
-                                        // Seed new
-                                        await seedDefaults();
-                                    }
-                                }}
-                                className="text-xs text-gray-500 hover:text-primary underline whitespace-nowrap"
-                            >
-                                Reset Protocols
-                            </button>
-                            {/* Mobile Only Day Labels (Simple) */}
-                            <span className="md:hidden text-xs text-gray-500 font-mono">Current Week</span>
-                        </div>
+            <div className="bg-surface/20 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                {/* Header */}
+                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
+                    <div className="flex items-center gap-3">
+                        <Target className="text-primary" size={24} />
+                        <h2 className="text-xl font-bold text-white">Daily Non-Negotiables</h2>
+                    </div>
 
-                        {/* Desktop Day Labels */}
-                        <div className="hidden md:flex gap-1">
-                            {weekDays.map((d, i) => {
-                                // Fix Today Comparison: Use YYYY-MM-DD to avoid time/timezone mismatch
-                                const toDateString = (date: Date) => date.toISOString().split('T')[0];
-                                const isToday = toDateString(d) === toDateString(new Date());
-
-                                return (
-                                    <div key={i} className={cn("w-8 text-center text-xs font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-500")}>
-                                        {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    {/* Week Days Header (Desktop) */}
+                    <div className="hidden md:flex gap-1 ml-auto mr-12">
+                        {weekDays.map((d, i) => {
+                            const toDateString = (date: Date) => date.toISOString().split('T')[0];
+                            const isToday = toDateString(d) === toDateString(new Date());
+                            return (
+                                <div key={i} className={cn("w-6 text-center text-[10px] font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-600")}>
+                                    {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
 
-                <div className="space-y-2">
-                    {habits.map(habit => (
-                        <motion.div
-                            layout
-                            key={habit._id}
-                            className="group flex flex-col md:flex-row md:items-center justify-between p-4 bg-black/20 border border-white/5 hover:border-primary/50 hover:bg-white/5 rounded-xl transition-all gap-4 shadow-sm hover:shadow-lg"
-                        >
-                            <div className="flex items-center gap-4 w-full md:w-auto">
-                                <button
-                                    onClick={() => toggleHabit(habit._id)}
+                {/* List Items */}
+                <div className="divide-y divide-white/5">
+                    <AnimatePresence mode="popLayout">
+                        {habits.map(habit => {
+                            const isDoneToday = isCompleted(habit, new Date());
+                            return (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    key={habit._id}
                                     className={cn(
-                                        "w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center border transition-all active:scale-95",
-                                        isCompleted(habit, new Date())
-                                            ? "bg-primary border-primary text-white shadow-[0_0_15px_rgba(220,38,38,0.5)]"
-                                            : "border-border hover:border-gray-500 text-transparent"
+                                        "group flex items-center gap-4 p-4 hover:bg-white/5 transition-all relative",
+                                        isDoneToday ? "bg-primary/5" : ""
                                     )}
                                 >
-                                    <Check size={20} strokeWidth={3} />
-                                </button>
-                                <div className="min-w-0">
-                                    <div className="font-bold text-lg truncate">{habit.title}</div>
-                                    {habit.description && (
-                                        <div className="text-[10px] text-gray-400 leading-tight mt-0.5 line-clamp-1 group-hover:line-clamp-none transition-all">
-                                            {habit.description}
+                                    {/* Major Checkbox */}
+                                    <button
+                                        onClick={() => toggleHabit(habit._id)}
+                                        className={cn(
+                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-10",
+                                            isDoneToday
+                                                ? "bg-primary border-primary text-white shadow-[0_0_10px_rgba(220,38,38,0.4)] scale-110"
+                                                : "border-gray-600 text-transparent hover:border-primary hover:scale-105"
+                                        )}
+                                    >
+                                        <Check size={14} strokeWidth={4} />
+                                    </button>
+
+                                    {/* Text Content */}
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                        <div className={cn(
+                                            "font-medium  truncate transition-all text-base",
+                                            isDoneToday ? "text-gray-400 line-through decoration-gray-600 decoration-2" : "text-gray-100 group-hover:text-white"
+                                        )}>
+                                            {habit.title}
                                         </div>
-                                    )}
-                                    <div className="text-[10px] text-gray-500 flex items-center gap-2 mt-1">
-                                        <span className={cn("flex items-center gap-1", habit.streak > 3 ? "text-orange-500" : "")}>
-                                            <Flame size={10} /> {habit.streak} Day Streak
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* History Dots (Week Days) */}
-                            <div className="flex items-center justify-between md:justify-end w-full md:w-auto gap-4 md:gap-1">
-                                <div className="flex gap-1 flex-1 md:flex-none justify-between md:justify-start">
-                                    {weekDays.map((date, i) => {
-                                        const completed = isCompleted(habit, date);
-                                        // Fix Today Comparison: Use YYYY-MM-DD
-                                        const toDateString = (d: Date) => d.toISOString().split('T')[0];
-                                        const isToday = toDateString(date) === toDateString(new Date());
-
-                                        return (
-                                            <div key={i} className="flex flex-col items-center gap-1">
-                                                {/* Mobile Day Label */}
-                                                <span className={cn("md:hidden text-[10px] uppercase font-mono", isToday ? "text-primary font-bold" : "text-gray-600")}>
-                                                    {date.toLocaleDateString('en-US', { weekday: 'narrow' })}
-                                                </span>
-                                                <button
-                                                    onClick={() => toggleHabit(habit._id, date.toISOString())}
-                                                    title={date.toDateString()}
-                                                    className={cn(
-                                                        "w-8 h-8 rounded-lg flex items-center justify-center transition-all border",
-                                                        completed
-                                                            ? "bg-primary text-white border-primary"
-                                                            : "bg-surface-hover text-transparent hover:bg-surface-hover/80",
-                                                        isToday && !completed ? "border-primary/50" : "border-transparent"
-                                                    )}
-                                                >
-                                                    <div className={cn("w-1.5 h-1.5 rounded-full", completed ? "bg-white" : "bg-gray-700")} />
-                                                </button>
+                                        {habit.description && (
+                                            <div className="text-xs text-gray-500 truncate mt-0.5 group-hover:text-gray-400">
+                                                {habit.description}
                                             </div>
-                                        );
-                                    })}
-                                </div>
+                                        )}
+                                    </div>
 
-                                <button
-                                    onClick={() => deleteHabit(habit._id)}
-                                    className="p-2 text-gray-600 hover:text-red-500 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
-                            </div>
-                        </motion.div>
-                    ))}
+                                    {/* Metadata & Actions */}
+                                    <div className="flex items-center gap-6">
+                                        {/* Streak Badge */}
+                                        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded bg-black/20 border border-white/5", habit.streak > 3 ? "text-orange-500 border-orange-500/20 bg-orange-500/10" : "text-gray-500")}>
+                                            <Flame size={12} />
+                                            <span className="text-xs font-mono font-bold">{habit.streak}</span>
+                                        </div>
+
+                                        {/* Week History (Mini Dots) */}
+                                        <div className="hidden md:flex gap-1">
+                                            {weekDays.map((date, i) => {
+                                                const completed = isCompleted(habit, date);
+                                                const toDateString = (d: Date) => d.toISOString().split('T')[0];
+                                                const isToday = toDateString(date) === toDateString(new Date());
+
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => toggleHabit(habit._id, date.toISOString())}
+                                                        title={date.toDateString()}
+                                                        className={cn(
+                                                            "w-6 h-6 rounded flex items-center justify-center transition-all",
+                                                            isToday ? "bg-white/5 ring-1 ring-inset ring-white/10" : ""
+                                                        )}
+                                                    >
+                                                        <div className={cn(
+                                                            "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                                                            completed ? "bg-primary shadow-[0_0_5px_rgba(220,38,38,0.5)] scale-125" : "bg-gray-800 hover:bg-gray-600"
+                                                        )} />
+                                                    </button>
+                                                );
+                                            })}
+                                        </div>
+
+                                        {/* Delete Action */}
+                                        <button
+                                            onClick={() => deleteHabit(habit._id)}
+                                            className="text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 px-2"
+                                            title="Delete protocol"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+
+                    {/* Add New Input Row */}
+                    <form onSubmit={addHabit} className="group flex items-center gap-4 p-4 hover:bg-white/5 transition-all border-t border-white/5 bg-black/20">
+                        <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center shrink-0 group-hover:border-gray-500">
+                            <Plus size={14} className="text-gray-700 group-hover:text-gray-500" />
+                        </div>
+                        <input
+                            type="text"
+                            value={newHabit}
+                            onChange={(e) => setNewHabit(e.target.value)}
+                            placeholder="Add a new non-negotiable..."
+                            className="bg-transparent border-none outline-none text-gray-400 placeholder-gray-600 w-full font-medium h-full focus:text-white"
+                        />
+                        <button type="submit" disabled={!newHabit.trim()} className="text-xs font-bold uppercase tracking-wider text-primary opacity-0 group-hover:opacity-100 disabled:opacity-0 transition-all">
+                            Add
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {/* --- Heatmap Footer (Collapsible/Subtle) --- */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between px-2">
+                    <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                        Consistency Graph
+                    </h3>
+                    <button
+                        onClick={async () => {
+                            if (confirm("Reset to default 2026 protocols? This will clear current habits but keep history.")) {
+                                for (const h of habits) await fetch(`/api/habits/${h._id}`, { method: "DELETE" });
+                                setHabits([]);
+                                await seedDefaults();
+                            }
+                        }}
+                        className="text-[10px] text-gray-600 hover:text-red-500 transition-colors uppercase font-bold tracking-wider"
+                    >
+                        Reset Defaults
+                    </button>
                 </div>
 
-                {/* Add Input */}
-                <form onSubmit={addHabit} className="mt-6 relative">
-                    <input
-                        type="text"
-                        value={newHabit}
-                        onChange={(e) => setNewHabit(e.target.value)}
-                        placeholder="Initialize new protocol..."
-                        className="w-full card-glass px-5 py-4 pl-12 focus:border-primary/50 focus:bg-black/40 outline-none transition-all shadow-lg text-white placeholder-gray-500"
-                    />
-                    <Plus className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={20} />
-                </form>
+                <div className="w-full overflow-x-auto pb-4 scrollbar-hide">
+                    <div className="flex gap-1 min-w-max">
+                        {Array.from({ length: Math.ceil(heatmapGrid.length / 7) }).map((_, weekIndex) => (
+                            <div key={weekIndex} className="flex flex-col gap-1">
+                                {Array.from({ length: 7 }).map((_, dayIndex) => {
+                                    const flatIndex = weekIndex * 7 + dayIndex;
+                                    const data = heatmapGrid[flatIndex];
+                                    if (!data) return <div key={dayIndex} className="w-2.5 h-2.5" />; // Empty placeholder
+
+                                    const isFuture = data.date > new Date();
+                                    return (
+                                        <div
+                                            key={dayIndex}
+                                            title={`${data.date.toDateString()}: ${data.count} completions`}
+                                            className={cn(
+                                                "w-2.5 h-2.5 rounded-[2px] transition-all duration-300",
+                                                isFuture ? "bg-white/5 opacity-50" : intensityColors[getIntensity(data.count)]
+                                            )}
+                                        />
+                                    );
+                                })}
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </div>
+
         </div>
     );
 };

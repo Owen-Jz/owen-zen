@@ -10,6 +10,11 @@ const manrope = Manrope({
 export const metadata = {
   title: "Owen Zen | Focus Dashboard",
   description: "A minimal, Zen-like productivity dashboard for focused work.",
+  icons: {
+    icon: "/logo.svg",
+    shortcut: "/logo.svg",
+    apple: "/logo.svg",
+  },
 };
 
 export default function RootLayout({
