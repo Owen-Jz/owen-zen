@@ -39,6 +39,7 @@ import { SocialHubView } from "@/components/SocialHubView";
 import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
 import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
 import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
+import { NotificationBell } from "@/components/NotificationBell"; // Import Notification Bell
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -830,6 +831,9 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex items-center gap-3">
+            {/* Notification Bell */}
+            <NotificationBell />
+
             {/* Lofi Girl Button */}
             <button
               onClick={() => {
