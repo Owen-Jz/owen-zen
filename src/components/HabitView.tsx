@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Loading } from "@/components/Loading";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -229,7 +230,10 @@ export const HabitView = () => {
         return week;
     };
 
+
     const weekDays = getCurrentWeekDays();
+
+    if (loading) return <Loading text="Loading Protocols..." />;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">

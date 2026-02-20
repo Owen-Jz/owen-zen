@@ -4,7 +4,7 @@ import { useSensors, useSensor, PointerSensor, KeyboardSensor, DndContext, close
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Target } from "lucide-react";
 import { SortableMITItem } from "@/components/SortableMITItem";
-import { Task } from "@/types/task";
+import { Task } from "@/types";
 
 interface MITListProps {
     tasks: Task[];

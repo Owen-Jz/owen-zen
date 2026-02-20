@@ -7,7 +7,7 @@ import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Task, TaskStatus, TaskPriority } from "@/types/task";
+import { Task, TaskStatus, TaskPriority } from "@/types";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));

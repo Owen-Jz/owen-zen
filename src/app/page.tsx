@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -40,6 +40,7 @@ import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
 import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
 import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
 import { NotificationBell } from "@/components/NotificationBell"; // Import Notification Bell
+import { Loading } from "@/components/Loading";
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -167,35 +168,79 @@ const SettingsView = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto space-y-8">
-      <div className="bg-surface border border-border rounded-xl p-6">
-        <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-          <Palette className="text-primary" /> Theme
+    <div className="max-w-4xl mx-auto space-y-8">
+      <div className="bg-surface border border-border rounded-xl p-8">
+        <h2 className="text-2xl font-bold mb-8 flex items-center gap-3">
+          <Palette className="text-primary w-6 h-6" /> Appearance
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <button onClick={() => setTheme('')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-            <div className="w-full h-24 bg-[#0a0a0a] rounded-md mb-3 border border-[#333] relative overflow-hidden group-hover:scale-105 transition-transform">
-              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#b02222]"></div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+          {/* Zen */}
+          <button onClick={() => setTheme('')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#0a0a0a] rounded-lg mb-4 border border-[#262626] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-transparent to-black/40"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#dc2626] shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#525252] text-xs font-mono">ZEN</div>
             </div>
-            <div className="font-medium">Zen (Default)</div>
-            <div className="text-xs text-gray-500">Dark, Red Accents</div>
+            <div className="font-bold text-lg">Zen (Default)</div>
+            <div className="text-xs text-gray-500 mt-1">Dark Charcoal & Crimson</div>
           </button>
 
-          <button onClick={() => setTheme('cyberpunk')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-            <div className="w-full h-24 bg-[#0f0a1e] rounded-md mb-3 border border-[#4c1d95] relative overflow-hidden group-hover:scale-105 transition-transform">
-              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#d946ef]"></div>
+          {/* Cyberpunk */}
+          <button onClick={() => setTheme('cyberpunk')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#050508] rounded-lg mb-4 border border-[#334155] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#d946ef]/10 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#d946ef] shadow-[0_0_15px_rgba(217,70,239,0.6)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#22d3ee] text-xs font-mono">NEON</div>
             </div>
-            <div className="font-medium">Cyberpunk</div>
-            <div className="text-xs text-gray-500">Neon Purple & Pink</div>
+            <div className="font-bold text-lg">Cyberpunk</div>
+            <div className="text-xs text-gray-500 mt-1">Deep Void & Neon Pink</div>
           </button>
 
-          <button onClick={() => setTheme('matrix')} className="p-4 rounded-lg border border-border hover:border-primary transition-all text-left group">
-            <div className="w-full h-24 bg-[#000000] rounded-md mb-3 border border-[#003b00] relative overflow-hidden group-hover:scale-105 transition-transform">
-              <div className="absolute top-2 left-2 w-8 h-8 rounded bg-[#008f11]"></div>
+          {/* Matrix */}
+          <button onClick={() => setTheme('matrix')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#000000] rounded-lg mb-4 border border-[#003b00] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-[linear-gradient(rgba(0,59,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,59,0,0.1)_1px,transparent_1px)] bg-[size:10px_10px]"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#008f11] shadow-[0_0_10px_rgba(0,143,17,0.8)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#00ff41] text-xs font-mono">CODE</div>
             </div>
-            <div className="font-medium">Matrix</div>
-            <div className="text-xs text-gray-500">Terminal Green</div>
+            <div className="font-bold text-lg">Matrix</div>
+            <div className="text-xs text-gray-500 mt-1">Pure Black & Terminal Green</div>
           </button>
+
+          {/* Sapphire */}
+          <button onClick={() => setTheme('sapphire')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#020617] rounded-lg mb-4 border border-[#1e293b] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/10 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.6)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#60a5fa] text-xs font-mono">BLUE</div>
+            </div>
+            <div className="font-bold text-lg">Sapphire</div>
+            <div className="text-xs text-gray-500 mt-1">Deep Ocean & Electric Blue</div>
+          </button>
+
+          {/* Emerald */}
+          <button onClick={() => setTheme('emerald')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#022c22] rounded-lg mb-4 border border-[#064e3b] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#10b981]/10 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#10b981] shadow-[0_0_15px_rgba(16,185,129,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#34d399] text-xs font-mono">WILD</div>
+            </div>
+            <div className="font-bold text-lg">Emerald</div>
+            <div className="text-xs text-gray-500 mt-1">Forest Green & Menthol</div>
+          </button>
+
+          {/* Sunset */}
+          <button onClick={() => setTheme('sunset')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#1c1917] rounded-lg mb-4 border border-[#44403c] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#f59e0b]/10 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#f59e0b] shadow-[0_0_15px_rgba(245,158,11,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#fbbf24] text-xs font-mono">HEAT</div>
+            </div>
+            <div className="font-bold text-lg">Sunset</div>
+            <div className="text-xs text-gray-500 mt-1">Warm Stone & Amber</div>
+          </button>
+
         </div>
       </div>
     </div>
