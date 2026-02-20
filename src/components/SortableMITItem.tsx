@@ -6,16 +6,10 @@ import { Check, X, GripVertical } from "lucide-react";
 import { motion } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Task } from "@/types/task";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
-}
-
-interface Task {
-  _id: string;
-  title: string;
-  isMIT: boolean;
-  order: number;
 }
 
 interface SortableMITItemProps {
@@ -44,8 +38,8 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
       ref={setNodeRef}
       style={style}
       className={cn(
-        "card-glass p-5 flex items-center justify-between group transition-all shadow-md hover:shadow-xl hover:bg-surface/80 border-white/5",
-        isDragging && "opacity-80 ring-2 ring-primary z-50 scale-105 shadow-2xl"
+        "bg-surface border border-border p-4 rounded-xl flex items-center justify-between group transition-all",
+        isDragging && "opacity-50 ring-2 ring-primary z-50 bg-surface-hover"
       )}
     >
       <div className="flex items-center gap-3">
@@ -54,21 +48,21 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
         </button>
         <span className="font-bold text-lg">{task.title}</span>
       </div>
-
+      
       <div className="flex gap-2">
-        <button
-          onClick={() => onComplete(task._id)}
-          className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-all"
-          title="Complete"
+        <button 
+            onClick={() => onComplete(task._id)}
+            className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-all"
+            title="Complete"
         >
-          <Check size={18} />
+            <Check size={18} />
         </button>
-        <button
-          onClick={() => onRemoveMIT(task._id)}
-          className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/10"
-          title="Remove from MIT"
+        <button 
+            onClick={() => onRemoveMIT(task._id)}
+            className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/10"
+            title="Remove from MIT"
         >
-          <X size={18} />
+            <X size={18} />
         </button>
       </div>
     </div>
