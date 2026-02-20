@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192" width="192" height="192">
+  <defs>
+    <radialGradient id="bgGrad" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#1a0a0a"/>
+      <stop offset="100%" stop-color="#030303"/>
+    </radialGradient>
+    <radialGradient id="glowGrad" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#dc2626" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#dc2626" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="4" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Background rounded square -->
+  <rect width="192" height="192" rx="40" ry="40" fill="url(#bgGrad)"/>
+
+  <!-- Subtle red glow in center -->
+  <ellipse cx="96" cy="90" rx="80" ry="70" fill="url(#glowGrad)"/>
+
+  <!-- Outer ring -->
+  <circle cx="96" cy="92" r="52" fill="none" stroke="#dc2626" stroke-width="2.5" stroke-opacity="0.5"/>
+
+  <!-- Inner ring -->
+  <circle cx="96" cy="92" r="38" fill="none" stroke="#dc2626" stroke-width="1.5" stroke-opacity="0.25"/>
+
+  <!-- Center dot with glow -->
+  <circle cx="96" cy="92" r="10" fill="#dc2626" filter="url(#glow)"/>
+  <circle cx="96" cy="92" r="6" fill="#ef4444"/>
+
+  <!-- Top tick mark -->
+  <line x1="96" y1="36" x2="96" y2="46" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-opacity="0.9"/>
+
+  <!-- Right tick mark -->
+  <line x1="150" y1="92" x2="140" y2="92" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6"/>
+
+  <!-- Left tick mark -->
+  <line x1="42" y1="92" x2="52" y2="92" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-opacity="0.6"/>
+
+  <!-- Bottom tick mark -->
+  <line x1="96" y1="148" x2="96" y2="138" stroke="#dc2626" stroke-width="3" stroke-linecap="round" stroke-opacity="0.4"/>
+
+  <!-- "OZ" text -->
+  <text x="96" y="165" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="13" font-weight="700" fill="#dc2626" letter-spacing="4" opacity="0.8">OZ</text>
+</svg>
