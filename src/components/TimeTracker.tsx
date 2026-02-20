@@ -1,4 +1,4 @@
-import { Play, Pause, Clock, Calendar, Trash2, Square } from "lucide-react";
+import { Play, Pause, Clock, Calendar, Trash2, Square, Plus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TimeLog, ActiveTimer } from "@/types";
@@ -13,15 +13,19 @@ interface TimeTrackerProps {
   onPause?: () => void;
   onResume?: () => void;
   onDeleteLog?: (logIndex: number) => void;
+  onAddManualLog?: (duration: number, note: string) => void;
 }
 
-export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop, onPause, onResume, onDeleteLog }: TimeTrackerProps) => {
+export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = [], onStart, onStop, onPause, onResume, onDeleteLog, onAddManualLog }: TimeTrackerProps) => {
   const [currentTime, setCurrentTime] = useState(0);
   const [showStopModal, setShowStopModal] = useState(false);
   const [showStartModal, setShowStartModal] = useState(false);
   const [note, setNote] = useState("");
   const [sessionTitle, setSessionTitle] = useState("");
   const [showLogs, setShowLogs] = useState(false);
+  const [showManualModal, setShowManualModal] = useState(false);
+  const [manualDuration, setManualDuration] = useState(""); // User input (e.g. "1h 30m" or just numbers)
+
 
   // Update timer every second when active
   useEffect(() => {
@@ -118,44 +122,56 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
           </div>
         </div>
 
-        {activeTimer?.isActive ? (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2">
+          {onAddManualLog && (
             <button
-              onClick={() => onPause && onPause()}
-              className="flex items-center gap-2 px-3 py-2 bg-yellow-500/20 text-yellow-500 rounded-lg hover:bg-yellow-500/30 transition-all text-sm font-medium"
+              onClick={() => setShowManualModal(true)}
+              className="p-2 text-gray-500 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              title="Add manual time entry"
             >
-              <Pause size={14} /> Pause
+              <Plus size={16} />
             </button>
+          )}
+
+          {activeTimer?.isActive ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onPause && onPause()}
+                className="flex items-center gap-2 px-3 py-2 bg-yellow-500/20 text-yellow-500 rounded-lg hover:bg-yellow-500/30 transition-all text-sm font-medium"
+              >
+                <Pause size={14} /> Pause
+              </button>
+              <button
+                onClick={() => setShowStopModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
+              >
+                <Square size={14} /> Stop
+              </button>
+            </div>
+          ) : activeTimer?.accumulatedTime !== undefined && activeTimer.accumulatedTime > 0 ? (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onResume && onResume()}
+                className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-sm font-medium"
+              >
+                <Play size={14} /> Continue
+              </button>
+              <button
+                onClick={() => setShowStopModal(true)}
+                className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
+              >
+                <Square size={14} /> Stop
+              </button>
+            </div>
+          ) : (
             <button
-              onClick={() => setShowStopModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
-            >
-              <Square size={14} /> Stop
-            </button>
-          </div>
-        ) : activeTimer?.accumulatedTime !== undefined && activeTimer.accumulatedTime > 0 ? (
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => onResume && onResume()}
+              onClick={handleStartClick}
               className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-sm font-medium"
             >
-              <Play size={14} /> Continue
+              <Play size={14} /> Start
             </button>
-            <button
-              onClick={() => setShowStopModal(true)}
-              className="flex items-center gap-2 px-3 py-2 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-sm font-medium"
-            >
-              <Square size={14} /> Stop
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={handleStartClick}
-            className="flex items-center gap-2 px-3 py-2 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-sm font-medium"
-          >
-            <Play size={14} /> Start
-          </button>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Time Logs Toggle */}
@@ -338,6 +354,90 @@ export const TimeTracker = ({ taskId, activeTimer, totalTimeSpent, timeLogs = []
                   className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Stop & Save
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* Manual Entry Modal */}
+      <AnimatePresence>
+        {showManualModal && (
+          <div className="fixed inset-0 bg-black/60 z-[70] flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-surface border border-border w-full max-w-md rounded-2xl p-6 shadow-2xl"
+            >
+              <h3 className="text-lg font-bold mb-4">Add Manual Time</h3>
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">
+                    Duration (e.g. "1h 30m" or "90")
+                  </label>
+                  <input
+                    type="text"
+                    value={manualDuration}
+                    onChange={(e) => setManualDuration(e.target.value)}
+                    placeholder="e.g. 1.5h, 45m"
+                    className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none text-sm"
+                    autoFocus
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase text-gray-500 font-bold mb-2 block">
+                    Note (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="What did you do?"
+                    className="w-full bg-background border border-border rounded-xl p-3 focus:border-primary outline-none text-sm"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setShowManualModal(false);
+                    setManualDuration("");
+                    setNote("");
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl border border-border text-gray-400 hover:bg-white/5 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    // Parse duration
+                    let seconds = 0;
+                    const input = manualDuration.toLowerCase().trim();
+
+                    if (!isNaN(Number(input))) {
+                      // Assume minutes if just number
+                      seconds = Number(input) * 60;
+                    } else {
+                      // Parse h/m/s
+                      const hours = input.match(/(\d+(?:\.\d+)?)h/)?.[1];
+                      const mins = input.match(/(\d+(?:\.\d+)?)m/)?.[1];
+                      if (hours) seconds += Number(hours) * 3600;
+                      if (mins) seconds += Number(mins) * 60;
+                    }
+
+                    if (seconds > 0 && onAddManualLog) {
+                      onAddManualLog(Math.floor(seconds), note);
+                      setShowManualModal(false);
+                      setManualDuration("");
+                      setNote("");
+                    } else {
+                      alert("Invalid duration format. Try '1h 30m' or just '90' (minutes).");
+                    }
+                  }}
+                  className="flex-1 px-4 py-3 rounded-xl bg-primary text-white hover:brightness-110 transition-all font-medium"
+                >
+                  Add Time
                 </button>
               </div>
             </motion.div>

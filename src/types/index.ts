@@ -41,4 +41,5 @@ export interface Task {
     boardId?: string;
     isMIT: boolean;
     scheduledDate?: string; // or Date
+    dueDate?: string; // or Date
 }

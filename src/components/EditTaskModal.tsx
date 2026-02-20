@@ -14,12 +14,13 @@ interface EditTaskModalProps {
     task: Task | null;
     boards: Board[];
     onClose: () => void;
-    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[]) => void;
+    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string) => void;
     onStartTimer: (id: string, sessionTitle?: string) => void;
     onStopTimer: (id: string, note?: string) => void;
     onPauseTimer?: (id: string) => void;
     onResumeTimer?: (id: string) => void;
     onDeleteTimeLog: (id: string, logIndex: number) => void;
+    onAddManualTimeLog: (id: string, duration: number, note: string) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
     onMoveToBoard: (taskId: string, boardId: string | null) => void;
     onArchive: (id: string) => void;
@@ -36,6 +37,7 @@ export const EditTaskModal = ({
     onPauseTimer,
     onResumeTimer,
     onDeleteTimeLog,
+    onAddManualTimeLog,
     onToggleMIT,
     onMoveToBoard,
     onArchive,
@@ -45,6 +47,7 @@ export const EditTaskModal = ({
     const [description, setDescription] = useState(task?.description || "");
     const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
     const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
+    const [dueDate, setDueDate] = useState<string>(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
     const [boardId, setBoardId] = useState<string | null>(task?.boardId || null);
@@ -69,7 +72,7 @@ export const EditTaskModal = ({
     };
 
     const handleSave = () => {
-        onSave(task._id, title, description, priority, subtasks);
+        onSave(task._id, title, description, priority, subtasks, dueDate || undefined);
         // Also save board move if changed (separate API call usually, but handled here via callback)
         if (boardId !== task.boardId) {
             onMoveToBoard(task._id, boardId);
@@ -168,6 +171,7 @@ export const EditTaskModal = ({
                                 onPause={() => onPauseTimer && onPauseTimer(task._id)}
                                 onResume={() => onResumeTimer && onResumeTimer(task._id)}
                                 onDeleteLog={(logIndex) => onDeleteTimeLog(task._id, logIndex)}
+                                onAddManualLog={(duration, note) => onAddManualTimeLog(task._id, duration, note)}
                             />
                         </div>
 
@@ -242,6 +246,20 @@ export const EditTaskModal = ({
 
                         {/* Properties Panel */}
                         <div className="space-y-6 bg-surface/30 p-5 rounded-xl border border-white/5">
+
+                            {/* Due Date */}
+                            <div>
+                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Due Date</label>
+                                <div className="relative">
+                                    <input
+                                        type="date"
+                                        value={dueDate}
+                                        onChange={(e) => setDueDate(e.target.value)}
+                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-4 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30 placeholder-gray-500"
+                                    />
+                                    {/* <Calendar size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" /> */}
+                                </div>
+                            </div>
 
                             {/* Priority */}
                             <div>

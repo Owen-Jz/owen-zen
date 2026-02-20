@@ -3,7 +3,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, X, GripVertical } from "lucide-react";
-import { motion } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Task } from "@/types/task";
@@ -38,33 +37,39 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-surface border border-border p-4 rounded-xl flex items-center justify-between group transition-all",
-        isDragging && "opacity-50 ring-2 ring-primary z-50 bg-surface-hover"
+        "group flex items-center justify-between p-4 bg-surface/40 backdrop-blur-md rounded-xl border border-white/5 shadow-sm transition-all hover:bg-surface/80 hover:shadow-lg hover:border-primary/20",
+        isDragging && "opacity-80 ring-2 ring-primary z-50 scale-105 shadow-2xl bg-surface"
       )}
     >
-      <div className="flex items-center gap-3">
-        <button {...attributes} {...listeners} className="p-1 text-gray-500 hover:text-white cursor-grab active:cursor-grabbing">
+      <div className="flex items-center gap-4 flex-1 min-w-0">
+        {/* Drag Handle */}
+        <button {...attributes} {...listeners} className="text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity">
           <GripVertical size={16} />
         </button>
-        <span className="font-bold text-lg">{task.title}</span>
-      </div>
-      
-      <div className="flex gap-2">
-        <button 
-            onClick={() => onComplete(task._id)}
-            className="p-2 bg-green-500/20 text-green-500 rounded-lg hover:bg-green-500/30 transition-all"
-            title="Complete"
+
+        {/* Checkbox-style Complete Button */}
+        <button
+          onClick={() => onComplete(task._id)}
+          className="w-6 h-6 rounded-full border-2 border-gray-600 hover:border-primary flex items-center justify-center transition-all group/check hover:scale-110 active:scale-95"
+          title="Mark as Completed"
         >
-            <Check size={18} />
+          <Check size={14} className="text-primary opacity-0 group-hover/check:opacity-100 transition-opacity" strokeWidth={4} />
         </button>
-        <button 
-            onClick={() => onRemoveMIT(task._id)}
-            className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/10"
-            title="Remove from MIT"
-        >
-            <X size={18} />
-        </button>
+
+        {/* Task Title */}
+        <span className="font-medium text-base text-gray-200 truncate group-hover:text-white transition-colors">
+          {task.title}
+        </span>
       </div>
+
+      {/* Remove Button */}
+      <button
+        onClick={() => onRemoveMIT(task._id)}
+        className="p-2 text-gray-600 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all hover:bg-red-500/10 rounded-lg"
+        title="Remove from Daily Non-Negotiables"
+      >
+        <X size={16} />
+      </button>
     </div>
   );
 };
