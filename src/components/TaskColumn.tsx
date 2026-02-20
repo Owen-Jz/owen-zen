@@ -2,20 +2,16 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { Check, Clock, MoreVertical, Edit2, Archive, Trash2, CalendarDays, Play, Pause, Circle, ArrowRightCircle, Pin, Maximize2, Timer, GripVertical, Square } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2 } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-
-import { Task, TaskStatus, TaskPriority, Board, ActiveTimer, TimeLog, SubTask } from "@/types";
+import { Task, TaskStatus, TaskPriority } from "@/types/task";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
-
-// Types needed here
-// Types are imported now
 
 // --- Task Card Component ---
 export const TaskCard = forwardRef<HTMLDivElement, {
@@ -28,11 +24,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onUpdatePriority?: (id: string, priority: TaskPriority) => void;
   onStartTimer?: (id: string, sessionTitle?: string) => void;
   onStopTimer?: (id: string, note?: string) => void;
-  onPauseTimer?: (id: string) => void;
-  onResumeTimer?: (id: string) => void;
   onFocus?: (task: Task) => void;
-  onMoveToBoard?: (taskId: string, boardId: string | null) => void;
-  boards?: Board[];
   style?: React.CSSProperties;
   attributes?: any;
   listeners?: any;
@@ -48,22 +40,13 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
-  onPauseTimer,
-  onResumeTimer,
   onFocus,
-  onMoveToBoard,
-  boards = [],
   style,
   attributes,
   listeners,
   isDragging,
   isOverlay
 }, ref) => {
-
-  const formatDate = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  };
 
   const priorityColors = {
     "high": "border-l-4 border-red-500",
@@ -76,22 +59,21 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   const menuRef = useRef<HTMLDivElement>(null);
 
   // Timer tick effect
-  // Timer tick effect
   useEffect(() => {
-    // If active, tick. If paused, show accumulated.
-    if (task.activeTimer?.isActive && task.activeTimer.startedAt) {
-      const calculateTime = () => {
-        const start = new Date(task.activeTimer!.startedAt!).getTime();
-        const accumulated = task.activeTimer!.accumulatedTime || 0;
-        const now = Date.now();
-        setElapsedTime(accumulated + Math.floor((now - start) / 1000));
-      };
-      calculateTime();
-      const interval = setInterval(calculateTime, 1000);
-      return () => clearInterval(interval);
-    } else {
-      setElapsedTime(task.activeTimer?.accumulatedTime || 0);
-    }
+    // If it's an overlay, we might want to just show the static time or animate it too.
+    // Simpler to just animate it if active.
+    if (!task.activeTimer?.isActive) return;
+
+    // Initial calculation
+    const calculateTime = () => {
+      const start = new Date(task.activeTimer!.startedAt!).getTime();
+      const now = Date.now();
+      setElapsedTime(Math.floor((now - start) / 1000));
+    };
+    calculateTime();
+
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
   }, [task.activeTimer]);
 
   useEffect(() => {
@@ -118,34 +100,24 @@ export const TaskCard = forwardRef<HTMLDivElement, {
     return `${secs}s`;
   };
 
-  const recordedTime = task.timeLogs?.reduce((acc, log) => acc + (log.duration || 0), 0) || 0;
-  // If active, add elapsed. If paused, add accumulated (which is elapsed).
-  // task.activeTimer?.isActive is handled by elapsedTime state update.
-  // Actually, elapsedTime handles BOTH active and paused states now.
-  // But strictly, we want to add current session to recorded.
-  // If no session (neither active nor paused/accumulated), add 0.
-  const currentSessionTime = (task.activeTimer?.isActive || task.activeTimer?.accumulatedTime) ? elapsedTime : 0;
-  const totalTime = recordedTime + currentSessionTime;
+  const totalTime = (task.totalTimeSpent || 0) + (task.activeTimer?.isActive ? elapsedTime : 0);
 
   return (
     <div
       ref={ref}
       style={style}
       className={cn(
-        "group mb-3 hover:border-white/10 hover:shadow-2xl hover:-translate-y-1 relative overflow-visible transition-all duration-300",
-        "bg-surface/60 backdrop-blur-xl border border-white/5 rounded-2xl shadow-xl", // Manually apply card-glass styles minus overflow-hidden
-        task.activeTimer?.isActive && "ring-1 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary),0.2)] bg-surface/80",
-        isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-1 ring-primary z-50 bg-surface",
-        menuOpen ? "z-[60]" : "z-0", // Ensure high z-index when menu is open
+        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 relative",
+        task.activeTimer?.isActive && "ring-2 ring-primary/50",
+        isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-2 ring-primary z-50 bg-surface-hover",
+        menuOpen && "z-40",
         isDragging && !isOverlay && "opacity-30 grayscale"
       )}
     >
-      {/* Priority Bar (Restored) */}
+      {/* Priority Bar */}
       <div className={cn(
-        "h-[3px] w-full rounded-t-xl bg-gradient-to-r",
-        task.priority === "high" ? "from-red-500 to-red-600 shadow-[0_0_10px_rgba(239,68,68,0.5)]" :
-          task.priority === "medium" ? "from-orange-400 to-yellow-500 shadow-[0_0_10px_rgba(251,146,60,0.5)]" :
-            "from-blue-400 to-blue-500 shadow-[0_0_10px_rgba(96,165,250,0.5)]"
+        "h-1 w-full rounded-t-xl",
+        task.priority === "high" ? "bg-red-500" : task.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"
       )} />
 
       <div className="p-4">
@@ -157,8 +129,8 @@ export const TaskCard = forwardRef<HTMLDivElement, {
               <GripVertical size={14} />
             </button>
             <h4 className={cn(
-              "text-sm font-medium leading-relaxed pr-6 text-gray-200 group-hover:text-white transition-colors",
-              task.status === "completed" && "text-gray-500 line-through decoration-gray-600"
+              "text-base font-semibold leading-snug break-words flex-1",
+              task.status === "completed" && "text-gray-500 line-through"
             )}>
               {task.title}
             </h4>
@@ -166,15 +138,15 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
           <div className="flex items-center gap-2 shrink-0">
             {task.activeTimer?.isActive && (
-              <div className="flex items-center gap-1.5 px-2 py-0.5 bg-red-500/10 text-red-500 rounded-full text-[10px] font-bold tracking-wide border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.2)] animate-pulse">
-                <Timer size={10} className="animate-spin-slow" />
+              <div className="flex items-center gap-1 px-2 py-1 bg-red-500/20 text-red-500 rounded-md text-xs font-mono">
+                <div className="w-1.5 h-1.5 bg-red-500 rounded-full animate-pulse" />
                 {formatTime(elapsedTime)}
               </div>
             )}
 
             {!isOverlay && (
               <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100">
+                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
                   <MoreVertical size={16} />
                 </button>
 
@@ -219,30 +191,11 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                           <Pin size={14} /> Pin for Later
                         </button>
                         <div className="h-px bg-border my-1" />
-                        {boards.length > 0 && (
-                          <>
-                            <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move to Board</div>
-                            <button
-                              onClick={() => onMoveToBoard && handleMenuAction(() => onMoveToBoard(task._id, null))}
-                              className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", !task.boardId ? "text-primary" : "text-gray-300 hover:text-white")}
-                            >
-                              <Circle size={14} /> All Tasks (No Board)
-                            </button>
-                            {boards.map((board: Board) => (
-                              <button
-                                key={board._id}
-                                onClick={() => onMoveToBoard && handleMenuAction(() => onMoveToBoard(task._id, board._id))}
-                                className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.boardId === board._id ? "text-primary" : "text-gray-300 hover:text-white")}
-                              >
-                                <ArrowRightCircle size={14} /> {board.title}
-                              </button>
-                            ))}
-                            <div className="h-px bg-border my-1" />
-                          </>
+                        {task.status === "completed" && (
+                          <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
+                            <Archive size={14} /> Archive
+                          </button>
                         )}
-                        <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
-                          <Archive size={14} /> Archive
-                        </button>
                         <button onClick={() => onDelete && handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
                           <Trash2 size={14} /> Delete
                         </button>
@@ -259,15 +212,14 @@ export const TaskCard = forwardRef<HTMLDivElement, {
         {task.subtasks && task.subtasks.length > 0 && (
           <div className="mb-3 space-y-2">
             {/* Progress Bar */}
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-[10px] uppercase font-bold text-gray-500 tracking-wider">Subtasks</span>
-              <div className="flex-1 h-1 bg-white/5 rounded-full overflow-hidden">
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-primary to-primary-light transition-all duration-300 rounded-full"
+                  className="h-full bg-primary transition-all duration-300"
                   style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
                 />
               </div>
-              <span className="text-[10px] text-gray-400 font-mono">
+              <span className="text-xs text-gray-500 font-mono tabular-nums">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
               </span>
             </div>
@@ -281,17 +233,17 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     e.stopPropagation();
                     if (onToggleSubtask) onToggleSubtask(task._id, i);
                   }}
-                  className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-1.5 -mx-1.5 rounded-lg transition-colors group/sub"
+                  className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1.5 rounded transition-colors"
                 >
                   <div className={cn(
-                    "w-3.5 h-3.5 mt-0.5 rounded-full border flex items-center justify-center transition-all shrink-0",
-                    st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50"
+                    "w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center transition-all shrink-0",
+                    st.completed ? "bg-primary border-primary" : "border-gray-600 hover:border-primary"
                   )}>
-                    {st.completed && <Check size={8} className="text-white" />}
+                    {st.completed && <Check size={10} className="text-white" />}
                   </div>
                   <span className={cn(
-                    "text-xs leading-tight transition-colors",
-                    st.completed ? "text-gray-500 line-through" : "text-gray-400 group-hover/sub:text-gray-300"
+                    "text-xs leading-tight",
+                    st.completed ? "text-gray-600 line-through" : "text-gray-400"
                   )}>
                     {st.title}
                   </span>
@@ -311,82 +263,34 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
         {/* Footer Row - Stats */}
         <div className="flex items-center justify-between pt-2 border-t border-border/50">
-          {/* Left side: Date + Time */}
-          <div className="flex items-center gap-3">
-            {/* Creation Date */}
-            {task.createdAt && (
-              <div className="flex items-center gap-1 text-[10px] text-gray-600">
-                <CalendarDays size={10} />
-                <span>{formatDate(task.createdAt)}</span>
-              </div>
-            )}
-            {/* Time Stat */}
-            {totalTime > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <Clock size={12} />
-                <span className="font-mono">{formatTime(totalTime)}</span>
-              </div>
-            )}
-          </div>
+          {/* Time Stat */}
+          {totalTime > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500">
+              <Clock size={12} />
+              <span className="font-mono">{formatTime(totalTime)}</span>
+            </div>
+          )}
 
           {/* Timer Controls - Hide in Overlay if needed, or keep static */}
           {!isOverlay && (
             <>
               {task.activeTimer?.isActive ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onPauseTimer) onPauseTimer(task._id);
-                    }}
-                    className="p-1.5 bg-yellow-500/20 text-yellow-500 rounded-lg hover:bg-yellow-500/30 transition-all text-xs font-medium"
-                    title="Pause"
-                  >
-                    <Pause size={12} />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onStopTimer) onStopTimer(task._id);
-                    }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-xs font-medium"
-                  >
-                    <Square size={12} /> Stop
-                  </button>
-                </div>
-              ) : task.activeTimer?.accumulatedTime && task.activeTimer.accumulatedTime > 0 ? (
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onResumeTimer) onResumeTimer(task._id);
-                    }}
-                    className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-xs font-medium"
-                  >
-                    <Play size={12} /> Resume
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onStopTimer) onStopTimer(task._id);
-                    }}
-                    className="p-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-xs font-medium"
-                    title="Stop and Save"
-                  >
-                    <Square size={12} />
-                  </button>
-                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (onStopTimer) onStopTimer(task._id);
+                  }}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-all text-xs font-medium ml-auto"
+                >
+                  <Pause size={12} /> Stop
+                </button>
               ) : (
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (onStartTimer) {
-                      const now = new Date();
-                      const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
-                      onStartTimer(task._id, dateStr);
-                    }
+                    if (onStartTimer) onStartTimer(task._id);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-xs font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-xs font-medium ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   <Play size={12} /> Start
                 </button>
@@ -412,11 +316,7 @@ export const SortableTaskItem = ({
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
-  onPauseTimer, // Added
-  onResumeTimer, // Added
-  onFocus,
-  onMoveToBoard,
-  boards
+  onFocus
 }: {
   task: Task;
   onDelete: (id: string) => void;
@@ -427,11 +327,7 @@ export const SortableTaskItem = ({
   onUpdatePriority: (id: string, priority: TaskPriority) => void;
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
-  onPauseTimer?: (id: string) => void;
-  onResumeTimer?: (id: string) => void;
   onFocus: (task: Task) => void;
-  onMoveToBoard?: (taskId: string, boardId: string | null) => void;
-  boards?: Board[];
 }) => {
   const {
     attributes,
@@ -445,6 +341,8 @@ export const SortableTaskItem = ({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    // When dragging, the original item stays in place but opacity is reduced
+    // The DragOverlay shows the full opacity version
   };
 
   return (
@@ -460,11 +358,7 @@ export const SortableTaskItem = ({
       onUpdatePriority={onUpdatePriority}
       onStartTimer={onStartTimer}
       onStopTimer={onStopTimer}
-      onPauseTimer={onPauseTimer}
-      onResumeTimer={onResumeTimer}
       onFocus={onFocus}
-      onMoveToBoard={onMoveToBoard}
-      boards={boards}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
@@ -473,7 +367,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onPauseTimer, onResumeTimer, onFocus, onMoveToBoard, boards }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus }: any) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
   });
@@ -482,8 +376,8 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-surface/30 backdrop-blur-sm p-4 rounded-2xl border border-white/5 min-h-[500px] flex flex-col transition-all duration-300 relative",
-        isOver && "bg-white/5 border-primary/40 shadow-[0_0_30px_rgba(var(--primary),0.1)] ring-1 ring-primary/20 scale-[1.01]"
+        "bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col transition-all duration-200",
+        isOver && "bg-surface-hover/50 border-primary/50 shadow-lg ring-1 ring-primary/20 scale-[1.01]"
       )}
     >
       <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
@@ -509,11 +403,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               onUpdatePriority={onUpdatePriority}
               onStartTimer={onStartTimer}
               onStopTimer={onStopTimer}
-              onPauseTimer={onPauseTimer}
-              onResumeTimer={onResumeTimer}
               onFocus={onFocus}
-              onMoveToBoard={onMoveToBoard}
-              boards={boards}
             />
           ))}
           {/* Invisible spacer */}
