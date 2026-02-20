@@ -5,6 +5,7 @@ import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Ed
 import { motion, AnimatePresence } from "framer-motion";
 import { CldUploadWidget } from 'next-cloudinary';
 import { clsx } from "clsx";
+import { Loading } from "@/components/Loading";
 
 interface Post {
   _id: string;
@@ -266,6 +267,8 @@ export const SocialHubView = () => {
       default: return <div className="text-[10px] font-bold text-gray-500">{platform}</div>;
     }
   };
+
+  if (loading) return <Loading text="Booting Social Engine..." />;
 
   return (
     <div className="max-w-[1600px] mx-auto h-[calc(100vh-140px)] animate-in fade-in duration-500 flex flex-col">

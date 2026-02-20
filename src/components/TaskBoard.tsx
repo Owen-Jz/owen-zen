@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TaskColumn } from "./TaskColumn";
-import { Task, TaskStatus, TaskPriority } from "@/types/task";
+import { Task, TaskStatus, TaskPriority, Board } from "@/types";
 import { TaskCard } from "./TaskColumn";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
@@ -27,7 +27,11 @@ export const TaskBoard = ({
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
-  onFocus
+  onPauseTimer,
+  onResumeTimer,
+  onFocus,
+  onMoveToBoard,
+  boards
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -39,7 +43,11 @@ export const TaskBoard = ({
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
-  onFocus: (task: Task) => void
+  onPauseTimer?: (id: string) => void,
+  onResumeTimer?: (id: string) => void,
+  onFocus: (task: Task) => void,
+  onMoveToBoard?: (taskId: string, boardId: string | null) => void,
+  boards?: Board[]
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),

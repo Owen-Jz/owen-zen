@@ -40,6 +40,7 @@ export interface Task {
     activeTimer?: ActiveTimer;
     boardId?: string;
     isMIT: boolean;
-    scheduledDate?: string; // or Date
-    dueDate?: string; // or Date
+    scheduledDate?: string; // ISO string 
+    dueDate?: string;      // ISO string
+    googleEventId?: string;
 }

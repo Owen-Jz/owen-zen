@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { TrendingUp, CheckCircle, Activity, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { Loading } from "@/components/Loading";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -158,7 +159,7 @@ export const AnalyticsView = () => {
     fetchData();
   }, []);
 
-  if (loading) return <div className="p-12 text-center text-gray-500">Calculating Life Stats...</div>;
+  if (loading) return <Loading text="Crunching numbers..." />;
 
   return (
     <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, TrendingUp, TrendingDown, DollarSign, Activity } from 'lucide-react';
+import { Loading } from "@/components/Loading";
 
 interface Position {
   id: string;
@@ -44,7 +45,7 @@ export default function SandboxDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  if (loading || !data) return <div className="p-10 text-white">Loading Sandbox...</div>;
+  if (loading || !data) return <Loading text="Loading Sandbox..." />;
 
   return (
     <div className="min-h-screen bg-black text-white p-8 font-sans">
@@ -63,24 +64,24 @@ export default function SandboxDashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <StatCard 
-          title="Total Equity" 
-          value={`$${data.totalEquity.toLocaleString(undefined, {maximumFractionDigits: 2})}`} 
+        <StatCard
+          title="Total Equity"
+          value={`$${data.totalEquity.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
           icon={<DollarSign className="text-green-400" />}
         />
-        <StatCard 
-          title="Cash Balance" 
-          value={`$${data.balanceUsd.toLocaleString(undefined, {maximumFractionDigits: 2})}`} 
+        <StatCard
+          title="Cash Balance"
+          value={`$${data.balanceUsd.toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
           icon={<Activity className="text-blue-400" />}
         />
-        <StatCard 
-          title="Win Rate" 
-          value={`${data.stats.winRate}%`} 
+        <StatCard
+          title="Win Rate"
+          value={`${data.stats.winRate}%`}
           icon={<TrendingUp className="text-purple-400" />}
         />
-        <StatCard 
-          title="Max Drawdown" 
-          value={`-${data.stats.maxDrawdown.toFixed(2)}%`} 
+        <StatCard
+          title="Max Drawdown"
+          value={`-${data.stats.maxDrawdown.toFixed(2)}%`}
           icon={<TrendingDown className="text-red-400" />}
         />
       </div>
@@ -93,7 +94,7 @@ export default function SandboxDashboard() {
             <RefreshCw size={18} />
           </button>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>

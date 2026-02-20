@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { Check, X, GripVertical } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { Task } from "@/types/task";
+import { Task } from "@/types";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));

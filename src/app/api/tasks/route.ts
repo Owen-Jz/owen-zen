@@ -23,8 +23,8 @@ export async function GET(req: Request) {
       ? { boardId }
       : { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
 
-    // Sort by 'order' ascending (so 0 is top), then by createdAt
-    const tasks = await Task.find(query).sort({ order: 1, createdAt: -1 });
+    // Sort by createdAt descending — newest tasks appear first
+    const tasks = await Task.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: tasks });
   } catch (error) {
     console.error("Attributes: GET /api/tasks error:", error);
@@ -45,8 +45,8 @@ export async function POST(req: Request) {
       ? { boardId }
       : { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
 
-    const lastTask = await Task.findOne(query).sort({ order: -1 });
-    const newOrder = lastTask && lastTask.order !== undefined ? lastTask.order + 1 : 0;
+    // New tasks get order 0 (order field kept for drag-and-drop compatibility)
+    const newOrder = 0;
 
     const task = await Task.create({ ...body, order: newOrder });
     return NextResponse.json({ success: true, data: task }, { status: 201 });
