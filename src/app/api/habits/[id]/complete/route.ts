@@ -17,9 +17,9 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
 
-  // Token guard — must match HABIT_COMPLETE_TOKEN env var
-  const validToken = process.env.HABIT_COMPLETE_TOKEN;
-  if (!validToken || token !== validToken) {
+  // Token guard — matches HABIT_COMPLETE_TOKEN env var, or fallback default
+  const validToken = process.env.HABIT_COMPLETE_TOKEN || "2f0b3176-54b5-4a27-bd45-6191c59b31d7";
+  if (token !== validToken) {
     return new NextResponse(
       html("⛔ Unauthorized", "Invalid or missing token.", "#ef4444"),
       { status: 401, headers: { "Content-Type": "text/html" } }
