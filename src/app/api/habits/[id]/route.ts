@@ -40,32 +40,31 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         newDates.push(targetDate);
       }
 
-      // Recalculate streak
-      // Sort dates
-      newDates.sort((a: any, b: any) => new Date(b).getTime() - new Date(a).getTime());
-      
+      // Recalculate streak — compare by YYYY-MM-DD strings to avoid timestamp drift
+      // Deduplicate by date string, sort descending
+      const uniqueDateStrs = [...new Set(newDates.map((d: Date) => toDateString(new Date(d))))].sort().reverse();
+
       let streak = 0;
-      if (newDates.length > 0) {
-          const latest = new Date(newDates[0]);
-          const now = new Date();
-          now.setHours(0,0,0,0);
-          
-          // If the latest completion was today or yesterday, the streak is alive
-          const diffDays = Math.floor((now.getTime() - latest.getTime()) / (1000 * 60 * 60 * 24));
-          
-          if (diffDays <= 1) {
-             streak = 1;
-             // Check backwards
-             for (let i = 0; i < newDates.length - 1; i++) {
-                 const curr = new Date(newDates[i]);
-                 const prev = new Date(newDates[i+1]);
-                 const dayDiff = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
-                 if (dayDiff === 1) {
-                     streak++;
-                 } else {
-                     break;
-                 }
-             }
+      if (uniqueDateStrs.length > 0) {
+          const todayStr = toDateString(new Date());
+          const yesterdayDate = new Date();
+          yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+          const yesterdayStr = toDateString(yesterdayDate);
+
+          // Streak is alive only if latest completion is today or yesterday
+          if (uniqueDateStrs[0] === todayStr || uniqueDateStrs[0] === yesterdayStr) {
+              streak = 1;
+              for (let i = 0; i < uniqueDateStrs.length - 1; i++) {
+                  const curr = new Date(uniqueDateStrs[i]);
+                  const prev = new Date(uniqueDateStrs[i + 1]);
+                  // Consecutive days differ by exactly 1 day when compared as date strings
+                  const dayDiff = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+                  if (dayDiff === 1) {
+                      streak++;
+                  } else {
+                      break;
+                  }
+              }
           }
       }
 
