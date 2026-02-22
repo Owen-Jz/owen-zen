@@ -20,6 +20,13 @@ interface Habit {
     completedDates: string[];
 }
 
+const toLocalString = (d: Date) => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export const HabitView = () => {
     const [habits, setHabits] = useState<Habit[]>([]);
     const [newHabit, setNewHabit] = useState("");
@@ -130,14 +137,13 @@ export const HabitView = () => {
         }
 
         // For optimistic update, we also use YYYY-MM-DD comparison
-        const toDateString = (d: Date) => d.toISOString().split('T')[0];
-        const targetDayStr = toDateString(targetDate);
+        const targetDayStr = toLocalString(targetDate);
 
         setHabits(habits.map(h => {
             if (h._id === id) {
-                const hasDone = h.completedDates.some(d => toDateString(new Date(d)) === targetDayStr);
+                const hasDone = h.completedDates.some(d => toLocalString(new Date(d)) === targetDayStr);
                 const newDates = hasDone
-                    ? h.completedDates.filter(d => toDateString(new Date(d)) !== targetDayStr)
+                    ? h.completedDates.filter(d => toLocalString(new Date(d)) !== targetDayStr)
                     : [...h.completedDates, targetDate.toISOString()];
                 return { ...h, completedDates: newDates };
             }
@@ -161,9 +167,8 @@ export const HabitView = () => {
 
     const isCompleted = (h: Habit, date: Date) => {
         // Compare by YYYY-MM-DD
-        const toDateString = (d: Date) => d.toISOString().split('T')[0];
-        const targetStr = toDateString(new Date(date));
-        return h.completedDates.some(cd => toDateString(new Date(cd)) === targetStr);
+        const targetStr = toLocalString(new Date(date));
+        return h.completedDates.some(cd => toLocalString(new Date(cd)) === targetStr);
     };
 
     // --- Heatmap Logic ---
@@ -191,10 +196,9 @@ export const HabitView = () => {
     const heatmapGrid = getYearGridData().map(date => {
         if (!date) return null;
         // Compare by YYYY-MM-DD
-        const toDateString = (d: Date) => d.toISOString().split('T')[0];
-        const iso = toDateString(date);
+        const iso = toLocalString(date);
         const count = habits.reduce((acc, h) => {
-            return acc + (h.completedDates.some(d => toDateString(new Date(d)) === iso) ? 1 : 0);
+            return acc + (h.completedDates.some(d => toLocalString(new Date(d)) === iso) ? 1 : 0);
         }, 0);
         return { date: new Date(date), count };
     });
@@ -233,48 +237,120 @@ export const HabitView = () => {
 
     const weekDays = getCurrentWeekDays();
 
+    // --- Advanced Stats Compute ---
+    const totalHabits = habits.length;
+    const completedToday = habits.filter(h => isCompleted(h, new Date())).length;
+    const todayRate = totalHabits > 0 ? Math.round((completedToday / totalHabits) * 100) : 0;
+
+    const getCompletionsInWindow = (days: number) => {
+        const now = new Date();
+        const start = new Date(now);
+        start.setDate(now.getDate() - days);
+        // We set to start of day for comparison
+        start.setHours(0, 0, 0, 0);
+
+        let count = 0;
+        habits.forEach(h => {
+            count += h.completedDates.filter(d => new Date(d) >= start).length;
+        });
+        return count;
+    };
+
+    const last7Completions = getCompletionsInWindow(7);
+    const last7Rate = totalHabits > 0 ? Math.round((last7Completions / (totalHabits * 7)) * 100) : 0;
+
+    const last30Completions = getCompletionsInWindow(30);
+    const last30Rate = totalHabits > 0 ? Math.round((last30Completions / (totalHabits * 30)) * 100) : 0;
+
+    const maxCurrentStreak = habits.length > 0 ? Math.max(0, ...habits.map(h => h.streak)) : 0;
+    const totalLifetimeReps = habits.reduce((acc, h) => acc + h.completedDates.length, 0);
+
     if (loading) return <Loading text="Loading Protocols..." />;
 
     return (
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
 
-            {/* --- Top Stats (Compact) --- */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-primary/20 transition-all">
-                    <div>
-                        <div className="text-sm text-gray-500 font-medium">Today</div>
-                        <div className="text-xl font-bold text-white mt-1">
-                            {habits.filter(h => isCompleted(h, new Date())).length} <span className="text-gray-600 text-sm">/ {habits.length}</span>
+            {/* --- Advanced Stats --- */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Today's Progress */}
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-primary/30 transition-all relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10 flex justify-between items-start mb-4">
+                        <div>
+                            <div className="text-sm text-gray-400 font-medium mb-1">Today's Progress</div>
+                            <div className="text-2xl font-bold text-white">
+                                {completedToday} <span className="text-gray-500 text-base font-medium">/ {totalHabits}</span>
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                            <Target size={20} className="text-primary" />
                         </div>
                     </div>
-                    <Trophy size={20} className="text-primary opacity-80" />
+                    <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
+                        <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${todayRate}%` }} />
+                    </div>
+                    <div className="relative z-10 text-right mt-2 text-xs text-primary font-bold">{todayRate}% Complete</div>
                 </div>
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-orange-500/20 transition-all">
-                    <div>
-                        <div className="text-sm text-gray-500 font-medium">Best Streak</div>
-                        <div className="text-xl font-bold text-white mt-1">
-                            {Math.max(0, ...habits.map(h => h.streak))} <span className="text-xs text-gray-600">days</span>
+
+                {/* 7-Day Consistency */}
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10 flex justify-between items-start mb-4">
+                        <div>
+                            <div className="text-sm text-gray-400 font-medium mb-1">Weekly Consistency</div>
+                            <div className="text-2xl font-bold text-white">
+                                {last7Rate}%
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                            <TrendingUp size={20} className="text-blue-500" />
                         </div>
                     </div>
-                    <Flame size={20} className="text-orange-500 opacity-80" />
+                    <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
+                        <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${last7Rate}%` }} />
+                    </div>
+                    <div className="relative z-10 text-right mt-2 text-xs text-blue-500 font-bold">{last7Completions} Reps this week</div>
                 </div>
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-blue-500/20 transition-all">
-                    <div>
-                        <div className="text-sm text-gray-500 font-medium">Total Reps</div>
-                        <div className="text-xl font-bold text-white mt-1">
-                            {habits.reduce((acc, h) => acc + h.completedDates.length, 0)}
+
+                {/* 30-Day Consistency */}
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-purple-500/30 transition-all relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="relative z-10 flex justify-between items-start mb-4">
+                        <div>
+                            <div className="text-sm text-gray-400 font-medium mb-1">Monthly Focus</div>
+                            <div className="text-2xl font-bold text-white">
+                                {last30Rate}%
+                            </div>
+                        </div>
+                        <div className="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center">
+                            <Activity size={20} className="text-purple-500" />
                         </div>
                     </div>
-                    <Activity size={20} className="text-blue-500 opacity-80" />
+                    <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
+                        <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${last30Rate}%` }} />
+                    </div>
+                    <div className="relative z-10 text-right mt-2 text-xs text-purple-500 font-bold">{last30Completions} Reps this month</div>
                 </div>
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-4 flex items-center justify-between hover:border-purple-500/20 transition-all">
-                    <div>
-                        <div className="text-sm text-gray-500 font-medium">Rate</div>
-                        <div className="text-xl font-bold text-white mt-1">
-                            {habits.length > 0 ? Math.round((habits.filter(h => isCompleted(h, new Date())).length / habits.length) * 100) : 0}%
+
+                {/* Best Streak & Total Reps */}
+                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-orange-500/30 transition-all relative overflow-hidden group flex flex-col justify-between">
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+
+                    <div className="relative z-10 flex justify-between items-center bg-white/5 p-3 rounded-xl mb-3 border border-white/5">
+                        <div>
+                            <div className="text-xs text-gray-400 font-medium">Active Streak</div>
+                            <div className="text-lg font-bold text-white">{maxCurrentStreak} <span className="text-xs text-gray-500 font-normal">days</span></div>
                         </div>
+                        <Flame size={24} className="text-orange-500" />
                     </div>
-                    <Zap size={20} className="text-purple-500 opacity-80" />
+
+                    <div className="relative z-10 flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
+                        <div>
+                            <div className="text-xs text-gray-400 font-medium">All-Time Reps</div>
+                            <div className="text-lg font-bold text-white">{totalLifetimeReps}</div>
+                        </div>
+                        <Trophy size={20} className="text-yellow-500" />
+                    </div>
                 </div>
             </div>
 
@@ -290,8 +366,7 @@ export const HabitView = () => {
                     {/* Week Days Header (Desktop) */}
                     <div className="hidden md:flex gap-1 ml-auto mr-12">
                         {weekDays.map((d, i) => {
-                            const toDateString = (date: Date) => date.toISOString().split('T')[0];
-                            const isToday = toDateString(d) === toDateString(new Date());
+                            const isToday = toLocalString(d) === toLocalString(new Date());
                             return (
                                 <div key={i} className={cn("w-6 text-center text-[10px] font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-600")}>
                                     {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
@@ -358,8 +433,7 @@ export const HabitView = () => {
                                         <div className="hidden md:flex gap-1">
                                             {weekDays.map((date, i) => {
                                                 const completed = isCompleted(habit, date);
-                                                const toDateString = (d: Date) => d.toISOString().split('T')[0];
-                                                const isToday = toDateString(date) === toDateString(new Date());
+                                                const isToday = toLocalString(date) === toLocalString(new Date());
 
                                                 return (
                                                     <button
