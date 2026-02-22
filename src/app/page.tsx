@@ -72,8 +72,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 // --- Components ---
 
-const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen }: any) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setIsCollapsed }: any) => {
 
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
@@ -823,7 +822,7 @@ export default function Dashboard() {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground overflow-hidden">
-      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} />
+      <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
 
       {/* Edit Modal */}
       <AnimatePresence>
@@ -863,7 +862,7 @@ export default function Dashboard() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 transition-all duration-300 p-4 md:p-8 overflow-y-auto h-screen w-full md:ml-20">
+      <main className={cn("flex-1 transition-all duration-300 p-4 md:p-8 overflow-y-auto h-screen w-full", isSidebarCollapsed ? "md:ml-20" : "md:ml-64")}>
         {/* Active Timer Bar */}
         <AnimatePresence>
           {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
@@ -871,7 +870,7 @@ export default function Dashboard() {
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="fixed top-0 left-0 md:left-20 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl"
+              className={cn("fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-300", isSidebarCollapsed ? "md:left-20" : "md:left-64")}
             >
               <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
                 <div className="flex items-center gap-4 overflow-x-auto">

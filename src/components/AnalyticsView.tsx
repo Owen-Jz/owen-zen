@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { TrendingUp, CheckCircle, Activity, Calendar } from "lucide-react";
+import { TrendingUp, CheckCircle, Activity, Calendar, Trophy, Flame, Target, Star, Shield, Zap, Sword, Crown, Lock, Award } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
@@ -11,8 +11,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-// --- Components ---
-
 const ProgressRing = ({ percentage, day, isToday }: { percentage: number, day: string, isToday: boolean }) => {
   const radius = 30;
   const circumference = 2 * Math.PI * radius;
@@ -20,34 +18,32 @@ const ProgressRing = ({ percentage, day, isToday }: { percentage: number, day: s
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className={cn("text-xs font-bold uppercase", isToday ? "text-primary" : "text-gray-500")}>{day}</div>
-      <div className="relative w-20 h-20 flex items-center justify-center">
-        {/* Background Circle */}
-        <svg className="w-full h-full transform -rotate-90">
+      <div className={cn("text-xs font-bold uppercase", isToday ? "text-primary shadow-glow" : "text-gray-500")}>{day}</div>
+      <div className="relative w-16 h-16 md:w-20 md:h-20 flex items-center justify-center group">
+        <svg className="w-full h-full transform -rotate-90 drop-shadow-xl">
           <circle
-            cx="40"
-            cy="40"
+            cx="50%"
+            cy="50%"
             r={radius}
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth="6"
             fill="transparent"
-            className="text-gray-800"
+            className="text-gray-800/50"
           />
-          {/* Progress Circle */}
           <circle
-            cx="40"
-            cy="40"
+            cx="50%"
+            cy="50%"
             r={radius}
             stroke="currentColor"
-            strokeWidth="8"
+            strokeWidth="6"
             fill="transparent"
             strokeDasharray={circumference}
             strokeDashoffset={strokeDashoffset}
             strokeLinecap="round"
-            className={cn("transition-all duration-1000 ease-out", isToday ? "text-primary" : "text-gray-600")}
+            className={cn("transition-all duration-1000 ease-out", isToday ? "text-primary drop-shadow-[0_0_10px_rgba(220,38,38,0.6)]" : "text-gray-400")}
           />
         </svg>
-        <div className="absolute inset-0 flex items-center justify-center font-bold text-sm">
+        <div className="absolute inset-0 flex items-center justify-center font-bold text-xs md:text-sm text-white group-hover:scale-110 transition-transform">
           {Math.round(percentage)}%
         </div>
       </div>
@@ -56,26 +52,28 @@ const ProgressRing = ({ percentage, day, isToday }: { percentage: number, day: s
 };
 
 const BarChart = ({ data }: { data: number[] }) => {
-  const max = Math.max(...data, 1);
+  const max = Math.max(...data, 10);
   return (
-    <div className="h-48 flex items-end justify-between gap-2 w-full">
+    <div className="h-48 flex items-end justify-between gap-1 sm:gap-3 w-full">
       {data.map((val, i) => {
         const height = (val / max) * 100;
+        const isToday = i === new Date().getDay();
         return (
-          <div key={i} className="w-full flex flex-col justify-end gap-1 group relative">
-            {/* Tooltip */}
-            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-              {val} Tasks
+          <div key={i} className="w-full flex flex-col justify-end gap-1 group relative h-full pt-4">
+            <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gray-900 border border-white/10 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold text-white shadow-xl pointer-events-none">
+              {val} XP Earned
             </div>
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: `${height}%` }}
               transition={{ duration: 0.5, delay: i * 0.1 }}
               className={cn(
-                "w-full rounded-t-sm transition-all hover:brightness-110",
-                i === new Date().getDay() ? "bg-primary" : "bg-gray-700/50"
+                "w-full rounded-t-md transition-all group-hover:brightness-125 relative overflow-hidden",
+                isToday ? "bg-gradient-to-t from-primary/20 via-primary/80 to-primary shadow-[0_0_20px_rgba(220,38,38,0.4)]" : "bg-gradient-to-t from-gray-800 to-gray-600"
               )}
-            />
+            >
+              {isToday && <div className="absolute inset-0 bg-white/20 animate-pulse pointer-events-none" />}
+            </motion.div>
           </div>
         );
       })}
@@ -87,10 +85,18 @@ export const AnalyticsView = () => {
   const [loading, setLoading] = useState(true);
   const [weeklyData, setWeeklyData] = useState<number[]>(Array(7).fill(0));
   const [dailyCompletion, setDailyCompletion] = useState<number[]>(Array(7).fill(0));
+
   const [stats, setStats] = useState({
-    productivityScore: 0,
     totalTasks: 0,
-    completedTasks: 0
+    completedTasks: 0,
+    totalHabitReps: 0,
+    currentHighestStreak: 0,
+    level: 1,
+    currentLevelXP: 0,
+    xpForNextLevel: 100,
+    rankName: "Novice",
+    totalXP: 0,
+    completionRate: 0
   });
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -99,7 +105,6 @@ export const AnalyticsView = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch Tasks & Habits to build the "Life OS" view
         const [tasksRes, habitsRes] = await Promise.all([
           fetch("/api/tasks").then(r => r.json()),
           fetch("/api/habits").then(r => r.json())
@@ -109,21 +114,56 @@ export const AnalyticsView = () => {
           const tasks = tasksRes.data;
           const habits = habitsRes.data;
 
-          // 1. Calculate Tasks Completed per Day (Mock logic since tasks don't have 'completedAt' history in simple schema)
-          // In a real app, we'd filter by completion date. 
-          // For this visual demo, we'll generate a realistic curve based on 'createdAt' or random variance for past days
-          // and use real data for Today.
+          const totalTasks = tasks.length;
+          const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
+          const realTodayCompleted = completedTasks; // Simulating today based on overall for demo logic
 
-          const realTodayCompleted = tasks.filter((t: any) => t.status === 'completed').length;
-          const mockWeekData = [3, 5, 8, 4, 6, 2, 4]; // Placeholder history
-          mockWeekData[todayIndex] = realTodayCompleted;
+          let totalHabitReps = 0;
+          let currentHighestStreak = 0;
+
+          habits.forEach((h: any) => {
+            totalHabitReps += h.completedDates?.length || 0;
+            if (h.streak > currentHighestStreak) currentHighestStreak = h.streak;
+          });
+
+          // Gamification XP Logic
+          const totalXP = (completedTasks * 50) + (totalHabitReps * 20);
+
+          let level = 1;
+          let currentLevelXP = totalXP;
+          let xpForNextLevel = 100;
+
+          while (currentLevelXP >= xpForNextLevel) {
+            currentLevelXP -= xpForNextLevel;
+            level++;
+            xpForNextLevel = Math.floor(xpForNextLevel * 1.5);
+          }
+
+          const rankNames = ["Novice", "Apprentice", "Adept", "Expert", "Master", "Grandmaster", "Legend", "Demigod", "Zen Master"];
+          const rankIndex = Math.min(Math.floor((level - 1) / 3), rankNames.length - 1);
+          const rankName = rankNames[rankIndex];
+
+          setStats({
+            totalTasks,
+            completedTasks,
+            totalHabitReps,
+            currentHighestStreak,
+            level,
+            currentLevelXP,
+            xpForNextLevel,
+            rankName,
+            totalXP,
+            completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
+          });
+
+          // Mocking weekly XP variance for visual interest, anchoring today to actual task XP equivalent
+          const mockWeekData = [120, 350, 200, 480, 150, 300, 220];
+          mockWeekData[todayIndex] = (realTodayCompleted * 50); // Today's rough task XP equivalent
           setWeeklyData(mockWeekData);
 
-          // 2. Calculate Daily Habit Completion %
-          // We check habits.completedDates for each day of the current week
           const today = new Date();
           const startOfWeek = new Date(today);
-          startOfWeek.setDate(today.getDate() - today.getDay()); // Sunday
+          startOfWeek.setDate(today.getDate() - today.getDay());
 
           const weekCompletion = days.map((_, i) => {
             const d = new Date(startOfWeek);
@@ -142,15 +182,6 @@ export const AnalyticsView = () => {
             return (done / possible) * 100;
           });
           setDailyCompletion(weekCompletion);
-
-          // 3. Overall Stats
-          const total = tasks.length;
-          const completed = tasks.filter((t: any) => t.status === 'completed').length;
-          setStats({
-            totalTasks: total,
-            completedTasks: completed,
-            productivityScore: Math.round((completed / (total || 1)) * 100)
-          });
         }
       } finally {
         setLoading(false);
@@ -159,88 +190,190 @@ export const AnalyticsView = () => {
     fetchData();
   }, []);
 
-  if (loading) return <Loading text="Crunching numbers..." />;
+  if (loading) return <Loading text="Loading your stats..." />;
+
+  const xpProgressPct = Math.min(100, (stats.currentLevelXP / stats.xpForNextLevel) * 100);
+
+  const badges = [
+    { name: "First Blood", desc: "Complete 1 Task", icon: <Sword size={24} />, unlocked: stats.completedTasks >= 1 },
+    { name: "Task Master", desc: "Complete 50 Tasks", icon: <Target size={24} />, unlocked: stats.completedTasks >= 50 },
+    { name: "Heating Up", desc: "3 Day Streak", icon: <Flame size={24} />, unlocked: stats.currentHighestStreak >= 3 },
+    { name: "Unbreakable", desc: "21 Day Streak", icon: <Shield size={24} />, unlocked: stats.currentHighestStreak >= 21 },
+    { name: "Habitual", desc: "100 Habit Reps", icon: <Zap size={24} />, unlocked: stats.totalHabitReps >= 100 },
+    { name: "Zen Achiever", desc: "Reach Level 10", icon: <Crown size={24} />, unlocked: stats.level >= 10 },
+  ];
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-in fade-in duration-500">
+    <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
 
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="card-glass p-6 flex items-center gap-4 hover:scale-105 hover:bg-surface/80 cursor-default">
-          <div className="p-4 bg-green-500/10 rounded-xl text-green-500">
-            <Activity size={32} />
+      {/* --- HERO: Player Profile --- */}
+      <div className="relative rounded-3xl overflow-hidden bg-gradient-to-br from-surface/80 to-surface border border-white/10 shadow-2xl">
+        {/* Animated Background Gradients */}
+        <div className="absolute top-0 right-0 w-full h-full bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-primary/20 via-transparent to-transparent opacity-70 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 w-full h-full bg-[radial-gradient(circle_at_bottom_left,_var(--tw-gradient-stops))] from-blue-500/10 via-transparent to-transparent opacity-70 pointer-events-none" />
+
+        <div className="relative z-10 p-8 lg:p-12 flex flex-col lg:flex-row gap-10 items-center lg:items-center">
+
+          {/* Level Badge */}
+          <div className="relative flex-shrink-0 group">
+            {/* Glowing Aura rings */}
+            <div className="absolute inset-0 bg-primary/30 rounded-full blur-[40px] group-hover:bg-primary/50 transition-all duration-700 pointer-events-none" />
+            <div className="relative w-40 h-40 md:w-48 md:h-48 rounded-full p-[2px] bg-gradient-to-br from-primary via-orange-500 to-purple-600 shadow-[0_0_50px_rgba(220,38,38,0.4)] flex items-center justify-center">
+              <div className="flex flex-col items-center justify-center bg-black w-full h-full rounded-full border-[6px] border-black relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-t from-primary/20 to-transparent opacity-50" />
+                <span className="text-gray-400 text-[10px] uppercase font-black tracking-[0.2em] mb-1 z-10">Level</span>
+                <span className="text-6xl md:text-7xl font-black text-transparent bg-clip-text bg-gradient-to-b from-white via-white to-gray-500 drop-shadow-2xl leading-none z-10">
+                  {stats.level}
+                </span>
+
+                {/* Subtle overlay */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-30 transition-opacity duration-1000 z-0 bg-gradient-to-b from-transparent to-primary/20" />
+              </div>
+
+              {/* Rank Icon Indicator */}
+              <div className="absolute -bottom-4 bg-black border border-white/10 rounded-full px-6 py-2 text-sm font-bold text-white shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex items-center gap-2 group-hover:scale-105 transition-transform duration-300">
+                <Award className="text-primary flex-shrink-0" size={16} />
+                <span className="bg-gradient-to-r from-primary to-orange-400 bg-clip-text text-transparent whitespace-nowrap">{stats.rankName}</span>
+              </div>
+            </div>
           </div>
-          <div>
-            <div className="text-3xl font-bold">{stats.productivityScore}%</div>
-            <div className="text-sm text-gray-500 uppercase font-bold">Overall Productivity</div>
-          </div>
-        </div>
-        <div className="card-glass p-6 flex items-center gap-4 hover:scale-105 hover:bg-surface/80 cursor-default">
-          <div className="p-4 bg-blue-500/10 rounded-xl text-blue-500">
-            <CheckCircle size={32} />
-          </div>
-          <div>
-            <div className="text-3xl font-bold">{stats.completedTasks} / {stats.totalTasks}</div>
-            <div className="text-sm text-gray-500 uppercase font-bold">Tasks Crushed</div>
-          </div>
-        </div>
-        <div className="card-glass p-6 flex items-center gap-4 hover:scale-105 hover:bg-surface/80 cursor-default">
-          <div className="p-4 bg-purple-500/10 rounded-xl text-purple-500">
-            <TrendingUp size={32} />
-          </div>
-          <div>
-            <div className="text-3xl font-bold">+39%</div>
-            <div className="text-sm text-gray-500 uppercase font-bold">vs Last Week</div>
+
+          {/* XP and Core Stats */}
+          <div className="flex-1 w-full space-y-8">
+            <div className="text-center lg:text-left space-y-2">
+              <h1 className="text-4xl md:text-5xl font-black text-white tracking-tight">Your Journey</h1>
+              <p className="text-gray-400 text-lg">Total Legend points: <span className="text-primary font-bold">{stats.totalXP} XP</span>.</p>
+            </div>
+
+            {/* XP Bar Component */}
+            <div className="bg-black/40 border border-white/5 rounded-2xl p-6 backdrop-blur-md shadow-inner">
+              <div className="flex justify-between items-end mb-3">
+                <div>
+                  <div className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-1">Current Progress</div>
+                  <div className="text-xl font-bold text-white">{stats.currentLevelXP} <span className="text-gray-500 text-sm">/ {stats.xpForNextLevel} XP</span></div>
+                </div>
+                <div className="text-sm font-bold text-primary">Level {stats.level + 1} Unlocks</div>
+              </div>
+
+              <div className="w-full bg-gray-900 border border-black rounded-full h-5 relative overflow-hidden shadow-inner flex items-center">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${xpProgressPct}%` }}
+                  transition={{ duration: 1.5, ease: "easeOut" }}
+                  className="absolute top-0 left-0 h-full bg-gradient-to-r from-orange-500 via-primary to-red-600 rounded-full shadow-[0_0_20px_rgba(220,38,38,0.8)] relative overflow-hidden"
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.15)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.15)_50%,rgba(255,255,255,0.15)_75%,transparent_75%,transparent_100%)] bg-[length:20px_20px] animate-[shine_1s_linear_infinite]" />
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Quick Info Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div className="bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl p-4 flex flex-col justify-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/10 blur-2xl rounded-full pointer-events-none group-hover:bg-blue-500/20 transition-all" />
+                <Target className="text-blue-400 mb-2" size={24} />
+                <div className="text-2xl font-black text-white">{stats.completedTasks}</div>
+                <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mt-1">Quests Done</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl p-4 flex flex-col justify-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/10 blur-2xl rounded-full pointer-events-none group-hover:bg-purple-500/20 transition-all" />
+                <Zap className="text-purple-400 mb-2" size={24} />
+                <div className="text-2xl font-black text-white">{stats.totalHabitReps}</div>
+                <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mt-1">Habit Reps</div>
+              </div>
+              <div className="bg-white/5 border border-white/10 hover:bg-white/10 transition-colors rounded-xl p-4 flex flex-col justify-center relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-24 h-24 bg-orange-500/10 blur-2xl rounded-full pointer-events-none group-hover:bg-orange-500/20 transition-all" />
+                <Flame className="text-orange-500 mb-2" size={24} />
+                <div className="text-2xl font-black text-white">{stats.currentHighestStreak} <span className="text-sm font-medium text-gray-500">Days</span></div>
+                <div className="text-xs text-gray-400 uppercase font-bold tracking-wider mt-1">Best Streak</div>
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* Main Analytics Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* Left: Overall Progress (Bar Chart) */}
-        <div className="card-glass p-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Left: Weekly Output (Task XP) */}
+        <div className="card-glass p-6 md:p-8 flex flex-col h-[400px]">
           <div className="flex justify-between items-center mb-8">
-            <h3 className="text-lg font-bold text-gray-200">Weekly Output</h3>
-            <select className="bg-background border border-border text-xs rounded-lg px-2 py-1 outline-none">
-              <option>This Week</option>
-              <option>Last Week</option>
-            </select>
+            <div>
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Activity size={18} className="text-primary" /> Event Log
+              </h3>
+              <p className="text-xs text-gray-500 mt-1">XP earned over the last 7 days</p>
+            </div>
           </div>
-          <BarChart data={weeklyData} />
+          <div className="flex-1 flex items-end">
+            <BarChart data={weeklyData} />
+          </div>
           <div className="flex justify-between mt-4 text-gray-500 text-xs font-mono uppercase">
             {days.map((d, i) => (
-              <div key={i} className="w-full text-center">{d}</div>
+              <div key={i} className={cn("w-full text-center", i === todayIndex ? "text-primary font-bold" : "")}>{d}</div>
             ))}
           </div>
         </div>
 
-        {/* Right: Daily Consistency (Rings) */}
-        <div className="card-glass p-8">
-          <h3 className="text-lg font-bold text-gray-200 mb-8">Daily Consistency</h3>
-          <div className="grid grid-cols-4 gap-y-6">
-            {days.map((d, i) => (
-              <ProgressRing
-                key={d}
-                day={d}
-                percentage={dailyCompletion[i]}
-                isToday={i === todayIndex}
-              />
-            ))}
+        {/* Right: Daily Habit Consistency (Rings) */}
+        <div className="card-glass p-6 md:p-8 flex flex-col h-[400px]">
+          <div>
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Calendar size={18} className="text-blue-400" /> Consistency Tracker
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">Habit completion rate this week</p>
+          </div>
+
+          <div className="flex-1 flex items-center justify-center">
+            <div className="grid grid-cols-4 gap-y-8 gap-x-2 w-full place-items-center">
+              {days.map((d, i) => (
+                <ProgressRing
+                  key={d}
+                  day={d}
+                  percentage={dailyCompletion[i]}
+                  isToday={i === todayIndex}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Bottom Banner */}
-      <div className="card-glass bg-gradient-to-r from-primary/20 to-purple-500/20 border-primary/20 p-6 flex justify-between items-center shadow-[0_0_30px_rgba(var(--primary),0.2)]">
-        <div>
-          <h3 className="text-xl font-bold text-white mb-1">Mindset Stack</h3>
-          <p className="text-gray-400 text-sm">"Gamification makes the hard work addictive."</p>
+      {/* --- BADGE SHOWCASE --- */}
+      <div className="card-glass p-6 md:p-8">
+        <div className="mb-6">
+          <h3 className="text-lg font-bold text-white flex items-center gap-2">
+            <Trophy size={18} className="text-yellow-500" /> Achievements
+          </h3>
+          <p className="text-xs text-gray-500 mt-1">Unlock badges by dominating your habits and tasks.</p>
         </div>
-        <button className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl font-bold transition-all active:scale-95">
-          Level Up 🚀
-        </button>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+          {badges.map((badge, i) => (
+            <div key={i} className={cn(
+              "relative flex flex-col items-center p-4 rounded-2xl border transition-all duration-300 group hover:scale-105",
+              badge.unlocked
+                ? "bg-gradient-to-b from-white/10 to-transparent border-white/20 shadow-[0_4px_20px_rgba(0,0,0,0.5)]"
+                : "bg-black/20 border-white/5 opacity-60 grayscale hover:grayscale-0"
+            )}>
+              <div className={cn(
+                "w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors",
+                badge.unlocked ? "bg-white/10 text-white shadow-[0_0_15px_rgba(255,255,255,0.2)]" : "bg-black/40 text-gray-500"
+              )}>
+                {badge.unlocked ? badge.icon : <Lock size={20} />}
+              </div>
+              <div className="text-sm font-bold text-white text-center mb-1">{badge.name}</div>
+              <div className="text-[10px] text-gray-400 text-center leading-tight">{badge.desc}</div>
+            </div>
+          ))}
+        </div>
       </div>
+
+      <style jsx global>{`
+        @keyframes shine {
+          0% { background-position: 0 0; }
+          100% { background-position: 40px 0; }
+        }
+      `}</style>
 
     </div>
   );
