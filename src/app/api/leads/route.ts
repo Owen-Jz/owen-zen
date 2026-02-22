@@ -3,8 +3,6 @@ import Lead from "@/models/Lead";
 import { NextResponse } from "next/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function GET() {
   await dbConnect();
   try {
@@ -18,6 +16,7 @@ export async function GET() {
 export async function POST(req: Request) {
   await dbConnect();
   try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
     const body = await req.json();
     const { name, email, source, message } = body;
 
