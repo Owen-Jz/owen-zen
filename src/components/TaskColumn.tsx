@@ -32,7 +32,9 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onStopTimer?: (id: string, note?: string) => void;
   onFocus?: (task: Task) => void;
   style?: React.CSSProperties;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   listeners?: any;
   isDragging?: boolean;
   isOverlay?: boolean;
@@ -109,33 +111,40 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   const totalTime = (task.totalTimeSpent || 0) + (task.activeTimer?.isActive ? elapsedTime : 0);
 
   return (
-    <div
+    <motion.div
       ref={ref}
       style={style}
+      layout
+      initial={task.isTemp ? { opacity: 0, y: -20, scale: 0.95 } : false}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={task.isTemp ? undefined : { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
+      transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        "group bg-surface hover:bg-surface-hover border border-border rounded-xl transition-all mb-3 relative",
-        task.activeTimer?.isActive && "ring-2 ring-primary/50",
-        isOverlay && "shadow-2xl scale-105 rotate-1 cursor-grabbing ring-2 ring-primary z-50 bg-surface-hover",
+        "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1 overflow-hidden",
+        task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary),0.2)]",
+        isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
         menuOpen && "z-40",
-        isDragging && !isOverlay && "opacity-30 grayscale"
+        isDragging && !isOverlay && "opacity-40 grayscale scale-95"
       )}
     >
-      {/* Priority Bar */}
+      {/* Sleek Priority Indicator on the left */}
       <div className={cn(
-        "h-1 w-full rounded-t-xl",
-        task.priority === "high" ? "bg-red-500" : task.priority === "medium" ? "bg-yellow-500" : "bg-blue-500"
+        "absolute left-0 top-0 bottom-0 w-1 opacity-80 transition-all group-hover:w-1.5",
+        task.priority === "high" ? "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]" :
+          task.priority === "medium" ? "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" :
+            "bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]"
       )} />
 
-      <div className="p-4">
+      <div className="p-5 pl-6">
         {/* Header Row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-2 flex-1 min-w-0">
             {/* Drag Handle - Only functional if listeners provided */}
-            <button {...attributes} {...listeners} className={cn("p-1 text-gray-500 hover:text-white shrink-0 mt-1", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")}>
-              <GripVertical size={14} />
+            <button {...attributes} {...listeners} className={cn("p-1.5 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")}>
+              <GripVertical size={16} />
             </button>
             <h4 className={cn(
-              "text-base font-semibold leading-snug break-words flex-1",
+              "text-base font-semibold leading-tight break-words flex-1 mt-1 text-gray-100",
               task.status === "completed" && "text-gray-500 line-through"
             )}>
               {task.title}
@@ -216,22 +225,22 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
         {/* Subtasks Section */}
         {task.subtasks && task.subtasks.length > 0 && (
-          <div className="mb-3 space-y-2">
+          <div className="mb-4 space-y-2.5">
             {/* Progress Bar */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 h-1.5 bg-surface-hover rounded-full overflow-hidden">
+            <div className="flex items-center gap-3">
+              <div className="flex-1 h-1 bg-surface-hover rounded-full overflow-hidden relative">
                 <div
-                  className="h-full bg-primary transition-all duration-300"
+                  className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
                   style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
                 />
               </div>
-              <span className="text-xs text-gray-500 font-mono tabular-nums">
+              <span className="text-[10px] text-gray-500 font-mono font-bold tracking-wider tabular-nums">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
               </span>
             </div>
 
             {/* Subtask List (collapsed by default, first 2 visible) */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               {task.subtasks.slice(0, 2).map((st, i) => (
                 <div
                   key={i}
@@ -239,17 +248,17 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     e.stopPropagation();
                     if (onToggleSubtask) onToggleSubtask(task._id, i);
                   }}
-                  className="flex items-start gap-2 cursor-pointer hover:bg-white/5 p-1.5 rounded transition-colors"
+                  className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors group/sub"
                 >
                   <div className={cn(
-                    "w-3.5 h-3.5 mt-0.5 rounded border flex items-center justify-center transition-all shrink-0",
-                    st.completed ? "bg-primary border-primary" : "border-gray-600 hover:border-primary"
+                    "w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0",
+                    st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
                   )}>
                     {st.completed && <Check size={10} className="text-white" />}
                   </div>
                   <span className={cn(
-                    "text-xs leading-tight",
-                    st.completed ? "text-gray-600 line-through" : "text-gray-400"
+                    "text-xs leading-relaxed font-medium transition-colors",
+                    st.completed ? "text-gray-500 line-through" : "text-gray-300"
                   )}>
                     {st.title}
                   </span>
@@ -258,7 +267,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
               {task.subtasks.length > 2 && (
                 <button
                   onClick={() => onEdit && onEdit(task)}
-                  className="text-xs text-gray-500 hover:text-primary ml-5 transition-colors"
+                  className="text-[10px] text-gray-500 font-bold uppercase hover:text-primary ml-6 mt-1 transition-colors tracking-wide"
                 >
                   +{task.subtasks.length - 2} more
                 </button>
@@ -268,25 +277,25 @@ export const TaskCard = forwardRef<HTMLDivElement, {
         )}
 
         {/* Footer Row - Stats */}
-        <div className="flex items-center justify-between pt-2 border-t border-border/50">
+        <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/5">
           {/* Left side: Date + Time */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             {/* Creation Date */}
             {task.createdAt && (
-              <div className="flex items-center gap-1 text-[10px] text-gray-600">
-                <CalendarDays size={10} />
+              <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium">
+                <CalendarDays size={12} className="opacity-70" />
                 <span>{formatDate(task.createdAt)}</span>
               </div>
             )}
             {/* Due Date */}
             {task.dueDate && (
               <div className={cn(
-                "flex items-center gap-1 text-[10px] font-medium border px-1.5 py-0.5 rounded",
+                "flex items-center gap-1.5 text-[10px] font-bold border px-2 py-1 rounded-md transition-colors",
                 new Date().toISOString().split('T')[0] > new Date(task.dueDate).toISOString().split('T')[0] && task.status !== "completed"
-                  ? "text-red-400 border-red-500/30 bg-red-500/10"
-                  : "text-gray-400 border-gray-700"
+                  ? "text-red-400 border-red-500/20 bg-red-500/10 shadow-[0_0_10px_rgba(239,68,68,0.1)]"
+                  : "text-gray-400 border-white/10 bg-black/20"
               )}>
-                <CalendarDays size={10} />
+                <CalendarDays size={12} />
                 <span>
                   {new Date(task.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}
                   {new Date().toISOString().split('T')[0] > new Date(task.dueDate).toISOString().split('T')[0] && task.status !== "completed" && " (Overdue)"}
@@ -295,9 +304,9 @@ export const TaskCard = forwardRef<HTMLDivElement, {
             )}
             {/* Time Stat */}
             {totalTime > 0 && (
-              <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                <Clock size={12} />
-                <span className="font-mono">{formatTime(totalTime)}</span>
+              <div className="flex items-center gap-1.5 text-[11px] font-mono text-gray-400 font-bold bg-white/5 px-2 py-1 rounded-md">
+                <Clock size={12} className="text-primary opacity-80" />
+                <span>{formatTime(totalTime)}</span>
               </div>
             )}
           </div>
@@ -321,7 +330,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     e.stopPropagation();
                     if (onStartTimer) onStartTimer(task._id);
                   }}
-                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-primary/20 text-primary rounded-lg hover:bg-primary/30 transition-all text-xs font-medium ml-auto opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all text-xs font-bold ml-auto opacity-0 group-hover:opacity-100 shadow-[0_0_10px_rgba(var(--primary),0.1)]"
                 >
                   <Play size={12} /> Start
                 </button>
@@ -330,7 +339,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
           )}
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 });
 
@@ -398,7 +407,20 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus }: any) => {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus }: {
+  id: string,
+  title: string,
+  tasks: Task[],
+  onDelete: (id: string) => void,
+  onUpdateStatus: (id: string, status: TaskStatus) => void,
+  onEdit: (task: Task) => void,
+  onArchive: (id: string) => void,
+  onToggleSubtask: (taskId: string, index: number) => void,
+  onUpdatePriority: (id: string, priority: TaskPriority) => void,
+  onStartTimer: (id: string, sessionTitle?: string) => void,
+  onStopTimer: (id: string, note?: string) => void,
+  onFocus: (task: Task) => void
+}) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
   });
@@ -407,36 +429,44 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-surface/30 p-4 rounded-xl border border-border min-h-[500px] flex flex-col transition-all duration-200",
-        isOver && "bg-surface-hover/50 border-primary/50 shadow-lg ring-1 ring-primary/20 scale-[1.01]"
+        "bg-black/20 backdrop-blur-sm p-4 md:p-5 rounded-3xl border border-white/5 min-h-[600px] flex flex-col transition-all duration-500",
+        isOver && "bg-white/5 border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.1)] scale-[1.02]"
       )}
     >
-      <h3 className="text-sm font-bold text-gray-400 mb-4 uppercase tracking-wider flex justify-between">
-        {title}
-        <span className="bg-white/10 px-2 py-0.5 rounded-full text-xs text-white">
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
+        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+          {id === "pending" && <Circle size={14} className="text-gray-500" />}
+          {id === "in-progress" && <Clock size={14} className="text-primary" />}
+          {id === "completed" && <Check size={14} className="text-green-500" />}
+          {id === "pinned" && <Pin size={14} className="text-purple-500" />}
+          {title}
+        </h3>
+        <span className="bg-surface/80 py-0.5 px-2.5 rounded-full text-[10px] font-mono font-bold text-gray-300 border border-white/10 shadow-inner">
           {tasks.length}
         </span>
-      </h3>
+      </div>
       <SortableContext
-        items={tasks.map((t: any) => t._id)}
+        items={tasks.map((t: Task) => t._id)}
         strategy={verticalListSortingStrategy}
       >
-        <div className="space-y-3 flex-1">
-          {tasks.map((task: any) => (
-            <SortableTaskItem
-              key={task._id}
-              task={task}
-              onDelete={onDelete}
-              onUpdateStatus={onUpdateStatus}
-              onEdit={onEdit}
-              onArchive={onArchive}
-              onToggleSubtask={onToggleSubtask}
-              onUpdatePriority={onUpdatePriority}
-              onStartTimer={onStartTimer}
-              onStopTimer={onStopTimer}
-              onFocus={onFocus}
-            />
-          ))}
+        <div className="space-y-4 flex-1">
+          <AnimatePresence>
+            {tasks.map((task: Task) => (
+              <SortableTaskItem
+                key={task._id}
+                task={task}
+                onDelete={onDelete}
+                onUpdateStatus={onUpdateStatus}
+                onEdit={onEdit}
+                onArchive={onArchive}
+                onToggleSubtask={onToggleSubtask}
+                onUpdatePriority={onUpdatePriority}
+                onStartTimer={onStartTimer}
+                onStopTimer={onStopTimer}
+                onFocus={onFocus}
+              />
+            ))}
+          </AnimatePresence>
           {/* Invisible spacer */}
           <div className="h-10 w-full" />
         </div>

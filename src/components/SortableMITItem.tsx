@@ -37,13 +37,16 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group flex items-center justify-between p-4 bg-surface/40 backdrop-blur-md rounded-xl border border-white/5 shadow-sm transition-all hover:bg-surface/80 hover:shadow-lg hover:border-primary/20",
-        isDragging && "opacity-80 ring-2 ring-primary z-50 scale-105 shadow-2xl bg-surface"
+        "group flex items-center justify-between p-4 bg-black/40 backdrop-blur-md rounded-2xl border border-white/5 shadow-sm transition-all duration-300 hover:bg-surface/60 hover:shadow-lg hover:-translate-y-0.5 relative overflow-hidden",
+        isDragging && "opacity-80 ring-2 ring-primary z-50 scale-105 shadow-2xl bg-surface/90"
       )}
     >
-      <div className="flex items-center gap-4 flex-1 min-w-0">
+      {/* Decorative side accent */}
+      <div className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-red-600 to-red-900 opacity-50 group-hover:opacity-100 transition-opacity" />
+
+      <div className="flex items-center gap-4 flex-1 min-w-0 pl-3">
         {/* Drag Handle */}
-        <button {...attributes} {...listeners} className="text-gray-600 hover:text-gray-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity">
+        <button {...attributes} {...listeners} className="text-gray-600 hover:text-white cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-white/5 rounded-md">
           <GripVertical size={16} />
         </button>
 
@@ -57,7 +60,7 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
         </button>
 
         {/* Task Title */}
-        <span className="font-medium text-base text-gray-200 truncate group-hover:text-white transition-colors">
+        <span className="font-bold text-base text-gray-300 tracking-wide truncate group-hover:text-white transition-colors">
           {task.title}
         </span>
       </div>

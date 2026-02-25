@@ -165,6 +165,34 @@ export const HabitView = () => {
         await fetch(`/api/habits/${id}`, { method: "DELETE" });
     };
 
+    const markAllCompletedToday = async () => {
+        const targetDate = new Date();
+        const targetDayStr = toLocalString(targetDate);
+
+        // Optimistic UI update
+        const toUpdateIds: string[] = [];
+        setHabits(habits.map(h => {
+            const hasDone = h.completedDates.some(d => toLocalString(new Date(d)) === targetDayStr);
+            if (!hasDone) {
+                toUpdateIds.push(h._id);
+                return { ...h, completedDates: [...h.completedDates, targetDate.toISOString()] };
+            }
+            return h;
+        }));
+
+        // Fire off parallel updates
+        if (toUpdateIds.length > 0) {
+            await Promise.all(toUpdateIds.map(id =>
+                fetch(`/api/habits/${id}`, {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ action: "toggle", date: targetDate.toISOString() }),
+                })
+            ));
+            fetchHabits();
+        }
+    };
+
     const isCompleted = (h: Habit, date: Date) => {
         // Compare by YYYY-MM-DD
         const targetStr = toLocalString(new Date(date));
@@ -357,22 +385,43 @@ export const HabitView = () => {
             {/* --- Main List --- */}
             <div className="bg-surface/20 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
                 {/* Header */}
-                <div className="p-6 border-b border-white/5 flex items-center justify-between bg-black/20">
-                    <div className="flex items-center gap-3">
-                        <Target className="text-primary" size={24} />
-                        <h2 className="text-xl font-bold text-white">Daily Non-Negotiables</h2>
+                <div className="p-4 md:p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between bg-black/20 gap-4">
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <Target className="text-primary shrink-0" size={24} />
+                        <h2 className="text-xl font-bold text-white whitespace-nowrap">Daily Non-Negotiables</h2>
+                        {totalHabits > 0 && completedToday === totalHabits && (
+                            <motion.div
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                                className="ml-2 flex items-center gap-1.5 px-2 py-0.5 bg-yellow-500/20 border border-yellow-500/50 rounded-md text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)] shrink-0"
+                            >
+                                <Trophy size={14} />
+                                <span className="text-[10px] font-bold uppercase tracking-widest hidden sm:inline">Perfect Day</span>
+                            </motion.div>
+                        )}
                     </div>
 
-                    {/* Week Days Header (Desktop) */}
-                    <div className="hidden md:flex gap-1 ml-auto mr-12">
-                        {weekDays.map((d, i) => {
-                            const isToday = toLocalString(d) === toLocalString(new Date());
-                            return (
-                                <div key={i} className={cn("w-6 text-center text-[10px] font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-600")}>
-                                    {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
-                                </div>
-                            );
-                        })}
+                    <div className="flex items-center gap-4 w-full md:w-auto overflow-x-auto pb-2 md:pb-0 scrollbar-hide">
+                        {totalHabits > 0 && completedToday < totalHabits && (
+                            <button
+                                onClick={markAllCompletedToday}
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-bold uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(var(--primary),0.2)]"
+                                title="Fast Track: Complete entirely"
+                            >
+                                <Zap size={14} /> Fast Track
+                            </button>
+                        )}
+                        {/* Week Days Header (Desktop) */}
+                        <div className="hidden md:flex gap-1 ml-auto">
+                            {weekDays.map((d, i) => {
+                                const isToday = toLocalString(d) === toLocalString(new Date());
+                                return (
+                                    <div key={i} className={cn("w-6 text-center text-[10px] font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-600")}>
+                                        {d.toLocaleDateString('en-US', { weekday: 'narrow' })}
+                                    </div>
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
