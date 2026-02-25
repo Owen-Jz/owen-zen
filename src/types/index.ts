@@ -43,4 +43,5 @@ export interface Task {
     scheduledDate?: string; // ISO string 
     dueDate?: string;      // ISO string
     googleEventId?: string;
+    isTemp?: boolean;
 }

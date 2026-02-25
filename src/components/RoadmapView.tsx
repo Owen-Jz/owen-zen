@@ -54,11 +54,29 @@ const GoalItem = ({
     }
   };
 
+  // Compute recursive progress
+  const getProgress = (g: Goal): { total: number, completed: number } => {
+    if (!g.children || g.children.length === 0) {
+      return { total: 1, completed: g.status === 'achieved' ? 1 : 0 };
+    }
+    let total = 0;
+    let completed = 0;
+    g.children.forEach(child => {
+      const childProgress = getProgress(child);
+      total += childProgress.total;
+      completed += childProgress.completed;
+    });
+    return { total, completed };
+  };
+
+  const progress = hasChildren ? getProgress(goal) : null;
+  const progressPercent = progress ? Math.round((progress.completed / progress.total) * 100) : 0;
+
   return (
-    <div className="group animate-in fade-in slide-in-from-left-2 duration-300 mb-2">
+    <div className="group animate-in fade-in slide-in-from-left-2 duration-300 mb-3">
       <div className={cn(
-        "flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-white/5 transition-colors group/item border border-transparent hover:border-white/10",
-        goal.status === 'achieved' && "opacity-60"
+        "flex items-center gap-3 py-3 px-4 rounded-xl hover:bg-white/5 transition-colors group/item border border-white/5 hover:border-white/10 shadow-sm bg-black/20 backdrop-blur-sm",
+        goal.status === 'achieved' && "opacity-60 bg-black/10"
       )}>
         {/* Expand Toggle */}
         <button
@@ -95,14 +113,27 @@ const GoalItem = ({
               className="w-full bg-transparent border-b border-primary outline-none py-0.5 text-base font-medium"
             />
           ) : (
-            <div
-              onClick={() => setIsEditing(true)}
-              className={cn(
-                "py-0.5 text-base font-medium cursor-text break-words select-none",
-                goal.status === 'achieved' && "line-through text-gray-500"
+            <div className="flex flex-col">
+              <div
+                onClick={() => setIsEditing(true)}
+                className={cn(
+                  "py-0.5 text-base font-bold cursor-text break-words select-none tracking-wide text-gray-200",
+                  goal.status === 'achieved' && "line-through text-gray-500"
+                )}
+              >
+                {goal.title}
+              </div>
+              {hasChildren && progress && (
+                <div className="flex items-center gap-3 mt-1.5 opacity-80">
+                  <div className="h-1 w-24 bg-white/10 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(var(--primary),0.8)]"
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                  <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest">{progressPercent}%</span>
+                </div>
               )}
-            >
-              {goal.title}
             </div>
           )}
         </div>
