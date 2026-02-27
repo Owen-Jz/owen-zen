@@ -1,59 +1,38 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft } from "lucide-react";
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { X, Check, Plus, Trash2, Calendar, Layout, AlertCircle, Circle, AlignLeft, CheckCircle2 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { TimeTracker } from "./TimeTracker";
-import { Task, TaskPriority, SubTask, Board, TaskStatus } from "@/types";
+import { TaskPriority, SubTask, Board } from "@/types";
 import { DatePicker } from "./DatePicker";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
 
-interface EditTaskModalProps {
-    task: Task | null;
+interface AddTaskModalProps {
+    initialTitle?: string;
     boards: Board[];
+    defaultBoardId: string | null;
     onClose: () => void;
-    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string) => void;
-    onStartTimer: (id: string, sessionTitle?: string) => void;
-    onStopTimer: (id: string, note?: string) => void;
-    onPauseTimer?: (id: string) => void;
-    onResumeTimer?: (id: string) => void;
-    onDeleteTimeLog: (id: string, logIndex: number) => void;
-    onAddManualTimeLog: (id: string, duration: number, note: string) => void;
-    onToggleMIT: (id: string, isMIT: boolean) => void;
-    onMoveToBoard: (taskId: string, boardId: string | null) => void;
-    onArchive: (id: string) => void;
-    onDelete: (id: string) => void;
+    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean) => void;
 }
 
-export const EditTaskModal = ({
-    task,
+export const AddTaskModal = ({
+    initialTitle = "",
     boards = [],
+    defaultBoardId,
     onClose,
     onSave,
-    onStartTimer,
-    onStopTimer,
-    onPauseTimer,
-    onResumeTimer,
-    onDeleteTimeLog,
-    onAddManualTimeLog,
-    onToggleMIT,
-    onMoveToBoard,
-    onArchive,
-    onDelete
-}: EditTaskModalProps) => {
-    const [title, setTitle] = useState(task?.title || "");
-    const [description, setDescription] = useState(task?.description || "");
-    const [priority, setPriority] = useState<TaskPriority>(task?.priority || "medium");
-    const [subtasks, setSubtasks] = useState<SubTask[]>(task?.subtasks || []);
-    const [dueDate, setDueDate] = useState<string>(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
+}: AddTaskModalProps) => {
+    const [title, setTitle] = useState(initialTitle);
+    const [description, setDescription] = useState("");
+    const [priority, setPriority] = useState<TaskPriority>("medium");
+    const [subtasks, setSubtasks] = useState<SubTask[]>([]);
+    const [dueDate, setDueDate] = useState<string>("");
     const [newSubtask, setNewSubtask] = useState("");
-    const [isMIT, setIsMIT] = useState(task?.isMIT || false);
-    const [boardId, setBoardId] = useState<string | null>(task?.boardId || null);
-
-    if (!task) return null;
+    const [isMIT, setIsMIT] = useState(false);
+    const [boardId, setBoardId] = useState<string | null>(defaultBoardId);
 
     const addSubtask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -73,15 +52,8 @@ export const EditTaskModal = ({
     };
 
     const handleSave = () => {
-        onSave(task._id, title, description, priority, subtasks, dueDate || undefined);
-        // Also save board move if changed (separate API call usually, but handled here via callback)
-        if (boardId !== task.boardId) {
-            onMoveToBoard(task._id, boardId);
-        }
-        // Also save MIT status if changed
-        if (isMIT !== task.isMIT) {
-            onToggleMIT(task._id, isMIT);
-        }
+        if (!title.trim()) return;
+        onSave(title, description, priority, subtasks, dueDate || undefined, boardId, isMIT);
         onClose();
     };
 
@@ -106,29 +78,19 @@ export const EditTaskModal = ({
                 <div className="flex items-start justify-between p-6 border-b border-white/5 bg-white/5">
                     <div className="flex-1 mr-8">
                         <input
+                            autoFocus
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
-                            placeholder="Task Title"
+                            placeholder="Task Title (Required)"
                             className="w-full bg-transparent text-2xl font-bold text-white placeholder-gray-500 outline-none border-none p-0 focus:ring-0"
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleSave();
+                                }
+                            }}
                         />
-                        <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
-                            <div className="flex items-center gap-1">
-                                <Calendar size={12} />
-                                <span>Created {new Date(task.createdAt).toLocaleDateString()}</span>
-                            </div>
-                            {task.status && (
-                                <div className={cn(
-                                    "px-2 py-0.5 rounded-full uppercase font-bold tracking-wider text-[10px]",
-                                    task.status === "completed" ? "bg-green-500/20 text-green-500" :
-                                        task.status === "in-progress" ? "bg-blue-500/20 text-blue-500" :
-                                            task.status === "pinned" ? "bg-purple-500/20 text-purple-500" :
-                                                "bg-gray-500/20 text-gray-400"
-                                )}>
-                                    {task.status.replace("-", " ")}
-                                </div>
-                            )}
-                        </div>
                     </div>
                     <button
                         onClick={onClose}
@@ -140,10 +102,8 @@ export const EditTaskModal = ({
 
                 {/* Body - 2 Columns */}
                 <div className="flex-1 overflow-y-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
-
                     {/* Main Content (Left) */}
                     <div className="lg:col-span-2 space-y-8">
-
                         {/* Description Section */}
                         <div className="bg-black/20 rounded-xl p-4 border border-white/5 transition-colors hover:bg-black/30 group">
                             <div className="flex items-center gap-2 mb-3 text-sm font-bold text-gray-400 uppercase tracking-wider group-focus-within:text-primary transition-colors">
@@ -154,25 +114,6 @@ export const EditTaskModal = ({
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Add more details to this task..."
                                 className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[100px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
-                            />
-                        </div>
-
-                        {/* Time Tracking Section */}
-                        <div className="bg-black/20 rounded-xl p-4 border border-white/5">
-                            <div className="flex items-center gap-2 mb-4 text-sm font-bold text-gray-400 uppercase tracking-wider">
-                                <Clock size={14} /> Time Tracking
-                            </div>
-                            <TimeTracker
-                                taskId={task._id}
-                                activeTimer={task.activeTimer}
-                                totalTimeSpent={task.totalTimeSpent || 0}
-                                timeLogs={task.timeLogs}
-                                onStart={(sessionTitle) => onStartTimer(task._id, sessionTitle)}
-                                onStop={(note) => onStopTimer(task._id, note)}
-                                onPause={() => onPauseTimer && onPauseTimer(task._id)}
-                                onResume={() => onResumeTimer && onResumeTimer(task._id)}
-                                onDeleteLog={(logIndex) => onDeleteTimeLog(task._id, logIndex)}
-                                onAddManualLog={(duration, note) => onAddManualTimeLog(task._id, duration, note)}
                             />
                         </div>
 
@@ -191,6 +132,7 @@ export const EditTaskModal = ({
                                 {subtasks.map((st, i) => (
                                     <div key={i} className="flex items-center gap-3 group bg-surface hover:bg-surface-hover p-3 rounded-xl border border-border transition-all">
                                         <button
+                                            type="button"
                                             onClick={() => toggleSubtask(i)}
                                             className={cn(
                                                 "w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0",
@@ -212,7 +154,7 @@ export const EditTaskModal = ({
                                                 st.completed && "text-gray-500 line-through decoration-gray-600"
                                             )}
                                         />
-                                        <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                                        <button type="button" onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                                             <Trash2 size={14} />
                                         </button>
                                     </div>
@@ -239,15 +181,12 @@ export const EditTaskModal = ({
                                 </button>
                             </form>
                         </div>
-
                     </div>
 
                     {/* Sidebar (Right) */}
                     <div className="space-y-6">
-
                         {/* Properties Panel */}
                         <div className="space-y-6 bg-surface/30 p-5 rounded-xl border border-white/5">
-
                             {/* Due Date */}
                             <div>
                                 <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Due Date</label>
@@ -262,6 +201,7 @@ export const EditTaskModal = ({
                                 <div className="grid grid-cols-3 gap-2">
                                     {(['high', 'medium', 'low'] as const).map((p) => (
                                         <button
+                                            type="button"
                                             key={p}
                                             onClick={() => setPriority(p)}
                                             className={cn(
@@ -314,44 +254,28 @@ export const EditTaskModal = ({
                                     <AlertCircle size={16} className={cn("ml-auto transition-colors", isMIT ? "text-primary" : "text-gray-600")} />
                                 </label>
                             </div>
-
                         </div>
-
-                        {/* Actions */}
-                        <div className="space-y-2">
-                            <button
-                                onClick={() => onArchive(task._id)}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-yellow-500 hover:bg-yellow-500/10 border border-transparent hover:border-yellow-500/20 transition-all text-sm font-medium"
-                            >
-                                <Pin size={16} /> Archive Task
-                            </button>
-                            <button
-                                onClick={() => onDelete(task._id)}
-                                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-red-500 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all text-sm font-medium"
-                            >
-                                <Trash2 size={16} /> Delete Task
-                            </button>
-                        </div>
-
                     </div>
                 </div>
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/5 bg-black/20 flex justify-end gap-3">
                     <button
+                        type="button"
                         onClick={onClose}
                         className="px-6 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 hover:text-white transition-all text-sm font-medium"
                     >
                         Cancel
                     </button>
                     <button
+                        type="button"
+                        disabled={!title.trim()}
                         onClick={handleSave}
-                        className="px-8 py-2.5 rounded-xl bg-primary text-white hover:brightness-110 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all text-sm font-bold flex items-center gap-2"
+                        className="disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 rounded-xl bg-primary text-white hover:brightness-110 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all text-sm font-bold flex items-center gap-2"
                     >
-                        <Check size={16} /> Save Changes
+                        <Plus size={16} /> Create Task
                     </button>
                 </div>
-
             </motion.div>
         </div>
     );

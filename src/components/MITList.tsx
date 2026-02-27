@@ -22,20 +22,38 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITLis
         useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
     );
 
-    const handleDragEnd = (event: any) => {
+    const handleDragEnd = async (event: any) => {
         const { active, over } = event;
-        if (active.id !== over.id) {
-            // Simplified Logic: 
-            const currentMITs = [...mitTasks];
-            const oldIndex = currentMITs.findIndex(t => t._id === active.id);
-            const newIndex = currentMITs.findIndex(t => t._id === over.id);
+        if (!over) return;
 
-            const reorderedMITs = arrayMove(currentMITs, oldIndex, newIndex);
+        if (active.id !== over.id) {
             const mainOldIndex = tasks.findIndex(t => t._id === active.id);
             const mainNewIndex = tasks.findIndex(t => t._id === over.id);
 
-            const reorderedMain = arrayMove(tasks, mainOldIndex, mainNewIndex);
-            setTasks(reorderedMain);
+            let newTasks = arrayMove(tasks, mainOldIndex, mainNewIndex);
+
+            // Update order for all to maintain the list position across the app
+            newTasks = newTasks.map((t, index) => ({ ...t, order: index }));
+
+            setTasks(newTasks);
+
+            try {
+                await fetch("/api/tasks", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        tasks: newTasks.map(t => ({
+                            _id: t._id,
+                            order: t.order,
+                            status: t.status,
+                            priority: t.priority,
+                            isArchived: t.isArchived,
+                        }))
+                    }),
+                });
+            } catch (err) {
+                console.error("Failed to update task order", err);
+            }
         }
     };
 

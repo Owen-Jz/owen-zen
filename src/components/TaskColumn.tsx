@@ -38,6 +38,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   listeners?: any;
   isDragging?: boolean;
   isOverlay?: boolean;
+  activeId?: string | null;
 }>(({
   task,
   onDelete,
@@ -53,7 +54,8 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   attributes,
   listeners,
   isDragging,
-  isOverlay
+  isOverlay,
+  activeId
 }, ref) => {
 
   const priorityColors = {
@@ -65,6 +67,11 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   const [menuOpen, setMenuOpen] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const { isOver: isSubtaskOver, setNodeRef: setSubtaskDropRef } = useDroppable({
+    id: `subtask-${task._id}`,
+    disabled: !activeId || activeId === task._id
+  });
 
   // Timer tick effect
   useEffect(() => {
@@ -120,7 +127,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
       exit={task.isTemp ? undefined : { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1 overflow-hidden",
+        "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1",
         task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary),0.2)]",
         isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
         menuOpen && "z-40",
@@ -129,13 +136,38 @@ export const TaskCard = forwardRef<HTMLDivElement, {
     >
       {/* Sleek Priority Indicator on the left */}
       <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-1 opacity-80 transition-all group-hover:w-1.5",
+        "absolute left-0 top-0 bottom-0 w-1 opacity-80 transition-all group-hover:w-1.5 rounded-l-2xl z-20",
         task.priority === "high" ? "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]" :
           task.priority === "medium" ? "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" :
             "bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]"
       )} />
 
-      <div className="p-5 pl-6">
+      {/* Make Subtask Drop Zone */}
+      {
+        activeId && activeId !== task._id && !isOverlay && (
+          <div
+            ref={setSubtaskDropRef}
+            className={cn(
+              "absolute right-0 top-0 bottom-0 w-1/3 z-30 rounded-r-2xl flex flex-col items-center justify-center p-2.5 transition-all duration-300 backdrop-blur-md border-l border-white/5",
+              isSubtaskOver ? "bg-primary/50 border-primary shadow-[inset_0_0_30px_rgba(var(--primary),0.6)]" : "bg-black/60 opacity-0 group-hover:opacity-100 cursor-crosshair"
+            )}
+          >
+            <div className={cn(
+              "w-full h-full border-2 border-dashed rounded-xl flex items-center justify-center text-center transition-all duration-300",
+              isSubtaskOver ? "border-white text-white bg-white/10" : "border-white/30 text-white/50 bg-transparent"
+            )}>
+              <span className={cn(
+                "text-[10px] font-bold uppercase tracking-widest leading-tight w-full break-words scale-90 sm:scale-100 transition-all",
+                isSubtaskOver ? "text-white" : "text-white/60"
+              )}>
+                {isSubtaskOver ? "Drop" : "+ Sub"}
+              </span>
+            </div>
+          </div>
+        )
+      }
+
+      <div className="p-5 pl-6 relative z-10">
         {/* Header Row */}
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-2 flex-1 min-w-0">
@@ -339,7 +371,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
           )}
         </div>
       </div>
-    </motion.div>
+    </motion.div >
   );
 });
 
@@ -356,7 +388,8 @@ export const SortableTaskItem = ({
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
-  onFocus
+  onFocus,
+  activeId
 }: {
   task: Task;
   onDelete: (id: string) => void;
@@ -368,6 +401,7 @@ export const SortableTaskItem = ({
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
   onFocus: (task: Task) => void;
+  activeId?: string | null;
 }) => {
   const {
     attributes,
@@ -402,12 +436,13 @@ export const SortableTaskItem = ({
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
+      activeId={activeId}
     />
   );
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, activeId }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -419,7 +454,8 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
-  onFocus: (task: Task) => void
+  onFocus: (task: Task) => void,
+  activeId?: string | null
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
@@ -464,6 +500,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onStartTimer={onStartTimer}
                 onStopTimer={onStopTimer}
                 onFocus={onFocus}
+                activeId={activeId}
               />
             ))}
           </AnimatePresence>

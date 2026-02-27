@@ -67,7 +67,9 @@ const TaskSchema = new mongoose.Schema({
   dueDate: { type: Date },
   googleEventId: { type: String },
   isMIT: { type: Boolean, default: false },
-  mitDate: { type: Date } // To track which day it was assigned as MIT
+  mitDate: { type: Date }, // To track which day it was assigned as MIT
+  overdueNotified: { type: Boolean, default: false } // Track if overdue email has been sent
 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
+

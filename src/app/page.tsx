@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2 } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -26,6 +26,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
 import { EditTaskModal } from "@/components/EditTaskModal";
+import { AddTaskModal } from "@/components/AddTaskModal";
 import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board } from "@/types";
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
@@ -42,6 +43,8 @@ import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
 import { LeadsView } from "@/components/LeadsView"; // Import Leads CRM
 import { NotificationBell } from "@/components/NotificationBell"; // Import Notification Bell
 import { Loading } from "@/components/Loading";
+import { ShoppingListModal } from "@/components/ShoppingListModal";
+import { ProjectView } from "@/components/ProjectView";
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -76,6 +79,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
+    { id: "projects", label: "Project HQ", icon: LayoutTemplate },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
     { id: "habits", label: "Habits", icon: Trophy },
     { id: "roadmap", label: "2026 Roadmap", icon: Target }, // Replaced Vision
@@ -252,17 +256,31 @@ const SniperView = () => <SandboxDashboard />;
 
 
 const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
-  const archivedTasks = tasks.filter(t => t.isArchived);
+  const [searchQuery, setSearchQuery] = useState("");
+  const archivedTasks = tasks.filter(t => t.isArchived && t.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
-      <h2 className="text-xl font-bold mb-4 flex items-center gap-2 text-gray-400">
-        <Archive className="text-gray-500" /> Archived Tasks
-      </h2>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2 text-gray-400">
+          <Archive className="text-gray-500" /> Archived Tasks
+        </h2>
+
+        <div className="relative w-full sm:w-64">
+          <input
+            type="text"
+            placeholder="Search archive..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-surface-hover border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors"
+          />
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+        </div>
+      </div>
 
       {archivedTasks.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-border rounded-xl text-gray-600">
-          Archive is empty.
+          {searchQuery ? "No matching archived tasks found." : "Archive is empty."}
         </div>
       ) : (
         <div className="grid gap-3">
@@ -294,11 +312,13 @@ export default function Dashboard() {
 
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
+  const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tasks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false); // Zen Mode
   const [isBrainDumpOpen, setIsBrainDumpOpen] = useState(false); // Brain Dump
+  const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false); // Shopping List modal
   const [brainDumpText, setBrainDumpText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -410,43 +430,34 @@ export default function Dashboard() {
     }
   };
 
-  const addTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTask.trim()) return;
-
+  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean) => {
     // Optimistic UI
     const tempId = crypto.randomUUID();
-    const tempTitle = newTask;
-    const tempPriority = newPriority;
-    const tempBoardId = currentBoardId;
-
     const tempTask: Task = {
       _id: tempId,
-      title: tempTitle,
-      priority: tempPriority,
-      boardId: tempBoardId || undefined,
+      title,
+      description,
+      priority,
+      boardId: boardId || undefined,
       status: "pending",
-      order: 0, // Top of backlog
-      subtasks: [],
+      order: 0,
+      subtasks,
+      dueDate,
       createdAt: new Date().toISOString(),
-      isMIT: false,
+      isMIT,
       isArchived: false,
       isTemp: true,
     };
 
     const previousTasks = [...tasks];
     setTasks([tempTask, ...tasks]);
-    setNewTask("");
-    setNewPriority("medium");
 
     try {
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title: tempTitle,
-          priority: tempPriority,
-          boardId: tempBoardId // Associate with current board
+          title, description, priority, subtasks, dueDate, boardId, isMIT
         }),
       });
       const json = await res.json();
@@ -906,7 +917,14 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={cn("flex min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-500", isZenMode && "bg-black selection:bg-primary/30")}>
+    <div className={cn("flex min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-500", isZenMode && "bg-black selection:bg-primary/30 relative")}>
+      {/* Zen Mode Ambient Background */}
+      {isZenMode && (
+        <div className="fixed inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-black animate-pulse duration-[10000ms]" />
+        </div>
+      )}
+
       {/* Sidebar hidden in Zen Mode */}
       {!isZenMode && (
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
@@ -930,6 +948,25 @@ export default function Dashboard() {
             onMoveToBoard={moveTaskToBoard}
             onArchive={archiveTask}
             onDelete={deleteTask}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Shopping List Modal */}
+      <ShoppingListModal
+        isOpen={isShoppingListModalOpen}
+        onClose={() => setIsShoppingListModalOpen(false)}
+      />
+
+      {/* Add Task Modal */}
+      <AnimatePresence>
+        {isAddTaskModalOpen && (
+          <AddTaskModal
+            initialTitle=""
+            boards={boards}
+            defaultBoardId={currentBoardId}
+            onClose={() => setIsAddTaskModalOpen(false)}
+            onSave={handleSaveNewTask}
           />
         )}
       </AnimatePresence>
@@ -1069,10 +1106,10 @@ export default function Dashboard() {
         <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
           <div className={cn(isZenMode && "hidden md:block")}>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
+              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : "Let's stay focused today."}
+              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : "Let's stay focused today."}
             </p>
           </div>
           <div className="flex items-center gap-3 ml-auto">
@@ -1140,7 +1177,7 @@ export default function Dashboard() {
             />
 
             {/* Board Selector */}
-            <div className="mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            <div className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
               <button
                 onClick={() => setCurrentBoardId(null)}
                 className={cn(
@@ -1207,40 +1244,31 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-            <form onSubmit={addTask} className="mb-8 max-w-3xl mx-auto">
-              <div className="relative group">
-                <input
-                  type="text"
-                  value={newTask}
-                  onChange={(e) => setNewTask(e.target.value)}
-                  placeholder="What needs to be done?"
-                  className="w-full bg-surface/50 backdrop-blur-xl border border-white/5 pl-6 pr-40 py-5 rounded-2xl text-lg focus:outline-none focus:border-primary/50 focus:bg-black/60 transition-all shadow-2xl placeholder:text-gray-500 font-medium tracking-wide"
-                />
-
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-3">
-                  <select
-                    value={newPriority}
-                    onChange={(e) => setNewPriority(e.target.value as TaskPriority)}
-                    className={cn(
-                      "appearance-none bg-surface-hover/80 backdrop-blur-sm border border-white/10 rounded-xl px-3 py-2 text-xs font-bold uppercase outline-none cursor-pointer hover:border-primary/50 transition-all",
-                      newPriority === 'high' ? "text-red-400 shadow-[0_0_10px_rgba(239,68,68,0.1)]" :
-                        newPriority === 'medium' ? "text-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.1)]" :
-                          "text-blue-400 shadow-[0_0_10px_rgba(59,130,246,0.1)]"
-                    )}
-                  >
-                    <option value="high">High</option>
-                    <option value="medium">Medium</option>
-                    <option value="low">Low</option>
-                  </select>
-                  <button
-                    type="submit"
-                    className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] hover:-translate-y-0.5 transition-all active:scale-95"
-                  >
-                    <Plus size={20} className="stroke-[3px]" />
-                  </button>
+            <div className={cn("mb-8 max-w-3xl mx-auto transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
+              <div className="flex gap-4">
+                <div
+                  onClick={() => setIsAddTaskModalOpen(true)}
+                  className="relative group cursor-text flex-1"
+                >
+                  <div className="h-full w-full bg-surface/50 backdrop-blur-xl border border-white/5 pl-6 pr-4 py-5 rounded-2xl text-lg transition-all shadow-2xl font-medium tracking-wide text-gray-500 hover:bg-black/60 hover:border-primary/50 flex items-center justify-between">
+                    <span>What needs to be done?</span>
+                    <button
+                      className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] transition-all"
+                    >
+                      <Plus size={20} className="stroke-[3px]" />
+                    </button>
+                  </div>
                 </div>
+
+                <button
+                  onClick={() => setIsShoppingListModalOpen(true)}
+                  className="bg-surface/50 backdrop-blur-xl border border-white/5 px-6 py-5 rounded-2xl transition-all shadow-2xl tracking-wide text-gray-400 hover:text-white hover:bg-black/60 hover:border-primary/50 flex flex-col items-center justify-center gap-1.5 group"
+                >
+                  <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
+                  <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Cart</span>
+                </button>
               </div>
-            </form>
+            </div>
 
             {isLoading ? (
               <div className="text-center py-8 text-gray-500">Loading Board...</div>
@@ -1261,11 +1289,13 @@ export default function Dashboard() {
                 onFocus={setFocusedTask}
                 onMoveToBoard={moveTaskToBoard}
                 boards={boards}
+                isZenMode={isZenMode}
               />
             )}
           </div>
         )}
 
+        {activeTab === "projects" && <ProjectView />}
         {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
         {activeTab === "roadmap" && <RoadmapView />}
