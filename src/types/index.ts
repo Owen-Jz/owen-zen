@@ -44,4 +44,32 @@ export interface Task {
     dueDate?: string;      // ISO string
     googleEventId?: string;
     isTemp?: boolean;
+    overdueNotified?: boolean;
+}
+
+export interface ProjectDeliverable {
+    _id?: string;
+    title: string;
+    completed: boolean;
+}
+
+export interface ProjectLink {
+    _id?: string;
+    title: string;
+    url: string;
+}
+
+export interface Project {
+    _id: string;
+    title: string;
+    description?: string;
+    category: "design" | "development" | "business" | "personal";
+    status: "planning" | "active" | "paused" | "completed";
+    priority: "high" | "medium" | "low";
+    progress: number;
+    startDate?: string;
+    dueDate?: string;
+    deliverables: ProjectDeliverable[];
+    links: ProjectLink[];
+    createdAt: string;
 }

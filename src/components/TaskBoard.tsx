@@ -1,5 +1,5 @@
 // --- Task Board Component ---
-import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay } from "@dnd-kit/core";
+import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, pointerWithin, CollisionDetection } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
@@ -16,6 +16,21 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
+const customCollisionDetection: CollisionDetection = (args) => {
+  // First, get all pointer intersections
+  const pointerCollisions = pointerWithin(args);
+
+  // See if any of the pointer collisions is a subtask dropzone
+  const subtaskCollision = pointerCollisions.find(c => String(c.id).startsWith("subtask-"));
+  if (subtaskCollision) {
+    return [subtaskCollision];
+  }
+
+  // Otherwise, fallback to rectIntersection
+  return rectIntersection(args);
+};
+
+
 export const TaskBoard = ({
   tasks,
   setTasks,
@@ -31,7 +46,8 @@ export const TaskBoard = ({
   onResumeTimer,
   onFocus,
   onMoveToBoard,
-  boards
+  boards,
+  isZenMode
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -47,7 +63,8 @@ export const TaskBoard = ({
   onResumeTimer?: (id: string) => void,
   onFocus: (task: Task) => void,
   onMoveToBoard?: (taskId: string, boardId: string | null) => void,
-  boards?: Board[]
+  boards?: Board[],
+  isZenMode?: boolean
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -69,37 +86,75 @@ export const TaskBoard = ({
 
     if (!over) return;
 
-    const activeId = active.id;
-    const overId = over.id;
+    const activeIdStr = active.id;
+    const overIdStr = over.id;
 
-    // Determine target status
+    if (activeIdStr === overIdStr) return;
+
+    const activeTask = tasks.find(t => t._id === activeIdStr);
+    if (!activeTask) return;
+
+    if (String(overIdStr).startsWith("subtask-")) {
+      const targetTaskId = String(overIdStr).replace("subtask-", "");
+      if (activeIdStr === targetTaskId) return;
+
+      const targetTask = tasks.find(t => t._id === targetTaskId);
+      if (!targetTask) return;
+
+      // Make activeTask a subtask of targetTask
+      const newSubtask = { title: activeTask.title, completed: false };
+      const updatedSubtasks = [...(targetTask.subtasks || []), newSubtask];
+
+      // Remove activeTask from main list and update targetTask
+      let newTasks = tasks.filter(t => t._id !== activeIdStr).map(t => {
+        if (t._id === targetTaskId) {
+          return { ...t, subtasks: updatedSubtasks };
+        }
+        return t;
+      });
+
+      setTasks(newTasks);
+
+      try {
+        // Update the target task using specific endpoint
+        await fetch(`/api/tasks/${targetTaskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ subtasks: updatedSubtasks })
+        });
+
+        // Delete the original task completely
+        await fetch(`/api/tasks/${activeIdStr}`, {
+          method: "DELETE"
+        });
+      } catch (e) {
+        console.error("Failed to merge task", e);
+      }
+
+      return;
+    }
+
+    // Normal Reorder / Status Change
     let newStatus: TaskStatus | undefined;
 
-    if (["pending", "in-progress", "completed", "pinned"].includes(overId)) {
-      // Dropped on a column
-      newStatus = overId as TaskStatus;
+    if (["pending", "in-progress", "completed", "pinned"].includes(overIdStr)) {
+      newStatus = overIdStr as TaskStatus;
     } else {
-      // Dropped on a task
-      const overTask = tasks.find(t => t._id === overId);
+      const overTask = tasks.find(t => t._id === overIdStr);
       if (overTask) newStatus = overTask.status;
     }
 
     if (!newStatus) return;
 
-    const activeTask = tasks.find(t => t._id === activeId);
-    if (!activeTask) return;
-
     let newTasks = [...tasks];
 
-    // Status change?
     if (activeTask.status !== newStatus) {
       activeTask.status = newStatus;
     }
 
-    // Reorder?
-    if (activeId !== overId) {
-      const oldIndex = tasks.findIndex(t => t._id === activeId);
-      const newIndex = tasks.findIndex(t => t._id === overId);
+    if (activeIdStr !== overIdStr) {
+      const oldIndex = tasks.findIndex(t => t._id === activeIdStr);
+      const newIndex = tasks.findIndex(t => t._id === overIdStr);
       newTasks = arrayMove(tasks, oldIndex, newIndex);
     }
 
@@ -115,7 +170,8 @@ export const TaskBoard = ({
           order: t.order,
           status: t.status,
           priority: t.priority,
-          isArchived: t.isArchived
+          isArchived: t.isArchived,
+          title: t.title
         }))
       }),
     });
@@ -180,28 +236,39 @@ export const TaskBoard = ({
 
       <DndContext
         sensors={sensors}
-        collisionDetection={rectIntersection}
+        collisionDetection={customCollisionDetection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-          {columns.map(col => (
-            <TaskColumn
-              key={col.id}
-              id={col.id}
-              title={col.title}
-              tasks={visibleTasks.filter(t => t.status === col.id)}
-              onDelete={onDelete}
-              onUpdateStatus={onUpdateStatus}
-              onEdit={onEdit}
-              onArchive={onArchive}
-              onToggleSubtask={onToggleSubtask}
-              onUpdatePriority={onUpdatePriority}
-              onStartTimer={onStartTimer}
-              onStopTimer={onStopTimer}
-              onFocus={onFocus}
-            />
-          ))}
+          {columns.map(col => {
+            const isFocusCol = col.id === "in-progress";
+            return (
+              <div
+                key={col.id}
+                className={cn(
+                  "transition-all duration-700",
+                  isZenMode && !isFocusCol ? "opacity-30 hover:opacity-100 grayscale hover:grayscale-0 blur-[2px] hover:blur-none scale-95 hover:scale-100" : "opacity-100 scale-100 blur-none"
+                )}
+              >
+                <TaskColumn
+                  id={col.id}
+                  title={col.title}
+                  tasks={visibleTasks.filter(t => t.status === col.id)}
+                  onDelete={onDelete}
+                  onUpdateStatus={onUpdateStatus}
+                  onEdit={onEdit}
+                  onArchive={onArchive}
+                  onToggleSubtask={onToggleSubtask}
+                  onUpdatePriority={onUpdatePriority}
+                  onStartTimer={onStartTimer}
+                  onStopTimer={onStopTimer}
+                  onFocus={onFocus}
+                  activeId={activeId}
+                />
+              </div>
+            );
+          })}
         </div>
 
         <DragOverlay dropAnimation={{
