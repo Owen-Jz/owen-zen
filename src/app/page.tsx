@@ -152,6 +152,20 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
           })}
         </nav>
 
+        {/* Quick Links */}
+        <div className={cn("px-3 mt-6 border-t border-white/5 pt-4", isCollapsed && "md:hidden")}>
+          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 px-2">Quick Links</p>
+          <a
+            href="https://www.reddit.com/r/GoogleAntigravityIDE/s/DKn9fZCt7Q"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors w-full"
+          >
+            <span className="text-base">🔗</span>
+            <span className="truncate">Google Antigravity IDE</span>
+          </a>
+        </div>
+
         {/* Desktop Collapse Toggle */}
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
