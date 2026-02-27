@@ -73,7 +73,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
     };
 
     const renderDays = () => {
-        const days = [];
+        const days: React.ReactNode[] = [];
         const dateFormat = "short";
         const startDate = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
 
@@ -101,7 +101,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
         }
 
         const rows = [];
-        let days = [];
+        let days: React.ReactNode[] = [];
         let day = startDate;
         let formattedDate = "";
 
