@@ -76,7 +76,50 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 // --- Components ---
 
+interface QuickLinkItem {
+  _id: string;
+  label: string;
+  url: string;
+  emoji: string;
+}
+
 const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setIsCollapsed }: any) => {
+  const [quickLinks, setQuickLinks] = useState<QuickLinkItem[]>([]);
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkEmoji, setNewLinkEmoji] = useState('🔗');
+
+  useEffect(() => {
+    fetch('/api/quick-links')
+      .then(r => r.json())
+      .then(j => { if (j.success) setQuickLinks(j.data); })
+      .catch(() => {});
+  }, []);
+
+  const addQuickLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    const url = newLinkUrl.startsWith('http') ? newLinkUrl : `https://${newLinkUrl}`;
+    const res = await fetch('/api/quick-links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: newLinkLabel.trim(), url, emoji: newLinkEmoji }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setQuickLinks(prev => [...prev, json.data]);
+      setNewLinkLabel('');
+      setNewLinkUrl('');
+      setNewLinkEmoji('🔗');
+      setIsAddingLink(false);
+    }
+  };
+
+  const deleteQuickLink = async (id: string) => {
+    setQuickLinks(prev => prev.filter(l => l._id !== id));
+    await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
+  };
 
   const links = [
     { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
@@ -156,16 +199,75 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
         {/* Quick Links */}
         <div className={cn("px-3 mt-6 border-t border-white/5 pt-4", isCollapsed && "md:hidden")}>
-          <p className="text-xs text-gray-500 uppercase tracking-widest mb-2 px-2">Quick Links</p>
-          <a
-            href="https://www.reddit.com/r/GoogleAntigravityIDE/s/DKn9fZCt7Q"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors w-full"
-          >
-            <span className="text-base">🔗</span>
-            <span className="truncate">Google Antigravity IDE</span>
-          </a>
+          <div className="flex items-center justify-between mb-2 px-2">
+            <p className="text-xs text-gray-500 uppercase tracking-widest">Quick Links</p>
+            <button
+              onClick={() => setIsAddingLink(v => !v)}
+              className="text-gray-500 hover:text-white transition-colors"
+              title="Add quick link"
+            >
+              <Plus size={14} />
+            </button>
+          </div>
+
+          {quickLinks.map(link => (
+            <div key={link._id} className="flex items-center group gap-1">
+              <a
+                href={link.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex-1 min-w-0"
+              >
+                <span className="text-base shrink-0">{link.emoji}</span>
+                <span className="truncate">{link.label}</span>
+              </a>
+              <button
+                onClick={() => deleteQuickLink(link._id)}
+                className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-500 transition-all shrink-0 mr-1"
+                title="Remove"
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+
+          {quickLinks.length === 0 && !isAddingLink && (
+            <p className="text-xs text-gray-600 px-3 py-2">No links yet — add one!</p>
+          )}
+
+          {isAddingLink && (
+            <form onSubmit={addQuickLink} className="mt-2 space-y-2 px-1">
+              <div className="flex gap-1">
+                <input
+                  value={newLinkEmoji}
+                  onChange={e => setNewLinkEmoji(e.target.value)}
+                  placeholder="🔗"
+                  className="w-10 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-primary/50"
+                />
+                <input
+                  autoFocus
+                  value={newLinkLabel}
+                  onChange={e => setNewLinkLabel(e.target.value)}
+                  placeholder="Label"
+                  className="flex-1 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+                />
+              </div>
+              <input
+                value={newLinkUrl}
+                onChange={e => setNewLinkUrl(e.target.value)}
+                placeholder="https://..."
+                className="w-full bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+              />
+              <div className="flex gap-1">
+                <button type="submit" className="flex-1 bg-primary/20 text-primary border border-primary/30 rounded-lg py-1.5 text-xs font-bold hover:bg-primary/30 transition-colors">
+                  Add
+                </button>
+                <button type="button" onClick={() => setIsAddingLink(false)} className="px-3 text-gray-500 hover:text-white rounded-lg border border-white/5 text-xs transition-colors">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          )}
         </div>
 
         {/* Desktop Collapse Toggle */}
