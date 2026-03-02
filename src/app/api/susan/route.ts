@@ -11,6 +11,8 @@ const execPromise = promisify(exec);
 const SCRAPER_DIR = "/Users/owen/.openclaw/workspace/job-alpha";
 const WORKSPACE_DIR = "/Users/owen/.openclaw/workspace";
 const SCRIPTS_DIR = path.join(WORKSPACE_DIR, "scripts");
+
+// MongoDB Config
 const MONGO_URI = "mongodb+srv://new_owen_user:0lLdhFMmLK582IDp@cluster0.zvxia6f.mongodb.net/?retryWrites=true&w=majority";
 const DB_NAME = "test";
 
@@ -18,40 +20,41 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get('action');
 
-  if (action === "get-dominance-logs") {
-    let client;
-    try {
-      client = await MongoClient.connect(MONGO_URI);
-      const db = client.db(DB_NAME);
+  let client;
+  try {
+    client = await MongoClient.connect(MONGO_URI);
+    const db = client.db(DB_NAME);
+
+    if (action === "get-dominance-logs") {
       const logs = await db.collection("dominance_logs")
         .find({})
         .sort({ timestamp: -1 })
         .limit(20)
         .toArray();
       return NextResponse.json({ logs });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
-    } finally {
-      if (client) await client.close();
     }
-  }
 
-  if (action === "get-leads") {
-    let client;
-    try {
-      client = await MongoClient.connect(MONGO_URI);
-      const db = client.db(DB_NAME);
+    if (action === "get-strategic-intel") {
+      const intel = await db.collection("strategic_intel")
+        .find({})
+        .sort({ timestamp: -1 })
+        .limit(10)
+        .toArray();
+      return NextResponse.json({ intel });
+    }
+
+    if (action === "get-leads") {
       const leads = await db.collection("lead_hunter")
         .find({ status: "pending" })
         .sort({ timestamp: -1 })
         .toArray();
       const formattedLeads = leads.map(l => ({ ...l, id: l._id.toString() }));
       return NextResponse.json({ leads: formattedLeads });
-    } catch (error: any) {
-      return NextResponse.json({ error: error.message }, { status: 500 });
-    } finally {
-      if (client) await client.close();
     }
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 });
+  } finally {
+    if (client) await client.close();
   }
 
   return NextResponse.json({ error: "Invalid request" }, { status: 400 });

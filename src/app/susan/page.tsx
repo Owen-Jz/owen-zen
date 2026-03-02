@@ -3,151 +3,187 @@
 import { useState, useEffect } from "react";
 import { 
   ShieldAlert, 
-  Cpu, 
   Activity, 
   Zap, 
   Command,
-  CheckCircle2,
-  AlertCircle,
-  LayoutGrid,
-  ChevronRight,
-  ArrowUpRight,
   Terminal,
-  Loader2
+  ArrowUpRight,
+  TrendingUp,
+  Cpu,
+  Layers,
+  Globe
 } from "lucide-react";
 
 export default function SusanDominanceRoom() {
   const [logs, setLogs] = useState<any[]>([]);
+  const [intel, setIntel] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLogs = async () => {
+    const fetchData = async () => {
       try {
-        const res = await fetch('/api/susan?action=get-dominance-logs');
-        const data = await res.json();
-        setLogs(data.logs || []);
+        const logRes = await fetch('/api/susan?action=get-dominance-logs');
+        const intelRes = await fetch('/api/susan?action=get-strategic-intel');
+        const logData = await logRes.json();
+        const intelData = await intelRes.json();
+        setLogs(logData.logs || []);
+        setIntel(intelData.intel || []);
       } catch (e) {
-        console.error("Failed to load Susan's logs");
+        console.error("Sync Failure");
       } finally {
         setLoading(false);
       }
     };
-    fetchLogs();
-    const interval = setInterval(fetchLogs, 4000);
+    fetchData();
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, []);
 
   return (
-    <main className="min-h-screen bg-[#050508] text-slate-200 selection:bg-indigo-500/30 font-sans">
-      {/* Dynamic Background */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-600/10 blur-[120px] rounded-full" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full" />
+    <main className="min-h-screen bg-[#020205] text-[#e2e8f0] font-sans selection:bg-indigo-500/30 overflow-x-hidden">
+      {/* HUD Background */}
+      <div className="fixed inset-0 pointer-events-none opacity-20">
+        <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_-20%,#312e81,transparent_70%)]" />
+        <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] brightness-50 opacity-20" />
       </div>
 
-      <div className="relative max-w-4xl mx-auto px-6 py-12 md:py-20 space-y-12 text-left">
-        {/* Header Section */}
-        <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-10">
-          <div className="flex items-center gap-5">
-            <div className="relative">
-              <div className="p-4 bg-indigo-600 rounded-[22px] shadow-[0_0_40px_rgba(79,70,229,0.4)]">
-                <Command className="text-white w-7 h-7" />
+      <div className="relative max-w-7xl mx-auto px-6 py-12 space-y-16">
+        {/* Header - The Sovereign Hub */}
+        <header className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 border-b border-white/5 pb-12">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="p-5 bg-indigo-600 rounded-[28px] shadow-[0_0_60px_rgba(79,70,229,0.3)] transition-transform group-hover:scale-105 duration-500">
+                <Command className="text-white w-8 h-8" />
               </div>
-              <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-500 border-4 border-[#050508] rounded-full animate-pulse" />
+              <div className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 border-4 border-[#020205] rounded-full animate-ping" />
             </div>
             <div className="space-y-1">
-              <h1 className="text-3xl md:text-4xl font-bold tracking-tight text-white">Susan Intelligence</h1>
-              <div className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-indigo-500" />
-                <p className="text-xs font-semibold text-indigo-400 uppercase tracking-[0.2em]">Execution Layer Active</p>
+              <h1 className="text-4xl md:text-5xl font-black tracking-tighter text-white uppercase italic">Sovereign Dominance</h1>
+              <div className="flex items-center gap-3">
+                <span className="flex h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-[0.3em]">Neural Execution Engine v2.5</p>
               </div>
             </div>
           </div>
-          
-          <div className="flex items-center gap-3 self-start md:self-center">
-             <div className="bg-white/[0.03] px-5 py-2.5 rounded-2xl border border-white/5 backdrop-blur-md flex items-center gap-3">
-                <Activity size={14} className="text-green-400" />
-                <span className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Sovereign Bridge: Connected</span>
+
+          <div className="flex flex-wrap gap-4">
+             <div className="bg-white/[0.03] px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-xl flex items-center gap-3 shadow-2xl">
+                <Activity size={16} className="text-emerald-400" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Link: Stable</span>
+             </div>
+             <div className="bg-white/[0.03] px-6 py-3 rounded-2xl border border-white/10 backdrop-blur-xl flex items-center gap-3 shadow-2xl">
+                <Cpu size={16} className="text-indigo-400" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-300">Quota: Active</span>
              </div>
           </div>
         </header>
 
-        {/* Tactical Feed */}
-        <section className="space-y-6">
-          <div className="flex items-center justify-between px-2">
-            <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 flex items-center gap-2">
-              <Terminal size={14} /> Real-Time Operation Log
-            </h2>
-            <span className="text-[10px] font-mono text-slate-600">LIVE FEED</span>
-          </div>
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
+          
+          {/* Tactical Intel - Left Column (Higher Priority) */}
+          <section className="lg:col-span-7 space-y-10">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+                <Globe size={18} className="text-indigo-500" /> Strategic Intelligence Matrix
+              </h2>
+            </div>
 
-          <div className="space-y-3">
-            {loading && logs.length === 0 ? (
-               <div className="bg-white/[0.02] border border-white/5 rounded-[32px] p-16 text-center flex flex-col items-center gap-6">
-                  <div className="w-12 h-12 border-2 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin" />
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-[11px]">Synchronizing with MacBook core...</p>
-               </div>
-            ) : logs.length === 0 ? (
-              <div className="bg-white/[0.02] border border-white/5 rounded-[32px] p-16 text-center space-y-4">
-                  <AlertCircle className="mx-auto text-slate-800" size={40} />
-                  <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">No active logs found in current cycle.</p>
-              </div>
-            ) : (
-              logs.map((log, i) => (
-                <div key={i} className="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-[28px] p-5 md:p-6 transition-all duration-300 flex flex-col md:flex-row md:items-center gap-6 text-left">
-                  <div className="text-slate-600 font-mono text-[11px] font-medium tracking-tighter opacity-60">
-                    {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                  </div>
-                  <div className="flex-1 space-y-1.5">
-                    <div className="flex items-center gap-3">
-                      <h3 className="text-[15px] font-bold text-white tracking-tight">{log.task}</h3>
-                      <span className="text-[9px] font-black bg-indigo-500/10 px-2 py-0.5 rounded-full text-indigo-400 uppercase tracking-wider border border-indigo-500/10">
-                          {log.mode || "DOMINANCE"}
-                      </span>
+            <div className="grid grid-cols-1 gap-6">
+              {intel.map((item, i) => (
+                <div key={i} className="group relative bg-[#0B0F1A]/60 hover:bg-[#0B0F1A]/90 border border-white/5 rounded-[40px] p-8 transition-all duration-500 hover:shadow-[0_0_80px_rgba(79,70,229,0.1)] overflow-hidden">
+                  <div className="relative z-10 flex flex-col gap-6">
+                    <div className="flex justify-between items-start">
+                      <span className="text-[10px] font-black text-indigo-500 bg-indigo-500/10 px-3 py-1 rounded-full tracking-widest uppercase border border-indigo-500/20">{item.category}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-red-500 uppercase tracking-tighter px-2 py-0.5 border border-red-500/20 rounded bg-red-500/5">{item.impact} IMPACT</span>
+                        <ArrowUpRight className="text-slate-700 group-hover:text-white transition-colors" size={20} />
+                      </div>
                     </div>
-                    <p className="text-[13px] text-slate-400 leading-relaxed max-w-2xl">{log.insight}</p>
-                  </div>
-                  <div className="flex items-center justify-between md:justify-end gap-4 border-t md:border-t-0 border-white/5 pt-4 md:pt-0">
-                    <div className={`text-[10px] font-bold px-4 py-1.5 rounded-xl uppercase tracking-widest ${
-                      log.status === "SUCCESS" ? "bg-green-500/10 text-green-400 border-green-500/20" :
-                      log.status === "ACTIVE" || log.status === "EXECUTING" ? "bg-indigo-500/10 text-indigo-400 border-indigo-500/20" :
-                      "bg-white/5 text-slate-500 border-white/5"
-                    } border backdrop-blur-sm`}>
-                      {log.status}
+                    <div className="space-y-3">
+                      <h3 className="text-xl md:text-2xl font-bold text-white tracking-tight leading-tight">{item.title}</h3>
+                      <p className="text-slate-400 text-sm leading-relaxed max-w-xl">{item.payload}</p>
                     </div>
-                    <ChevronRight size={16} className="text-slate-700 group-hover:text-indigo-500 group-hover:translate-x-1 transition-all hidden md:block" />
                   </div>
+                  {/* Decorative Accents */}
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-[60px] group-hover:bg-indigo-600/10 transition-colors" />
                 </div>
-              ))
-            )}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
 
-        {/* Implementation Matrix */}
-        <section className="pt-12 border-t border-white/5 space-y-8 text-left">
-            <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 flex items-center gap-2">
-                <Zap size={14} /> Active Deployments
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                {[
-                  { title: "Unbundled SaaS Engine", desc: "Replicating high-cost SaaS products into Vertical AI microservices for the Itana ecosystem.", tag: "STRATEGY" },
-                  { title: "Solana Sniper V3", desc: "Real-time liquidity analysis with bot-volume separation. Currently prototyping wash-trade detection.", tag: "PROTOTYPE" }
-                ].map((item, i) => (
-                  <div key={i} className="group bg-white/[0.02] p-8 rounded-[36px] border border-white/5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden text-left">
-                    <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <ArrowUpRight className="text-indigo-500" size={20} />
+          {/* Operational Feed - Right Column */}
+          <section className="lg:col-span-5 space-y-10">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-black uppercase tracking-[0.3em] text-slate-500 flex items-center gap-3">
+                <Terminal size={18} className="text-red-500" /> Operational Loop
+              </h2>
+            </div>
+
+            <div className="bg-[#0B0F1A]/40 border border-white/5 rounded-[40px] overflow-hidden backdrop-blur-md">
+              <div className="p-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between px-8">
+                <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">MacBook Execution Stream</span>
+                <div className="flex gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-800" />
+                </div>
+              </div>
+              <div className="divide-y divide-white/5 max-h-[600px] overflow-y-auto scrollbar-hide">
+                {logs.map((log, i) => (
+                  <div key={i} className="p-6 hover:bg-white/[0.02] transition-colors flex items-start gap-5">
+                    <div className="text-[10px] font-bold text-slate-600 font-mono mt-1 opacity-50">
+                      {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </div>
-                    <span className="text-[9px] font-black text-indigo-500/60 uppercase tracking-widest mb-4 block">{item.tag}</span>
-                    <h4 className="text-lg font-bold text-white mb-3 tracking-tight">{item.title}</h4>
-                    <p className="text-[13px] text-slate-500 leading-relaxed">{item.desc}</p>
+                    <div className="flex-1 space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider">{log.task}</h4>
+                        <span className="text-[8px] font-black text-indigo-400/60 uppercase">{log.mode || "CORE"}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 leading-normal line-clamp-2 italic">"{log.insight}"</p>
+                    </div>
+                    <div className={`w-2 h-2 rounded-full mt-2 ${log.status === "SUCCESS" ? "bg-emerald-500 shadow-[0_0_10px_#10b981]" : "bg-indigo-500 animate-pulse"}`} />
                   </div>
                 ))}
+              </div>
+            </div>
+          </section>
+        </div>
+
+        {/* Global Strategy Section */}
+        <section className="bg-indigo-600/[0.03] border border-indigo-500/10 rounded-[50px] p-10 md:p-16 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-12 opacity-10">
+                <TrendingUp size={120} className="text-indigo-500" />
+            </div>
+            <div className="relative z-10 space-y-8">
+                <div className="space-y-2">
+                    <h2 className="text-3xl md:text-4xl font-black text-white italic uppercase tracking-tighter">Growth Directives</h2>
+                    <p className="text-indigo-400/80 font-bold text-xs uppercase tracking-[0.4em]">Outside-the-Box Capital Deployment</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    {[
+                        { title: "Solana Sniper V3", desc: "Wash-trade detection active. Filtering LP entries for real 'whale' signatures.", status: "PROTOTYPING" },
+                        { title: "Unbundled SaaS", desc: "Ripping the core from $200/mo legal tools to build SEZ-native microservices.", status: "STRATEGY" },
+                        { title: "Alpha City RWA", desc: "Fractionalizing infrastructure assets for local liquidity pools.", status: "RESEARCH" }
+                    ].map((card, i) => (
+                        <div key={i} className="space-y-4">
+                            <div className="flex items-center gap-3">
+                                <Zap size={14} className="text-amber-400" />
+                                <h4 className="text-sm font-bold text-white uppercase tracking-tight">{card.title}</h4>
+                            </div>
+                            <p className="text-xs text-slate-500 leading-relaxed">{card.desc}</p>
+                            <span className="inline-block text-[8px] font-black border border-white/10 px-2 py-1 rounded text-slate-400 uppercase tracking-widest">{card.status}</span>
+                        </div>
+                    ))}
+                </div>
             </div>
         </section>
 
-        {/* Footer info */}
-        <footer className="pt-12 pb-6 text-center">
-           <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.4em]">Owen Zen • Sovereign Infrastructure Hub • 2026</p>
+        <footer className="pt-20 pb-10 text-center space-y-4">
+           <p className="text-[10px] font-black text-slate-800 uppercase tracking-[1em]">Susan Sovereign Hub • Powered by AntiGravity Core • 2026</p>
+           <div className="flex justify-center gap-6 opacity-20 grayscale brightness-200">
+               {/* Platform Logos placeholder */}
+           </div>
         </footer>
       </div>
     </main>
