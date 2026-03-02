@@ -11,7 +11,9 @@ import {
   AlertCircle,
   LayoutGrid,
   ChevronRight,
-  ArrowUpRight
+  ArrowUpRight,
+  Terminal,
+  Loader2
 } from "lucide-react";
 
 export default function SusanDominanceRoom() {
@@ -43,7 +45,7 @@ export default function SusanDominanceRoom() {
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-600/10 blur-[120px] rounded-full" />
       </div>
 
-      <div className="relative max-w-4xl mx-auto px-6 py-12 md:py-20 space-y-12">
+      <div className="relative max-w-4xl mx-auto px-6 py-12 md:py-20 space-y-12 text-left">
         {/* Header Section */}
         <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-10">
           <div className="flex items-center gap-5">
@@ -92,7 +94,7 @@ export default function SusanDominanceRoom() {
               </div>
             ) : (
               logs.map((log, i) => (
-                <div key={i} className="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-[28px] p-5 md:p-6 transition-all duration-300 flex flex-col md:flex-row md:items-center gap-6">
+                <div key={i} className="group bg-white/[0.02] hover:bg-white/[0.04] border border-white/5 rounded-[28px] p-5 md:p-6 transition-all duration-300 flex flex-col md:flex-row md:items-center gap-6 text-left">
                   <div className="text-slate-600 font-mono text-[11px] font-medium tracking-tighter opacity-60">
                     {new Date(log.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </div>
@@ -122,7 +124,7 @@ export default function SusanDominanceRoom() {
         </section>
 
         {/* Implementation Matrix */}
-        <section className="pt-12 border-t border-white/5 space-y-8">
+        <section className="pt-12 border-t border-white/5 space-y-8 text-left">
             <h2 className="text-xs font-bold uppercase tracking-[0.25em] text-slate-500 flex items-center gap-2">
                 <Zap size={14} /> Active Deployments
             </h2>
@@ -131,7 +133,7 @@ export default function SusanDominanceRoom() {
                   { title: "Unbundled SaaS Engine", desc: "Replicating high-cost SaaS products into Vertical AI microservices for the Itana ecosystem.", tag: "STRATEGY" },
                   { title: "Solana Sniper V3", desc: "Real-time liquidity analysis with bot-volume separation. Currently prototyping wash-trade detection.", tag: "PROTOTYPE" }
                 ].map((item, i) => (
-                  <div key={i} className="group bg-white/[0.02] p-8 rounded-[36px] border border-white/5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden">
+                  <div key={i} className="group bg-white/[0.02] p-8 rounded-[36px] border border-white/5 hover:border-indigo-500/30 transition-all duration-500 relative overflow-hidden text-left">
                     <div className="absolute top-0 right-0 p-6 opacity-0 group-hover:opacity-100 transition-opacity">
                       <ArrowUpRight className="text-indigo-500" size={20} />
                     </div>
