@@ -2,10 +2,14 @@ import dbConnect from "@/lib/db";
 import QuickLink from "@/models/QuickLink";
 import { NextResponse } from "next/server";
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   await dbConnect();
   try {
-    const deleted = await QuickLink.findByIdAndDelete(params.id);
+    const { id } = await params;
+    const deleted = await QuickLink.findByIdAndDelete(id);
     if (!deleted) {
       return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
     }
