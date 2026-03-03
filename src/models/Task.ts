@@ -20,6 +20,11 @@ const TaskSchema = new mongoose.Schema({
     enum: ['high', 'medium', 'low'],
     default: 'medium',
   },
+  category: {
+    type: String,
+    enum: ['Work', 'Personal', 'Health', 'Finance', 'Other'],
+    default: 'Other',
+  },
   order: {
     type: Number,
     default: 0,
@@ -68,7 +73,8 @@ const TaskSchema = new mongoose.Schema({
   googleEventId: { type: String },
   isMIT: { type: Boolean, default: false },
   mitDate: { type: Date }, // To track which day it was assigned as MIT
-  overdueNotified: { type: Boolean, default: false } // Track if overdue email has been sent
+  overdueNotified: { type: Boolean, default: false }, // Track if overdue email has been sent
+  completedAt: { type: Date }
 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);

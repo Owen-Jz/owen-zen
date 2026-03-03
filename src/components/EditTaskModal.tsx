@@ -15,7 +15,7 @@ interface EditTaskModalProps {
     task: Task | null;
     boards: Board[];
     onClose: () => void;
-    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string) => void;
+    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => void;
     onStartTimer: (id: string, sessionTitle?: string) => void;
     onStopTimer: (id: string, note?: string) => void;
     onPauseTimer?: (id: string) => void;
@@ -52,6 +52,7 @@ export const EditTaskModal = ({
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
     const [boardId, setBoardId] = useState<string | null>(task?.boardId || null);
+    const [category, setCategory] = useState(task?.category || "Other");
 
     if (!task) return null;
 
@@ -73,7 +74,7 @@ export const EditTaskModal = ({
     };
 
     const handleSave = () => {
-        onSave(task._id, title, description, priority, subtasks, dueDate || undefined);
+        onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category);
         // Also save board move if changed (separate API call usually, but handled here via callback)
         if (boardId !== task.boardId) {
             onMoveToBoard(task._id, boardId);
@@ -277,6 +278,23 @@ export const EditTaskModal = ({
                                             {p}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* Category Selector */}
+                            <div>
+                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Category</label>
+                                <div className="relative">
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30"
+                                    >
+                                        {['Work', 'Personal', 'Health', 'Finance', 'Other'].map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                    <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                                 </div>
                             </div>
 

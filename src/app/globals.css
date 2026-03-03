@@ -11,6 +11,20 @@
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
 
+  --color-white: var(--white);
+  --color-black: var(--black);
+
+  --color-gray-50: var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+
   --animate-pulse-slow: pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
@@ -25,6 +39,20 @@
   --surface: #0a0a0a;
   --surface-hover: #141414;
   --border: #262626;
+
+  --white: #ffffff;
+  --black: #000000;
+
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-300: #d1d5db;
+  --gray-400: #9ca3af;
+  --gray-500: #6b7280;
+  --gray-600: #4b5563;
+  --gray-700: #374151;
+  --gray-800: #1f2937;
+  --gray-900: #111827;
 }
 
 [data-theme="cyberpunk"] {
@@ -95,6 +123,57 @@
   /* Stone-900 */
   --surface-hover: #44403c;
   --border: #57534e;
+}
+
+[data-theme="light"] {
+  /* Light - Clean & Bright */
+  --background: #ffffff;
+  --foreground: #09090b;
+  /* Zinc-950 */
+  --primary: #3b82f6;
+  /* Blue-500 */
+  --primary-light: #60a5fa;
+  /* Blue-400 */
+  --surface: #f4f4f5;
+  /* Zinc-100 */
+  --surface-hover: #e4e4e7;
+  /* Zinc-200 */
+  --border: #d4d4d8;
+  /* Zinc-300 */
+
+  /* Invert white/black for light mode so all text-white and border-white/5 etc work perfectly */
+  --white: #18181b;
+  /* Make "white" text actually dark zinc in light mode */
+  --black: #ffffff;
+
+  /* Invert grays for light mode so everything stays legible */
+  --gray-50: #18181b;
+  --gray-100: #27272a;
+  --gray-200: #3f3f46;
+  --gray-300: #52525b;
+  --gray-400: #71717a;
+  --gray-500: #a1a1aa;
+  --gray-600: #d4d4d8;
+  --gray-700: #e4e4e7;
+  --gray-800: #f4f4f5;
+  --gray-900: #fafafa;
+}
+
+/* Force elements that MUST have actual white text regardless of the theme */
+[data-theme="light"] .bg-primary,
+[data-theme="light"] .bg-red-500,
+[data-theme="light"] .bg-blue-500,
+[data-theme="light"] .bg-green-500,
+[data-theme="light"] .bg-purple-500,
+[data-theme="light"] .bg-amber-500 {
+  color: #ffffff !important;
+}
+
+[data-theme="light"] .bg-primary .text-gray-400,
+[data-theme="light"] .bg-primary .text-white,
+[data-theme="light"] .bg-primary .text-white\/50,
+[data-theme="light"] .bg-primary .text-white\/60 {
+  color: rgba(255, 255, 255, 0.8) !important;
 }
 
 body {

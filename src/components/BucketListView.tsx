@@ -9,7 +9,7 @@ interface BucketItem {
   title: string;
   category: string;
   completed: boolean;
-  completedAt?: string;
+  completedAt?: string | null;
   notes: string;
   createdAt: string;
 }
@@ -134,11 +134,10 @@ export function BucketListView() {
           <button
             key={cat}
             onClick={() => setFilterCategory(cat)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap transition-all ${
-              filterCategory === cat
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold border whitespace-nowrap transition-all ${filterCategory === cat
                 ? "bg-primary/20 border-primary text-primary"
                 : "bg-surface border-border text-gray-400 hover:text-white hover:border-white/20"
-            }`}
+              }`}
           >
             {cat}
           </button>

@@ -8,6 +8,14 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params;
     const body = await req.json();
 
+    if (body.status) {
+      if (body.status === 'completed' && !body.completedAt) {
+        body.completedAt = new Date();
+      } else if (body.status !== 'completed') {
+        body.completedAt = null;
+      }
+    }
+
     const task = await Task.findByIdAndUpdate(id, body, {
       new: true,
       runValidators: true,

@@ -15,7 +15,7 @@ interface AddTaskModalProps {
     boards: Board[];
     defaultBoardId: string | null;
     onClose: () => void;
-    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean) => void;
+    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean, category: string) => void;
 }
 
 export const AddTaskModal = ({
@@ -33,6 +33,7 @@ export const AddTaskModal = ({
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(false);
     const [boardId, setBoardId] = useState<string | null>(defaultBoardId);
+    const [category, setCategory] = useState("Other");
 
     const addSubtask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -53,7 +54,7 @@ export const AddTaskModal = ({
 
     const handleSave = () => {
         if (!title.trim()) return;
-        onSave(title, description, priority, subtasks, dueDate || undefined, boardId, isMIT);
+        onSave(title, description, priority, subtasks, dueDate || undefined, boardId, isMIT, category);
         onClose();
     };
 
@@ -217,6 +218,23 @@ export const AddTaskModal = ({
                                             {p}
                                         </button>
                                     ))}
+                                </div>
+                            </div>
+
+                            {/* Category Selector */}
+                            <div>
+                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Category</label>
+                                <div className="relative">
+                                    <select
+                                        value={category}
+                                        onChange={(e) => setCategory(e.target.value)}
+                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30"
+                                    >
+                                        {['Work', 'Personal', 'Health', 'Finance', 'Other'].map(c => (
+                                            <option key={c} value={c}>{c}</option>
+                                        ))}
+                                    </select>
+                                    <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                                 </div>
                             </div>
 

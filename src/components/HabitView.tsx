@@ -566,13 +566,15 @@ export const HabitView = () => {
                                     if (!data) return <div key={dayIndex} className="w-2.5 h-2.5" />; // Empty placeholder
 
                                     const isFuture = data.date > new Date();
+                                    const isPerfectDay = data.count > 0 && data.count >= habits.length;
+
                                     return (
                                         <div
                                             key={dayIndex}
                                             title={`${data.date.toDateString()}: ${data.count} completions`}
                                             className={cn(
                                                 "w-2.5 h-2.5 rounded-[2px] transition-all duration-300",
-                                                isFuture ? "bg-white/5 opacity-50" : intensityColors[getIntensity(data.count)]
+                                                isFuture ? "bg-white/5 opacity-50" : isPerfectDay ? "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" : intensityColors[getIntensity(data.count)]
                                             )}
                                         />
                                     );

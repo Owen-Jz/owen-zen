@@ -312,13 +312,18 @@ export const TaskCard = forwardRef<HTMLDivElement, {
         <div className="flex items-center justify-between pt-4 mt-2 border-t border-white/5">
           {/* Left side: Date + Time */}
           <div className="flex items-center gap-4">
-            {/* Creation Date */}
-            {task.createdAt && (
+            {/* Creation or Completion Date */}
+            {task.status === "completed" && task.completedAt ? (
+              <div className="flex items-center gap-1.5 text-[10px] text-green-500 font-medium">
+                <Check size={12} className="opacity-70" />
+                <span>Finished {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}</span>
+              </div>
+            ) : task.createdAt ? (
               <div className="flex items-center gap-1.5 text-[10px] text-gray-500 font-medium">
                 <CalendarDays size={12} className="opacity-70" />
                 <span>{formatDate(task.createdAt)}</span>
               </div>
-            )}
+            ) : null}
             {/* Due Date */}
             {task.dueDate && (
               <div className={cn(

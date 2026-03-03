@@ -45,6 +45,8 @@ export interface Task {
     googleEventId?: string;
     isTemp?: boolean;
     overdueNotified?: boolean;
+    category?: string;
+    completedAt?: string;
 }
 
 export interface ProjectDeliverable {
