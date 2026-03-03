@@ -9,6 +9,10 @@ const ShoppingItemSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    category: {
+        type: String,
+        default: "General",
+    },
     createdAt: {
         type: Date,
         default: Date.now,

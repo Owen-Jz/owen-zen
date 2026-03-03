@@ -77,7 +77,8 @@ export async function PUT(req: Request) {
             status: task.status,
             priority: task.priority, // Allow priority updates
             title: task.title,       // Allow title updates
-            isArchived: task.isArchived // Allow archiving
+            isArchived: task.isArchived, // Allow archiving
+            completedAt: task.completedAt // Allow date logging
           }
         }
       }

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -47,6 +47,7 @@ import { NotificationBell } from "@/components/NotificationBell"; // Import Noti
 import { Loading } from "@/components/Loading";
 import { ShoppingListModal } from "@/components/ShoppingListModal";
 import { ProjectView } from "@/components/ProjectView";
+import { FinanceView } from "@/components/FinanceView";
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -95,7 +96,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     fetch('/api/quick-links')
       .then(r => r.json())
       .then(j => { if (j.success) setQuickLinks(j.data); })
-      .catch(() => {});
+      .catch(() => { });
   }, []);
 
   const addQuickLink = async (e: React.FormEvent) => {
@@ -134,6 +135,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     { id: "socials", label: "Social Hub", icon: Share2 },
     { id: "leads", label: "Leads CRM", icon: Users },
     { id: "inbox", label: "The Inbox", icon: Inbox },
+    { id: "finance", label: "Finance Tracker", icon: Wallet },
     { id: "bucket", label: "2026 Bucket List", icon: Star },
     { id: "calendar", label: "Calendar", icon: Calendar },
     { id: "settings", label: "Settings", icon: Settings },
@@ -199,8 +201,8 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
           })}
         </nav>
 
-        {/* Quick Links */}
-        <div className={cn("px-3 mt-6 border-t border-white/5 pt-4", isCollapsed && "md:hidden")}>
+        {/* Quick Links (Mobile Only) */}
+        <div className="px-3 mt-6 border-t border-white/5 pt-4 md:hidden">
           <div className="flex items-center justify-between mb-2 px-2">
             <p className="text-xs text-gray-500 uppercase tracking-widest">Quick Links</p>
             <button
@@ -366,6 +368,17 @@ const SettingsView = () => {
             <div className="text-xs text-gray-500 mt-1">Warm Stone & Amber</div>
           </button>
 
+          {/* Light Mode */}
+          <button onClick={() => setTheme('light')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#ffffff] rounded-lg mb-4 border border-[#d4d4d8] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#3b82f6]/10 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#3b82f6] shadow-[0_0_15px_rgba(59,130,246,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#60a5fa] text-xs font-mono">LIGHT</div>
+            </div>
+            <div className="font-bold text-lg">Light Mode</div>
+            <div className="text-xs text-gray-500 mt-1">Clean White & Blue</div>
+          </button>
+
         </div>
       </div>
     </div>
@@ -406,8 +419,15 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
         <div className="grid gap-3">
           {archivedTasks.map(task => (
             <div key={task._id} className="bg-surface/50 border border-border p-4 rounded-xl flex justify-between items-center opacity-70 hover:opacity-100 transition-opacity">
-              <span className="text-gray-400 line-through">{task.title}</span>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="text-gray-400 line-through truncate">{task.title}</span>
+                {task.completedAt && (
+                  <span className="text-[10px] text-green-500/80 font-mono">
+                    Finished {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-2 shrink-0 ml-4">
                 <button onClick={() => onRestore(task._id)} className="p-2 text-primary hover:bg-primary/10 rounded-lg text-xs font-bold uppercase">
                   Restore
                 </button>
@@ -422,6 +442,260 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
     </div>
   );
 }
+
+const RightSidebar = ({
+  isLofiPlaying,
+  setIsLofiPlaying
+}: {
+  isLofiPlaying: boolean;
+  setIsLofiPlaying: (v: boolean) => void;
+}) => {
+  const [quickLinks, setQuickLinks] = useState<QuickLinkItem[]>([]);
+  const [isAddingLink, setIsAddingLink] = useState(false);
+  const [newLinkLabel, setNewLinkLabel] = useState('');
+  const [newLinkUrl, setNewLinkUrl] = useState('');
+  const [newLinkEmoji, setNewLinkEmoji] = useState('🔗');
+  const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(true);
+  const [spentToday, setSpentToday] = useState<number | null>(null);
+
+  // Time states
+  const [timeExt, setTimeExt] = useState({
+    sf: '',
+    on: '',
+    local: ''
+  });
+
+  useEffect(() => {
+    const updateTime = () => {
+      const sfTime = new Date().toLocaleString("en-US", { timeZone: "America/Los_Angeles", hour: '2-digit', minute: '2-digit', hour12: true });
+      const onTime = new Date().toLocaleString("en-US", { timeZone: "America/Toronto", hour: '2-digit', minute: '2-digit', hour12: true });
+      const localTime = new Date().toLocaleString("en-US", { timeZone: "Africa/Lagos", hour: '2-digit', minute: '2-digit', hour12: true });
+      setTimeExt({ sf: sfTime, on: onTime, local: localTime });
+    };
+    updateTime();
+    const int = setInterval(updateTime, 10000);
+    return () => clearInterval(int);
+  }, []);
+
+  // Fetch today's burn rate
+  useEffect(() => {
+    const fetchSpentToday = async () => {
+      try {
+        const today = new Date();
+        const yyyymm = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
+        const res = await fetch(`/api/finance/expenses?month=${yyyymm}`);
+        const json = await res.json();
+        if (json.success && json.expenses) {
+          const todayStr = today.toISOString().split('T')[0];
+          const sum = json.expenses
+            .filter((e: any) => e.date && e.date.startsWith(todayStr))
+            .reduce((s: number, e: any) => s + e.amount, 0);
+          setSpentToday(sum);
+        }
+      } catch (err) { }
+    };
+    fetchSpentToday();
+  }, []);
+
+
+  useEffect(() => {
+    fetch('/api/quick-links')
+      .then(r => r.json())
+      .then(j => { if (j.success) setQuickLinks(j.data); })
+      .catch(() => { });
+  }, []);
+
+  const addQuickLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+    const url = newLinkUrl.startsWith('http') ? newLinkUrl : `https://${newLinkUrl}`;
+    const res = await fetch('/api/quick-links', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: newLinkLabel.trim(), url, emoji: newLinkEmoji }),
+    });
+    const json = await res.json();
+    if (json.success) {
+      setQuickLinks(prev => [...prev, json.data]);
+      setNewLinkLabel('');
+      setNewLinkUrl('');
+      setNewLinkEmoji('🔗');
+      setIsAddingLink(false);
+    }
+  };
+
+  const deleteQuickLink = async (id: string) => {
+    setQuickLinks(prev => prev.filter(l => l._id !== id));
+    await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
+  };
+
+  return (
+    <div className="hidden md:flex flex-col fixed right-0 top-0 h-full w-64 bg-surface/80 backdrop-blur-xl border-l border-white/5 z-40 p-6 transition-all duration-300 overflow-y-auto scrollbar-hide">
+
+      {/* 1. Multi-Timezone Clocks */}
+      <div className="flex justify-between items-center bg-surface-hover/50 p-3 rounded-xl border border-white/5 mb-6">
+        <div className="flex flex-col items-center flex-1">
+          <span className="text-[10px] text-gray-500 font-bold tracking-widest mb-1">SF</span>
+          <span className="text-xs font-mono text-gray-300">{timeExt.sf || '--:--'}</span>
+        </div>
+        <div className="w-px h-6 bg-white/10"></div>
+        <div className="flex flex-col items-center flex-1">
+          <span className="text-[10px] text-gray-500 font-bold tracking-widest mb-1">ON</span>
+          <span className="text-xs font-mono text-gray-300">{timeExt.on || '--:--'}</span>
+        </div>
+        <div className="w-px h-6 bg-white/10"></div>
+        <div className="flex flex-col items-center flex-1">
+          <span className="text-[10px] text-gray-500 font-bold tracking-widest mb-1">YOU</span>
+          <span className="text-xs font-mono text-gray-300">{timeExt.local || '--:--'}</span>
+        </div>
+      </div>
+
+      {/* 2. Today's Financial Burn Rate */}
+      <div className="bg-gradient-to-br from-red-500/10 to-orange-500/5 border border-red-500/20 p-4 rounded-xl mb-6 flex items-center gap-3">
+        <div className="p-2 bg-red-500/20 rounded-lg text-red-400">
+          <Wallet size={16} />
+        </div>
+        <div>
+          <p className="text-[10px] text-red-500/70 uppercase tracking-widest font-bold">Spent Today</p>
+          <p className="text-sm font-mono font-bold text-red-400/90 mt-0.5">
+            ₦{spentToday !== null ? spentToday.toLocaleString() : '---'}
+          </p>
+        </div>
+      </div>
+
+      {/* 3. Zen Audio & Lofi Controls */}
+      <div className="bg-surface-hover border border-white/5 p-4 rounded-xl mb-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-2 text-indigo-400">
+            <Pause size={16} />
+            <h3 className="text-xs font-bold uppercase tracking-widest">Focus Audio</h3>
+          </div>
+          {isLofiPlaying && (
+            <div className="flex gap-1">
+              {[...Array(3)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="w-1 bg-indigo-500 rounded-full"
+                  animate={{ height: ["4px", "12px", "4px"] }}
+                  transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-3">
+          <div className="flex items-center justify-between group">
+            <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">Lofi Beats</span>
+            <button
+              onClick={() => setIsLofiPlaying(!isLofiPlaying)}
+              className={cn(
+                "w-8 h-4 rounded-full transition-colors relative",
+                isLofiPlaying ? "bg-indigo-500/50" : "bg-white/10"
+              )}
+            >
+              <div className={cn(
+                "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
+                isLofiPlaying ? "left-[18px]" : "left-0.5"
+              )} />
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-gray-500">Vol</span>
+            <input type="range" min="0" max="100" defaultValue="50" className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* 4. Quick Links Dropdown */}
+      <div className="flex items-center justify-between mb-4 cursor-pointer group" onClick={() => setIsQuickLinksOpen(!isQuickLinksOpen)}>
+        <h2 className="text-xs text-gray-500 uppercase tracking-widest group-hover:text-gray-300 transition-colors">Quick Links</h2>
+        <div className="flex items-center gap-2">
+          {isQuickLinksOpen && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsAddingLink(v => !v); }}
+              className="text-gray-500 hover:text-white transition-colors"
+              title="Add quick link"
+            >
+              <Plus size={14} />
+            </button>
+          )}
+          <ChevronDown size={14} className={cn("text-gray-500 transition-transform duration-300", isQuickLinksOpen ? "rotate-180" : "rotate-0")} />
+        </div>
+      </div>
+
+      <AnimatePresence>
+        {isQuickLinksOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="space-y-2 overflow-hidden flex-shrink-0"
+          >
+            {quickLinks.map(link => (
+              <div key={link._id} className="flex items-center group gap-1">
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex-1 min-w-0"
+                >
+                  <span className="text-base shrink-0">{link.emoji}</span>
+                  <span className="truncate">{link.label}</span>
+                </a>
+                <button
+                  onClick={() => deleteQuickLink(link._id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-500 transition-all shrink-0 mr-1"
+                  title="Remove"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+
+            {quickLinks.length === 0 && !isAddingLink && (
+              <p className="text-xs text-gray-600 px-3 py-2">No links yet — add one!</p>
+            )}
+
+            {isAddingLink && (
+              <form onSubmit={addQuickLink} className="mt-2 space-y-2 px-1">
+                <div className="flex gap-1">
+                  <input
+                    value={newLinkEmoji}
+                    onChange={e => setNewLinkEmoji(e.target.value)}
+                    placeholder="🔗"
+                    className="w-10 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-primary/50"
+                  />
+                  <input
+                    autoFocus
+                    value={newLinkLabel}
+                    onChange={e => setNewLinkLabel(e.target.value)}
+                    placeholder="Label"
+                    className="flex-1 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <input
+                  value={newLinkUrl}
+                  onChange={e => setNewLinkUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+                />
+                <div className="flex gap-1">
+                  <button type="submit" className="flex-1 bg-primary/20 text-primary border border-primary/30 rounded-lg py-1.5 text-xs font-bold hover:bg-primary/30 transition-colors">
+                    Add
+                  </button>
+                  <button type="button" onClick={() => setIsAddingLink(false)} className="px-3 text-gray-500 hover:text-white rounded-lg border border-white/5 text-xs transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -550,7 +824,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean) => {
+  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean, category: string) => {
     // Optimistic UI
     const tempId = crypto.randomUUID();
     const tempTask: Task = {
@@ -567,6 +841,7 @@ export default function Dashboard() {
       isMIT,
       isArchived: false,
       isTemp: true,
+      category,
     };
 
     const previousTasks = [...tasks];
@@ -577,7 +852,7 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, priority, subtasks, dueDate, boardId, isMIT
+          title, description, priority, subtasks, dueDate, boardId, isMIT, category
         }),
       });
       const json = await res.json();
@@ -662,16 +937,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category } : t));
     setEditingTask(null);
 
     try {
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, priority, subtasks, dueDate }),
+        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category }),
       });
     } catch {
       setTasks(oldTasks);
@@ -1047,7 +1322,10 @@ export default function Dashboard() {
 
       {/* Sidebar hidden in Zen Mode */}
       {!isZenMode && (
-        <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
+        <>
+          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
+          <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} />
+        </>
       )}
 
       {/* Edit Modal */}
@@ -1165,7 +1443,7 @@ export default function Dashboard() {
 
       <main className={cn(
         "flex-1 transition-all duration-500 p-4 md:p-8 overflow-y-auto h-screen w-full relative",
-        !isZenMode && (isSidebarCollapsed ? "md:ml-20" : "md:ml-64"),
+        !isZenMode && (isSidebarCollapsed ? "md:ml-20 md:mr-64" : "md:ml-64 md:mr-64"),
         isZenMode && "mx-auto max-w-7xl md:p-12"
       )}>
         {/* Active Timer Bar */}
@@ -1177,7 +1455,7 @@ export default function Dashboard() {
               exit={{ opacity: 0, y: -20 }}
               className={cn(
                 "fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-500",
-                !isZenMode && (isSidebarCollapsed ? "md:left-20" : "md:left-64")
+                !isZenMode && (isSidebarCollapsed ? "md:left-20 md:right-64" : "md:left-64 md:right-64")
               )}
             >
               <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
@@ -1425,6 +1703,7 @@ export default function Dashboard() {
         {activeTab === "socials" && <SocialHubView />}
         {activeTab === "leads" && <LeadsView />}
         {activeTab === "inbox" && <InboxView />}
+        {activeTab === "finance" && <FinanceView />}
         {activeTab === "bucket" && <BucketListView />}
         {activeTab === "settings" && <SettingsView />}
 

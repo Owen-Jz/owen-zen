@@ -75,6 +75,7 @@ export const TaskBoard = ({
 
   const [activeId, setActiveId] = useState<string | null>(null);
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "medium" | "low">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
@@ -150,6 +151,11 @@ export const TaskBoard = ({
 
     if (activeTask.status !== newStatus) {
       activeTask.status = newStatus;
+      if (newStatus === "completed") {
+        activeTask.completedAt = new Date().toISOString();
+      } else {
+        activeTask.completedAt = undefined;
+      }
     }
 
     if (activeIdStr !== overIdStr) {
@@ -171,7 +177,8 @@ export const TaskBoard = ({
           status: t.status,
           priority: t.priority,
           isArchived: t.isArchived,
-          title: t.title
+          title: t.title,
+          completedAt: t.completedAt
         }))
       }),
     });
@@ -185,7 +192,11 @@ export const TaskBoard = ({
   ];
 
   // Only show non-archived tasks and apply filters
-  const visibleTasks = tasks.filter(t => !t.isArchived && (priorityFilter === "all" || t.priority === priorityFilter));
+  const visibleTasks = tasks.filter(t =>
+    !t.isArchived &&
+    (priorityFilter === "all" || t.priority === priorityFilter) &&
+    (categoryFilter === "all" || t.category === categoryFilter)
+  );
 
   const totalTasks = visibleTasks.length;
   const completedTasks = visibleTasks.filter(t => t.status === "completed").length;
@@ -212,25 +223,45 @@ export const TaskBoard = ({
         </div>
 
         {/* Priority Filter Chips */}
-        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide">
-          <span className="text-xs font-bold text-gray-500 uppercase tracking-wider mr-2 hidden sm:block">Filter:</span>
-          {(["all", "high", "medium", "low"] as const).map(filter => (
-            <button
-              key={filter}
-              onClick={() => setPriorityFilter(filter)}
-              className={cn(
-                "px-4 py-1.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
-                priorityFilter === filter
-                  ? filter === 'high' ? "bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
-                    filter === 'medium' ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
-                      filter === 'low' ? "bg-blue-500/20 text-blue-500 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
-                        "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
-                  : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
-              )}
-            >
-              {filter}
-            </button>
-          ))}
+        <div className="flex items-center gap-4 overflow-x-auto pb-1 scrollbar-hide">
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1 hidden sm:block">Priority:</span>
+            {(["all", "high", "medium", "low"] as const).map(filter => (
+              <button
+                key={filter}
+                onClick={() => setPriorityFilter(filter)}
+                className={cn(
+                  "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
+                  priorityFilter === filter
+                    ? filter === 'high' ? "bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
+                      filter === 'medium' ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
+                        filter === 'low' ? "bg-blue-500/20 text-blue-500 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
+                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                    : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mr-1 hidden sm:block">Category:</span>
+            {["all", "Work", "Personal", "Health", "Finance", "Other"].map(cat => (
+              <button
+                key={cat}
+                onClick={() => setCategoryFilter(cat)}
+                className={cn(
+                  "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
+                  categoryFilter === cat
+                    ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                    : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                )}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
