@@ -187,8 +187,8 @@ export const WeeklyGoalsView = () => {
 
     const deleteGoal = async (id: string) => {
         if (!confirm("Delete this weekly goal?")) return;
-        // Note: Need to add delete endpoint, for now just remove from UI
         setGoals(goals.filter(g => g._id !== id));
+        await fetch(`/api/weekly-goals/${id}`, { method: "DELETE" });
     };
 
     const isCompleted = (goal: WeeklyGoal) => {
