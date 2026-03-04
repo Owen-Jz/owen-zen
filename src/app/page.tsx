@@ -48,6 +48,7 @@ import { Loading } from "@/components/Loading";
 import { ShoppingListModal } from "@/components/ShoppingListModal";
 import { ProjectView } from "@/components/ProjectView";
 import { FinanceView } from "@/components/FinanceView";
+import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -128,6 +129,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     { id: "projects", label: "Project HQ", icon: LayoutTemplate },
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
     { id: "habits", label: "Habits", icon: Trophy },
+    { id: "weekly", label: "Weekly Goals", icon: Target },
     { id: "roadmap", label: "2026 Roadmap", icon: Target }, // Replaced Vision
     { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
@@ -1504,10 +1506,10 @@ export default function Dashboard() {
         <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
           <div className={cn(isZenMode && "hidden md:block")}>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
+              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : "Let's stay focused today."}
+              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : "Let's stay focused today."}
             </p>
           </div>
           <div className="flex items-center gap-3 ml-auto">
@@ -1696,6 +1698,7 @@ export default function Dashboard() {
         {activeTab === "projects" && <ProjectView />}
         {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
+        {activeTab === "weekly" && <WeeklyGoalsView />}
         {activeTab === "roadmap" && <RoadmapView />}
         {activeTab === "watch" && <WatchLaterView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
