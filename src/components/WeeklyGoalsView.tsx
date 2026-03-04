@@ -181,7 +181,7 @@ export const WeeklyGoalsView = () => {
         await fetch("/api/weekly-goals", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ _id, completedWeeks: newCompletedWeeks }),
+            body: JSON.stringify({ _id: id, completedWeeks: newCompletedWeeks }),
         });
     };
 

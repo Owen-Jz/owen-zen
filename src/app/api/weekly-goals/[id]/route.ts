@@ -2,10 +2,11 @@ import dbConnect from "@/lib/db";
 import WeeklyGoal from "@/models/WeeklyGoal";
 import { NextResponse } from "next/server";
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
     try {
         await dbConnect();
-        await WeeklyGoal.findByIdAndDelete(params.id);
+        const { id } = await params;
+        await WeeklyGoal.findByIdAndDelete(id);
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("DELETE /api/weekly-goals error:", error);
