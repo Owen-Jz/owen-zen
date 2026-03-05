@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
@@ -20,11 +20,21 @@ interface Habit {
     completedDates: string[];
 }
 
-const toLocalString = (d: Date) => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+// Cache formatter so we don't recreate it on every call (huge performance boost)
+const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Africa/Lagos',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+});
+
+const toLocalString = (d: Date | string) => {
+    const dateObj = typeof d === 'string' ? new Date(d) : d;
+    const parts = formatter.formatToParts(dateObj);
+    const yr = parts.find(p => p.type === 'year')?.value;
+    const mo = parts.find(p => p.type === 'month')?.value;
+    const da = parts.find(p => p.type === 'day')?.value;
+    return `${yr}-${mo}-${da}`;
 };
 
 export const HabitView = () => {
@@ -141,9 +151,9 @@ export const HabitView = () => {
 
         setHabits(habits.map(h => {
             if (h._id === id) {
-                const hasDone = h.completedDates.some(d => toLocalString(new Date(d)) === targetDayStr);
+                const hasDone = h.completedDates.some(d => toLocalString(d) === targetDayStr);
                 const newDates = hasDone
-                    ? h.completedDates.filter(d => toLocalString(new Date(d)) !== targetDayStr)
+                    ? h.completedDates.filter(d => toLocalString(d) !== targetDayStr)
                     : [...h.completedDates, targetDate.toISOString()];
                 return { ...h, completedDates: newDates };
             }
@@ -172,7 +182,7 @@ export const HabitView = () => {
         // Optimistic UI update
         const toUpdateIds: string[] = [];
         setHabits(habits.map(h => {
-            const hasDone = h.completedDates.some(d => toLocalString(new Date(d)) === targetDayStr);
+            const hasDone = h.completedDates.some(d => toLocalString(d) === targetDayStr);
             if (!hasDone) {
                 toUpdateIds.push(h._id);
                 return { ...h, completedDates: [...h.completedDates, targetDate.toISOString()] };
@@ -193,10 +203,10 @@ export const HabitView = () => {
         }
     };
 
-    const isCompleted = (h: Habit, date: Date) => {
+    const isCompleted = (h: Habit, date: Date | string) => {
         // Compare by YYYY-MM-DD
-        const targetStr = toLocalString(new Date(date));
-        return h.completedDates.some(cd => toLocalString(new Date(cd)) === targetStr);
+        const targetStr = toLocalString(date);
+        return h.completedDates.some(cd => toLocalString(cd) === targetStr);
     };
 
     // --- Heatmap Logic ---
@@ -221,18 +231,19 @@ export const HabitView = () => {
         return days;
     };
 
-    const heatmapGrid = getYearGridData().map(date => {
-        if (!date) return null;
-        // Compare by YYYY-MM-DD
-        const iso = toLocalString(date);
-        const count = habits.reduce((acc, h) => {
-            return acc + (h.completedDates.some(d => toLocalString(new Date(d)) === iso) ? 1 : 0);
-        }, 0);
-        return { date: new Date(date), count };
-    });
+    const heatmapGrid = useMemo(() => {
+        return getYearGridData().map(date => {
+            if (!date) return null;
+            const iso = toLocalString(date);
+            const count = habits.reduce((acc, h) => {
+                return acc + (h.completedDates.some(d => toLocalString(d) === iso) ? 1 : 0);
+            }, 0);
+            return { date: new Date(date), count };
+        });
+    }, [habits]); // Only recompute when habits change
 
     // Calculate intensity (0-4) based on real max
-    const maxCount = Math.max(...heatmapGrid.filter(d => d).map(d => d!.count), 1);
+    const maxCount = Math.max(...heatmapGrid.filter((d: { date: Date, count: number } | null) => d).map((d: any) => d.count), 1);
     const getIntensity = (count: number) => {
         if (count === 0) return 0;
         return Math.ceil((count / maxCount) * 4);
@@ -247,11 +258,18 @@ export const HabitView = () => {
     ];
 
     // --- Current Week (Mon-Sun) ---
-    const getCurrentWeekDays = () => {
-        const today = new Date();
+    const weekDays = useMemo(() => {
+        const now = new Date();
+        const parts = formatter.formatToParts(now);
+        const yr = parseInt(parts.find(p => p.type === 'year')!.value);
+        const mo = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
+        const da = parseInt(parts.find(p => p.type === 'day')!.value);
+
+        const today = new Date(yr, mo, da, 12, 0, 0); // Use noon to avoid DST edge cases
         const day = today.getDay(); // 0 (Sun) to 6 (Sat)
         const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        const monday = new Date(today.setDate(diff));
+        const monday = new Date(today);
+        monday.setDate(diff);
 
         const week = [];
         for (let i = 0; i < 7; i++) {
@@ -260,10 +278,7 @@ export const HabitView = () => {
             week.push(d);
         }
         return week;
-    };
-
-
-    const weekDays = getCurrentWeekDays();
+    }, []);
 
     // --- Advanced Stats Compute ---
     const totalHabits = habits.length;
@@ -413,7 +428,7 @@ export const HabitView = () => {
                         )}
                         {/* Week Days Header (Desktop) */}
                         <div className="hidden md:flex gap-1 ml-auto">
-                            {weekDays.map((d, i) => {
+                            {weekDays.map((d: Date, i: number) => {
                                 const isToday = toLocalString(d) === toLocalString(new Date());
                                 return (
                                     <div key={i} className={cn("w-6 text-center text-[10px] font-mono uppercase", isToday ? "text-primary font-bold" : "text-gray-600")}>
@@ -480,7 +495,7 @@ export const HabitView = () => {
 
                                         {/* Week History (Mini Dots) */}
                                         <div className="hidden md:flex gap-1">
-                                            {weekDays.map((date, i) => {
+                                            {weekDays.map((date: Date, i: number) => {
                                                 const completed = isCompleted(habit, date);
                                                 const isToday = toLocalString(date) === toLocalString(new Date());
 

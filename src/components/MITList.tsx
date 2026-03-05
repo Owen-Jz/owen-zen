@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { useSensors, useSensor, PointerSensor, KeyboardSensor, DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Target } from "lucide-react";
@@ -11,9 +12,13 @@ interface MITListProps {
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     onUpdateStatus: (id: string, status: string) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
+    currentBoardId?: string | null;
 }
 
-export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITListProps) => {
+export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT, currentBoardId }: MITListProps) => {
+    const [newMITTitle, setNewMITTitle] = useState("");
+    const [isAdding, setIsAdding] = useState(false);
+
     // Filter MIT tasks
     const mitTasks = tasks.filter(t => t.isMIT && !t.isArchived && t.status !== 'completed').sort((a, b) => a.order - b.order);
 
@@ -57,7 +62,35 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITLis
         }
     };
 
-    if (mitTasks.length === 0) return null;
+    const handleAddMIT = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newMITTitle.trim() || isAdding) return;
+        setIsAdding(true);
+
+        const title = newMITTitle;
+        setNewMITTitle(""); // clear input optimistically
+
+        try {
+            const res = await fetch("/api/tasks", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    title,
+                    isMIT: true,
+                    priority: "high",
+                    boardId: currentBoardId || null
+                }),
+            });
+            const json = await res.json();
+            if (json.success) {
+                setTasks(prev => [...prev, json.data]);
+            }
+        } catch (err) {
+            console.error("Failed to add MIT", err);
+        } finally {
+            setIsAdding(false);
+        }
+    };
 
     return (
         <div className="mb-8">
@@ -86,6 +119,25 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT }: MITLis
                     </div>
                 </SortableContext>
             </DndContext>
+
+            {/* Quick Add MIT Input */}
+            <form onSubmit={handleAddMIT} className="mt-3 relative group">
+                <input
+                    type="text"
+                    value={newMITTitle}
+                    onChange={(e) => setNewMITTitle(e.target.value)}
+                    placeholder="Add a new Daily Negotiable..."
+                    className="w-full bg-surface/50 border border-white/5 rounded-xl px-4 py-3 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-red-500/50 focus:ring-1 focus:ring-red-500/50 transition-all font-medium"
+                    disabled={isAdding}
+                />
+                <button
+                    type="submit"
+                    disabled={!newMITTitle.trim() || isAdding}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-xs font-bold uppercase tracking-wider text-red-500 opacity-0 group-hover:opacity-100 disabled:opacity-0 transition-opacity px-2 py-1"
+                >
+                    Add
+                </button>
+            </form>
         </div>
     );
 };
