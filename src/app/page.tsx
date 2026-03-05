@@ -130,7 +130,8 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
     { id: "habits", label: "Habits", icon: Trophy },
     { id: "weekly", label: "Weekly Goals", icon: Target },
-    { id: "roadmap", label: "2026 Roadmap", icon: Target }, // Replaced Vision
+    { id: "vision", label: "Vision Board", icon: Palette },
+    { id: "roadmap", label: "2026 Roadmap", icon: Target },
     { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
     { id: "archive", label: "Archive", icon: Archive },
     { id: "sniper", label: "Sniper System", icon: Crosshair },
@@ -566,10 +567,21 @@ const RightSidebar = ({
       </div>
 
       {/* 3. Zen Audio & Lofi Controls */}
-      <div className="bg-surface-hover border border-white/5 p-4 rounded-xl mb-6">
-        <div className="flex items-center justify-between mb-4">
+      <div className="bg-surface-hover border border-white/5 p-4 rounded-xl mb-6 relative overflow-hidden">
+        {isLofiPlaying && (
+          <div className="absolute inset-0 bg-indigo-500/5 animate-pulse pointer-events-none" />
+        )}
+        <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-2 text-indigo-400">
-            <Pause size={16} />
+            {isLofiPlaying ? (
+              <div className="relative flex items-center justify-center w-5 h-5 min-w-[20px] shrink-0 animate-[spin_3s_linear_infinite]">
+                <div className="absolute inset-0 rounded-full border-[3.5px] border-indigo-500/50 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                <div className="absolute w-2 h-2 rounded-full border border-indigo-400/80 bg-surface z-10" />
+                <div className="absolute w-1.5 h-1.5 rounded-full bg-indigo-300 top-[1px]" />
+              </div>
+            ) : (
+              <Pause size={16} />
+            )}
             <h3 className="text-xs font-bold uppercase tracking-widest">Focus Audio</h3>
           </div>
           {isLofiPlaying && (
@@ -590,7 +602,14 @@ const RightSidebar = ({
           <div className="flex items-center justify-between group">
             <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">Lofi Beats</span>
             <button
-              onClick={() => setIsLofiPlaying(!isLofiPlaying)}
+              onClick={() => {
+                if (isLofiPlaying) {
+                  setIsLofiPlaying(false);
+                } else {
+                  window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
+                  setIsLofiPlaying(true);
+                }
+              }}
               className={cn(
                 "w-8 h-4 rounded-full transition-colors relative",
                 isLofiPlaying ? "bg-indigo-500/50" : "bg-white/10"
@@ -720,6 +739,8 @@ export default function Dashboard() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [focusedTask, setFocusedTask] = useState<Task | null>(null); // Focus Mode State
   const [greeting, setGreeting] = useState("Good Morning");
+  const [dailyEmoji, setDailyEmoji] = useState("✨");
+  const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0); // For live timer updates
 
@@ -734,6 +755,63 @@ export default function Dashboard() {
     if (hour < 12) setGreeting("Good Morning");
     else if (hour < 18) setGreeting("Good Afternoon");
     else setGreeting("Good Evening");
+
+    const month = lagosTime.getMonth();
+    const day = lagosTime.getDate();
+    let emoji = "✨";
+    if (month === 0 && day === 1) emoji = "🎆"; // New Year
+    else if (month === 1 && day === 14) emoji = "💝"; // Valentine's
+    else if (month === 2 && day === 17) emoji = "🍀"; // St Patrick's
+    else if (month === 3 && day === 1) emoji = "🃏"; // April Fools
+    else if (month === 4 && day === 1) emoji = "👷"; // Labor Day
+    else if (month === 6 && day === 4) emoji = "🎇"; // Independence Day
+    else if (month === 9 && day === 31) emoji = "🎃"; // Halloween
+    else if (month === 11 && day === 25) emoji = "🎄"; // Christmas
+    else if (month === 11 && day === 31) emoji = "🥂"; // NYE
+    else {
+      const fallbackEmojis = ["🚀", "💡", "🔥", "⚡️", "🌟", "🎯", "💪"];
+      emoji = fallbackEmojis[lagosTime.getDay()];
+    }
+    setDailyEmoji(emoji);
+
+    const quotes = [
+      "Let's stay focused today.",
+      "Small steps every day.",
+      "Make today your masterpiece.",
+      "The secret of getting ahead is getting started.",
+      "It always seems impossible until it's done.",
+      "Don't watch the clock; do what it does. Keep going.",
+      "You are capable of amazing things.",
+      "Focus on being productive instead of busy.",
+      "Doubt kills more dreams than failure ever will.",
+      "Great things never come from comfort zones.",
+      "Success is what happens after you have survived all your mistakes.",
+      "Dream big and dare to fail.",
+      "Action is the foundational key to all success.",
+      "Do what you can, with what you have, where you are.",
+      "Quality is not an act, it is a habit.",
+      "Your future is created by what you do today.",
+      "Stay positive, work hard, make it happen.",
+      "Believe you can and you're halfway there.",
+      "Every moment is a fresh beginning.",
+      "The obstacle is the way.",
+      "What you do today can improve all your tomorrows.",
+      "Discipline equals freedom.",
+      "Do the hard work, especially when you don't feel like it.",
+      "One day or day one. You decide.",
+      "Success is the sum of small efforts, repeated day in and day out.",
+      "Focus on the step in front of you, not the whole staircase.",
+      "Whatever you are, be a good one.",
+      "Be so good they can't ignore you.",
+      "Tough times never last, but tough people do.",
+      "Strive for progress, not perfection.",
+      "If it doesn't challenge you, it doesn't change you."
+    ];
+    const start = new Date(lagosTime.getFullYear(), 0, 0).getTime();
+    const diff = lagosTime.getTime() - start;
+    const oneDay = 1000 * 60 * 60 * 24;
+    const dayOfYear = Math.floor(diff / oneDay);
+    setDailyQuote(quotes[dayOfYear % quotes.length]);
 
     // Global Brain Dump Shortcut (Ctrl+K or Cmd+K)
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -1506,10 +1584,10 @@ export default function Dashboard() {
         <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
           <div className={cn(isZenMode && "hidden md:block")}>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen.`}
+              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : `${greeting}, Owen. ${dailyEmoji}`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : "Let's stay focused today."}
+              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : dailyQuote}
             </p>
           </div>
           <div className="flex items-center gap-3 ml-auto">
@@ -1574,6 +1652,7 @@ export default function Dashboard() {
               setTasks={setTasks}
               onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
               onToggleMIT={toggleMIT}
+              currentBoardId={currentBoardId}
             />
 
             {/* Board Selector */}
@@ -1699,6 +1778,7 @@ export default function Dashboard() {
         {activeTab === "stats" && <AnalyticsView />}
         {activeTab === "habits" && <HabitView />}
         {activeTab === "weekly" && <WeeklyGoalsView />}
+        {activeTab === "vision" && <VisionBoardView />}
         {activeTab === "roadmap" && <RoadmapView />}
         {activeTab === "watch" && <WatchLaterView />}
         {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
