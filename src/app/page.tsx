@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
@@ -93,6 +93,17 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
   const [newLinkUrl, setNewLinkUrl] = useState('');
   const [newLinkEmoji, setNewLinkEmoji] = useState('🔗');
 
+  const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
+    Core: true,
+    Planning: true,
+    Tools: true,
+    System: false
+  });
+
+  const toggleSection = (title: string) => {
+    setExpandedSections(prev => ({ ...prev, [title]: !prev[title] }));
+  };
+
   useEffect(() => {
     fetch('/api/quick-links')
       .then(r => r.json())
@@ -124,24 +135,44 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     await fetch(`/api/quick-links/${id}`, { method: 'DELETE' });
   };
 
-  const links = [
-    { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
-    { id: "projects", label: "Project HQ", icon: LayoutTemplate },
-    { id: "stats", label: "Stats", icon: TrendingUp }, // Added Stats
-    { id: "habits", label: "Habits", icon: Trophy },
-    { id: "weekly", label: "Weekly Goals", icon: Target },
-    { id: "vision", label: "Vision Board", icon: Palette },
-    { id: "roadmap", label: "2026 Roadmap", icon: Target },
-    { id: "watch", label: "Watch Later", icon: Circle }, // Watch Later
-    { id: "archive", label: "Archive", icon: Archive },
-    { id: "sniper", label: "Sniper System", icon: Crosshair },
-    { id: "socials", label: "Social Hub", icon: Share2 },
-    { id: "leads", label: "Leads CRM", icon: Users },
-    { id: "inbox", label: "The Inbox", icon: Inbox },
-    { id: "finance", label: "Finance Tracker", icon: Wallet },
-    { id: "bucket", label: "2026 Bucket List", icon: Star },
-    { id: "calendar", label: "Calendar", icon: Calendar },
-    { id: "settings", label: "Settings", icon: Settings },
+  const linkSections = [
+    {
+      title: "Core",
+      links: [
+        { id: "tasks", label: "Focus Board", icon: LayoutDashboard },
+        { id: "projects", label: "Project HQ", icon: LayoutTemplate },
+        { id: "stats", label: "Stats", icon: TrendingUp },
+        { id: "habits", label: "Habits", icon: Trophy },
+      ]
+    },
+    {
+      title: "Planning",
+      links: [
+        { id: "weekly", label: "Weekly Goals", icon: Target },
+        { id: "vision", label: "Vision Board", icon: Palette },
+        { id: "roadmap", label: "2026 Roadmap", icon: Target },
+        { id: "bucket", label: "2026 Bucket List", icon: Star },
+        { id: "calendar", label: "Calendar", icon: Calendar },
+      ]
+    },
+    {
+      title: "Tools",
+      links: [
+        { id: "inbox", label: "The Inbox", icon: Inbox },
+        { id: "sniper", label: "Sniper System", icon: Crosshair },
+        { id: "finance", label: "Finance Tracker", icon: Wallet },
+        { id: "leads", label: "Leads CRM", icon: Users },
+        { id: "socials", label: "Social Hub", icon: Share2 },
+      ]
+    },
+    {
+      title: "System",
+      links: [
+        { id: "watch", label: "Watch Later", icon: Circle },
+        { id: "archive", label: "Archive", icon: Archive },
+        { id: "settings", label: "Settings", icon: Settings },
+      ]
+    }
   ];
 
   return (
@@ -155,11 +186,11 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       />
 
       <div className={cn(
-        "fixed left-0 top-0 h-full bg-surface/80 backdrop-blur-xl border-r border-white/5 transition-all duration-300 z-50",
+        "fixed left-0 top-0 h-full bg-surface/80 backdrop-blur-xl border-r border-white/5 transition-all duration-300 z-50 flex flex-col",
         isOpen ? "translate-x-0 w-64" : "-translate-x-full md:translate-x-0",
         isCollapsed ? "md:w-20" : "md:w-64"
       )}>
-        <div className="p-6 flex items-center justify-between">
+        <div className="p-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 overflow-hidden">
             <div className="w-8 h-8 relative shrink-0">
               <Image src="/logo.svg" alt="Owen Zen" fill className="object-contain" />
@@ -173,108 +204,147 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
           </button>
         </div>
 
-        <nav className="mt-8 px-3 space-y-2">
-          {links.map((link) => {
-            const Icon = link.icon;
-            const isActive = activeTab === link.id;
-            return (
-              <button
-                key={link.id}
-                onClick={() => {
-                  setActiveTab(link.id);
-                  setIsOpen(false);
-                }}
-                className={cn(
-                  "w-full flex items-center gap-3 px-3 py-3 rounded-lg transition-all duration-200 group relative",
-                  isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white"
-                )}
-              >
-                <Icon size={20} className={cn("shrink-0", isActive && "text-primary")} />
-                <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300", isCollapsed && "md:hidden")}>
-                  {link.label}
-                </span>
-                {isActive && (
-                  <motion.div
-                    layoutId="active-pill"
-                    className="absolute left-0 w-1 h-6 bg-primary rounded-r-full md:left-1"
-                  />
-                )}
-              </button>
-            );
-          })}
-        </nav>
+        <div className="flex-1 overflow-y-auto scrollbar-hide pb-24 mt-2">
+          <nav className="px-3 space-y-6">
+            {linkSections.map((section) => (
+              <div key={section.title} className="space-y-1">
+                <button
+                  onClick={() => toggleSection(section.title)}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 text-[10px] font-bold uppercase tracking-widest text-gray-500 hover:text-gray-300 transition-colors",
+                    isCollapsed && "md:justify-center md:px-0"
+                  )}
+                  title={isCollapsed ? section.title : undefined}
+                >
+                  <span className={cn(isCollapsed && "md:hidden")}>{section.title}</span>
+                  {!isCollapsed && (
+                    <ChevronDown
+                      size={14}
+                      className={cn("transition-transform duration-300", expandedSections[section.title] ? "rotate-180" : "rotate-0")}
+                    />
+                  )}
+                  {isCollapsed && (
+                    <div className="w-1.5 h-1.5 rounded-full bg-gray-600 transition-colors hover:bg-gray-400"></div>
+                  )}
+                </button>
 
-        {/* Quick Links (Mobile Only) */}
-        <div className="px-3 mt-6 border-t border-white/5 pt-4 md:hidden">
-          <div className="flex items-center justify-between mb-2 px-2">
-            <p className="text-xs text-gray-500 uppercase tracking-widest">Quick Links</p>
-            <button
-              onClick={() => setIsAddingLink(v => !v)}
-              className="text-gray-500 hover:text-white transition-colors"
-              title="Add quick link"
-            >
-              <Plus size={14} />
-            </button>
-          </div>
+                <AnimatePresence initial={false}>
+                  {(expandedSections[section.title] || isCollapsed) && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-1 overflow-hidden"
+                    >
+                      {section.links.map((link) => {
+                        const Icon = link.icon;
+                        const isActive = activeTab === link.id;
+                        return (
+                          <button
+                            key={link.id}
+                            onClick={() => {
+                              setActiveTab(link.id);
+                              setIsOpen(false);
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
+                              isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white"
+                            )}
+                            title={isCollapsed ? link.label : undefined}
+                          >
+                            <Icon size={18} className={cn("shrink-0", isActive && "text-primary")} />
+                            <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300 text-sm", isCollapsed && "md:hidden")}>
+                              {link.label}
+                            </span>
+                            {isActive && (
+                              <motion.div
+                                layoutId="active-pill"
+                                className="absolute left-0 w-1 h-5 bg-primary rounded-r-full md:left-1"
+                              />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            ))}
+          </nav>
 
-          {quickLinks.map(link => (
-            <div key={link._id} className="flex items-center group gap-1">
-              <a
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex-1 min-w-0"
-              >
-                <span className="text-base shrink-0">{link.emoji}</span>
-                <span className="truncate">{link.label}</span>
-              </a>
+          {/* Quick Links (Mobile Only) */}
+          <div className="px-3 mt-6 border-t border-white/5 pt-4 md:hidden">
+            <div className="flex items-center justify-between mb-2 px-2">
+              <p className="text-xs text-gray-500 uppercase tracking-widest">Quick Links</p>
               <button
-                onClick={() => deleteQuickLink(link._id)}
-                className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-500 transition-all shrink-0 mr-1"
-                title="Remove"
+                onClick={() => setIsAddingLink(v => !v)}
+                className="text-gray-500 hover:text-white transition-colors"
+                title="Add quick link"
               >
-                <X size={12} />
+                <Plus size={14} />
               </button>
             </div>
-          ))}
 
-          {quickLinks.length === 0 && !isAddingLink && (
-            <p className="text-xs text-gray-600 px-3 py-2">No links yet — add one!</p>
-          )}
-
-          {isAddingLink && (
-            <form onSubmit={addQuickLink} className="mt-2 space-y-2 px-1">
-              <div className="flex gap-1">
-                <input
-                  value={newLinkEmoji}
-                  onChange={e => setNewLinkEmoji(e.target.value)}
-                  placeholder="🔗"
-                  className="w-10 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-primary/50"
-                />
-                <input
-                  autoFocus
-                  value={newLinkLabel}
-                  onChange={e => setNewLinkLabel(e.target.value)}
-                  placeholder="Label"
-                  className="flex-1 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
-                />
-              </div>
-              <input
-                value={newLinkUrl}
-                onChange={e => setNewLinkUrl(e.target.value)}
-                placeholder="https://..."
-                className="w-full bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
-              />
-              <div className="flex gap-1">
-                <button type="submit" className="flex-1 bg-primary/20 text-primary border border-primary/30 rounded-lg py-1.5 text-xs font-bold hover:bg-primary/30 transition-colors">
-                  Add
-                </button>
-                <button type="button" onClick={() => setIsAddingLink(false)} className="px-3 text-gray-500 hover:text-white rounded-lg border border-white/5 text-xs transition-colors">
-                  Cancel
+            {quickLinks.map(link => (
+              <div key={link._id} className="flex items-center group gap-1">
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-white/5 transition-colors flex-1 min-w-0"
+                >
+                  <span className="text-base shrink-0">{link.emoji}</span>
+                  <span className="truncate">{link.label}</span>
+                </a>
+                <button
+                  onClick={() => deleteQuickLink(link._id)}
+                  className="opacity-0 group-hover:opacity-100 p-1 text-gray-600 hover:text-red-500 transition-all shrink-0 mr-1"
+                  title="Remove"
+                >
+                  <X size={12} />
                 </button>
               </div>
-            </form>
-          )}
+            ))}
+
+            {quickLinks.length === 0 && !isAddingLink && (
+              <p className="text-xs text-gray-600 px-3 py-2">No links yet — add one!</p>
+            )}
+
+            {isAddingLink && (
+              <form onSubmit={addQuickLink} className="mt-2 space-y-2 px-1">
+                <div className="flex gap-1">
+                  <input
+                    value={newLinkEmoji}
+                    onChange={e => setNewLinkEmoji(e.target.value)}
+                    placeholder="🔗"
+                    className="w-10 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:border-primary/50"
+                  />
+                  <input
+                    autoFocus
+                    value={newLinkLabel}
+                    onChange={e => setNewLinkLabel(e.target.value)}
+                    placeholder="Label"
+                    className="flex-1 bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+                  />
+                </div>
+                <input
+                  value={newLinkUrl}
+                  onChange={e => setNewLinkUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="w-full bg-surface-hover border border-white/10 rounded-lg px-2 py-1.5 text-sm text-gray-200 placeholder-gray-600 focus:outline-none focus:border-primary/50"
+                />
+                <div className="flex gap-1">
+                  <button type="submit" className="flex-1 bg-primary/20 text-primary border border-primary/30 rounded-lg py-1.5 text-xs font-bold hover:bg-primary/30 transition-colors">
+                    Add
+                  </button>
+                  <button type="button" onClick={() => setIsAddingLink(false)} className="px-3 text-gray-500 hover:text-white rounded-lg border border-white/5 text-xs transition-colors">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
         </div>
 
         {/* Desktop Collapse Toggle */}
@@ -1619,17 +1689,20 @@ export default function Dashboard() {
                 }
               }}
               className={clsx(
-                "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all border",
+                "hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 border",
                 isLofiPlaying
-                  ? "bg-primary/20 border-primary text-primary"
-                  : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
+                  ? "bg-gradient-to-r from-primary/30 to-purple-500/20 border-primary shadow-lg shadow-primary/25 text-primary"
+                  : "bg-surface/80 border-border/60 text-gray-400 hover:text-white hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
               )}
               title="Play Lofi Girl on YouTube"
             >
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+              <svg className={clsx("w-5 h-5 transition-transform duration-300", isLofiPlaying && "animate-pulse")} fill="currentColor" viewBox="0 0 24 24">
                 <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
               </svg>
               <span className="text-sm font-medium">Lofi Girl</span>
+              {isLofiPlaying && (
+                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
+              )}
             </button>
             {!isZenMode && (
               <button
