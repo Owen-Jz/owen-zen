@@ -159,6 +159,42 @@
   --gray-900: #fafafa;
 }
 
+/* Lavender Theme */
+[data-theme="lavender"] {
+  --primary: 139, 92, 246;
+  --primary-rgb: 139, 92, 246;
+  --background: #1a1625;
+  --surface: #251f33;
+  --foreground: #e9d5ff;
+  --card: #2d2540;
+  --border: #3d3555;
+  --accent: #a78bfa;
+}
+
+/* Rose Theme */
+[data-theme="rose"] {
+  --primary: 244, 63, 94;
+  --primary-rgb: 244, 63, 94;
+  --background: #1a1518;
+  --surface: #2a1f24;
+  --foreground: #ffe4e6;
+  --card: #352a30;
+  --border: #4a3540;
+  --accent: #fb7185;
+}
+
+/* Ocean Theme */
+[data-theme="ocean"] {
+  --primary: 6, 182, 212;
+  --primary-rgb: 6, 182, 212;
+  --background: #0c1929;
+  --surface: #132f4c;
+  --foreground: #b4e5f9;
+  --card: #173a5e;
+  --border: #265d97;
+  --accent: #22d3ee;
+}
+
 /* Force elements that MUST have actual white text regardless of the theme */
 [data-theme="light"] .bg-primary,
 [data-theme="light"] .bg-red-500,

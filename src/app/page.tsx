@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -50,6 +50,9 @@ import { ProjectView } from "@/components/ProjectView";
 import { FinanceView } from "@/components/FinanceView";
 import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
 import { GymView } from "@/components/GymView";
+import { PomodoroWidget } from "@/components/PomodoroWidget";
+import { AISummaryWidget } from "@/components/AISummaryWidget";
+import { Confetti, useConfetti } from "@/components/Confetti";
 
 import { TimeTracker } from "@/components/TimeTracker";
 
@@ -459,6 +462,39 @@ const SettingsView = () => {
             <div className="text-xs text-gray-500 mt-1">Clean White & Blue</div>
           </button>
 
+          {/* Lavender Theme */}
+          <button onClick={() => setTheme('lavender')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#251f33] rounded-lg mb-4 border border-[#3d3555] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#8b5cf6]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#8b5cf6] shadow-[0_0_15px_rgba(139,92,246,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#a78bfa] text-xs font-mono">LAVENDER</div>
+            </div>
+            <div className="font-bold text-lg">Lavender</div>
+            <div className="text-xs text-gray-500 mt-1">Purple Dreams</div>
+          </button>
+
+          {/* Rose Theme */}
+          <button onClick={() => setTheme('rose')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#2a1f24] rounded-lg mb-4 border border-[#4a3540] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#f43f5e]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#f43f5e] shadow-[0_0_15px_rgba(244,63,94,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#fb7185] text-xs font-mono">ROSE</div>
+            </div>
+            <div className="font-bold text-lg">Rose</div>
+            <div className="text-xs text-gray-500 mt-1">Passion Pink</div>
+          </button>
+
+          {/* Ocean Theme */}
+          <button onClick={() => setTheme('ocean')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#132f4c] rounded-lg mb-4 border border-[#265d97] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#06b6d4]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#06b6d4] shadow-[0_0_15px_rgba(6,182,212,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#22d3ee] text-xs font-mono">OCEAN</div>
+            </div>
+            <div className="font-bold text-lg">Ocean</div>
+            <div className="text-xs text-gray-500 mt-1">Deep Blue</div>
+          </button>
+
         </div>
       </div>
     </div>
@@ -525,10 +561,14 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
 
 const RightSidebar = ({
   isLofiPlaying,
-  setIsLofiPlaying
+  setIsLofiPlaying,
+  isCollapsed,
+  setIsCollapsed
 }: {
   isLofiPlaying: boolean;
   setIsLofiPlaying: (v: boolean) => void;
+  isCollapsed: boolean;
+  setIsCollapsed: (v: boolean) => void;
 }) => {
   const [quickLinks, setQuickLinks] = useState<QuickLinkItem[]>([]);
   const [isAddingLink, setIsAddingLink] = useState(false);
@@ -610,7 +650,9 @@ const RightSidebar = ({
   };
 
   return (
-    <div className="hidden md:flex flex-col fixed right-0 top-0 h-full w-64 bg-surface/80 backdrop-blur-xl border-l border-white/5 z-40 p-6 transition-all duration-300 overflow-y-auto scrollbar-hide">
+    <div className={cn("hidden md:flex flex-col fixed right-0 top-0 h-full bg-surface/80 backdrop-blur-xl border-l border-white/5 z-40 transition-all duration-300 overflow-y-auto scrollbar-hide",
+      isCollapsed ? "w-16 p-3" : "w-64 p-6"
+    )}>
 
       {/* 1. Multi-Timezone Clocks */}
       <div className="flex justify-between items-center bg-surface-hover/50 p-3 rounded-xl border border-white/5 mb-6">
@@ -791,6 +833,19 @@ const RightSidebar = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Pomodoro Timer */}
+      <div className="mt-auto pt-6 border-t border-white/5">
+        <PomodoroWidget />
+      </div>
+
+      {/* Desktop Collapse Toggle */}
+      <button
+        onClick={() => setIsCollapsed(!isCollapsed)}
+        className="hidden md:flex mt-4 mx-auto p-2 bg-surface-hover border border-border rounded-lg hover:bg-white/10 transition-colors"
+      >
+        <Menu size={16} className="text-gray-400" />
+      </button>
     </div>
   );
 };
@@ -808,6 +863,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("tasks");
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
   const [isZenMode, setIsZenMode] = useState(false); // Zen Mode
   const [isBrainDumpOpen, setIsBrainDumpOpen] = useState(false); // Brain Dump
   const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false); // Shopping List modal
@@ -820,6 +876,8 @@ export default function Dashboard() {
   const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0); // For live timer updates
+
+  const { trigger: confettiTrigger, fire: fireConfetti } = useConfetti();
 
   // Load Theme
   useEffect(() => {
@@ -1068,6 +1126,7 @@ export default function Dashboard() {
 
   const updateTaskStatus = async (id: string, status: TaskStatus) => {
     const oldTasks = [...tasks];
+    const wasCompleted = tasks.find(t => t._id === id)?.status === "completed";
     setTasks(tasks.map(t => t._id === id ? { ...t, status } : t));
     try {
       await fetch(`/api/tasks/${id}`, {
@@ -1075,6 +1134,9 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+      if (status === "completed" && !wasCompleted) {
+        fireConfetti();
+      }
     } catch {
       setTasks(oldTasks);
     }
@@ -1481,7 +1543,7 @@ export default function Dashboard() {
       {!isZenMode && (
         <>
           <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
-          <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} />
+          <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} isCollapsed={isRightSidebarCollapsed} setIsCollapsed={setIsRightSidebarCollapsed} />
         </>
       )}
 
@@ -1600,7 +1662,7 @@ export default function Dashboard() {
 
       <main className={cn(
         "flex-1 transition-all duration-500 p-4 md:p-8 overflow-y-auto h-screen w-full relative",
-        !isZenMode && (isSidebarCollapsed ? "md:ml-20 md:mr-64" : "md:ml-64 md:mr-64"),
+        !isZenMode && (isSidebarCollapsed ? "md:ml-20" : "md:ml-64") + " " + (isRightSidebarCollapsed ? "md:mr-16" : "md:mr-64"),
         isZenMode && "mx-auto max-w-7xl md:p-12"
       )}>
         {/* Active Timer Bar */}
@@ -1612,7 +1674,7 @@ export default function Dashboard() {
               exit={{ opacity: 0, y: -20 }}
               className={cn(
                 "fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-500",
-                !isZenMode && (isSidebarCollapsed ? "md:left-20 md:right-64" : "md:left-64 md:right-64")
+                !isZenMode && (isSidebarCollapsed ? "md:left-20" : "md:left-64") + " " + (isRightSidebarCollapsed ? "md:right-16" : "md:right-64")
               )}
             >
               <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
@@ -1680,6 +1742,20 @@ export default function Dashboard() {
               <Maximize2 size={16} />
               <span className="text-sm font-medium">Zen Mode</span>
             </button>
+
+            {/* AI Insights Button */}
+            <button
+              onClick={() => {
+                const event = new CustomEvent('toggle-ai-insights');
+                window.dispatchEvent(event);
+              }}
+              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-400 hover:border-purple-400/50 transition-all"
+              title="AI Insights"
+            >
+              <Sparkles size={16} />
+              <span className="text-sm font-medium">AI</span>
+            </button>
+
             <div className="w-px h-6 bg-white/10 mx-1 hidden md:block"></div>
 
             {/* Notification Bell */}
@@ -1899,6 +1975,9 @@ export default function Dashboard() {
         {activeTab === "calendar" && <CalendarView />}
         {activeTab === "gym" && <GymView />}
       </main>
+
+      <AISummaryWidget tasks={tasks} />
+      <Confetti trigger={confettiTrigger} />
     </div >
   );
 }

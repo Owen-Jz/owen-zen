@@ -85,6 +85,16 @@ export const AnalyticsView = () => {
   const [loading, setLoading] = useState(true);
   const [weeklyData, setWeeklyData] = useState<number[]>(Array(7).fill(0));
   const [dailyCompletion, setDailyCompletion] = useState<number[]>(Array(7).fill(0));
+  const [categoryData, setCategoryData] = useState<{ name: string; count: number; color: string }[]>([]);
+
+  const CATEGORY_COLORS: Record<string, string> = {
+    development: "#3b82f6",
+    design: "#8b5cf6",
+    business: "#22c55e",
+    personal: "#f97316",
+    marketing: "#ec4899",
+    other: "#6b7280"
+  };
 
   const [stats, setStats] = useState({
     totalTasks: 0,
@@ -160,6 +170,19 @@ export const AnalyticsView = () => {
           const mockWeekData = [120, 350, 200, 480, 150, 300, 220];
           mockWeekData[todayIndex] = (realTodayCompleted * 50); // Today's rough task XP equivalent
           setWeeklyData(mockWeekData);
+
+          // Calculate category breakdown
+          const categoryCounts: Record<string, number> = {};
+          tasks.forEach((t: any) => {
+            const cat = t.category || "other";
+            categoryCounts[cat] = (categoryCounts[cat] || 0) + 1;
+          });
+          const categories = Object.entries(categoryCounts).map(([name, count]) => ({
+            name: name.charAt(0).toUpperCase() + name.slice(1),
+            count,
+            color: CATEGORY_COLORS[name] || CATEGORY_COLORS.other
+          }));
+          setCategoryData(categories);
 
           const today = new Date();
           const startOfWeek = new Date(today);
@@ -337,6 +360,77 @@ export const AnalyticsView = () => {
           </div>
         </div>
       </div>
+
+      {/* Category Breakdown Pie Chart */}
+      {categoryData.length > 0 && (
+        <div className="card-glass p-6 md:p-8">
+          <div className="mb-6">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Activity size={18} className="text-purple-400" /> Category Breakdown
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">Distribution of tasks by category</p>
+          </div>
+
+          <div className="flex flex-col md:flex-row items-center gap-8">
+            {/* Pie Chart */}
+            <div className="relative w-48 h-48 flex-shrink-0">
+              <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
+                {categoryData.reduce((acc, cat, i) => {
+                  const total = categoryData.reduce((sum, c) => sum + c.count, 0);
+                  const percent = cat.count / total;
+                  const dashArray = percent * 100;
+                  const dashOffset = 100 - acc;
+                  
+                  acc += dashArray;
+                  return acc;
+                }, 0)}
+                {(() => {
+                  let offset = 0;
+                  return categoryData.map((cat, i) => {
+                    const total = categoryData.reduce((sum, c) => sum + c.count, 0);
+                    const percent = cat.count / total;
+                    const dashArray = percent * 100;
+                    const currentOffset = 100 - offset;
+                    offset += dashArray;
+                    
+                    return (
+                      <circle
+                        key={i}
+                        cx="50"
+                        cy="50"
+                        r="40"
+                        fill="none"
+                        stroke={cat.color}
+                        strokeWidth="20"
+                        strokeDasharray={`${dashArray} ${100 - dashArray}`}
+                        strokeDashoffset={currentOffset}
+                        className="transition-all duration-500 hover:stroke-width-[22] cursor-pointer"
+                      />
+                    );
+                  });
+                })()}
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="text-center">
+                  <div className="text-2xl font-black text-white">{categoryData.reduce((sum, c) => sum + c.count, 0)}</div>
+                  <div className="text-xs text-gray-400">Total</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Legend */}
+            <div className="flex-1 grid grid-cols-2 gap-4">
+              {categoryData.map((cat, i) => (
+                <div key={i} className="flex items-center gap-3">
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: cat.color }} />
+                  <span className="text-gray-300 text-sm">{cat.name}</span>
+                  <span className="text-gray-500 text-sm ml-auto">{cat.count}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* --- BADGE SHOWCASE --- */}
       <div className="card-glass p-6 md:p-8">
