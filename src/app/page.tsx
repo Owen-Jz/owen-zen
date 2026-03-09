@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -50,6 +50,7 @@ import { ProjectView } from "@/components/ProjectView";
 import { FinanceView } from "@/components/FinanceView";
 import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
 import { GymView } from "@/components/GymView";
+import { NotesView } from "@/components/NotesView";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
 import { Confetti, useConfetti } from "@/components/Confetti";
@@ -169,6 +170,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       title: "Tools",
       links: [
         { id: "inbox", label: "The Inbox", icon: Inbox },
+        { id: "notes", label: "Notes", icon: FileText },
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
@@ -875,7 +877,15 @@ export default function Dashboard() {
   const [dailyEmoji, setDailyEmoji] = useState("✨");
   const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
-  const [, forceUpdate] = useState(0); // For live timer updates
+  const [, forceUpdate] = useState(0);
+
+  const today = new Date();
+  const startOfYear = new Date(today.getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((today.getTime() - startOfYear.getTime()) / (1000 * 60 * 60 * 24));
+  const dayNumber = dayOfYear;
+  const totalDays = (today.getFullYear() % 4 === 0 && today.getFullYear() % 100 !== 0) || today.getFullYear() % 400 === 0 ? 366 : 365;
+  const weekNumber = Math.ceil(dayOfYear / 7);
+  const totalWeeks = 52; // For live timer updates
 
   const { trigger: confettiTrigger, fire: fireConfetti } = useConfetti();
 
@@ -1723,13 +1733,25 @@ export default function Dashboard() {
         <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
           <div className={cn(isZenMode && "hidden md:block")}>
             <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
+              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'notes' ? 'Notes' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
             </h1>
             <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
+              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'notes' ? 'Capture your thoughts and ideas.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
             </p>
           </div>
           <div className="flex items-center gap-3 ml-auto">
+            {/* Day & Week Counter */}
+            <div className="hidden md:flex items-center gap-3 mr-2">
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
+                <Calendar size={14} className="text-primary" />
+                <span className="text-sm font-medium text-gray-300">{dayNumber}/<span className="text-gray-500">{totalDays}</span></span>
+              </div>
+              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
+                <Target size={14} className="text-green-500" />
+                <span className="text-sm font-medium text-gray-300">{weekNumber}/<span className="text-gray-500">{totalWeeks}</span></span>
+              </div>
+            </div>
+
             {/* Zen Mode Toggle */}
             <button
               onClick={() => setIsZenMode(!isZenMode)}
@@ -1974,6 +1996,7 @@ export default function Dashboard() {
 
         {activeTab === "calendar" && <CalendarView />}
         {activeTab === "gym" && <GymView />}
+        {activeTab === "notes" && <NotesView />}
       </main>
 
       <AISummaryWidget tasks={tasks} />

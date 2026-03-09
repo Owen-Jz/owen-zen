@@ -10,13 +10,69 @@ const WORK_TIME = 25 * 60;
 const SHORT_BREAK = 5 * 60;
 const LONG_BREAK = 15 * 60;
 
+interface PomodoroState {
+  mode: TimerMode;
+  timeLeft: number;
+  isRunning: boolean;
+  sessions: number;
+  startedAt: string | null;
+}
+
 export const PomodoroWidget = () => {
   const [mode, setMode] = useState<TimerMode>("focus");
   const [timeLeft, setTimeLeft] = useState(WORK_TIME);
   const [isRunning, setIsRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
+  const [isLoaded, setIsLoaded] = useState(false);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+
+  const getTimeForMode = (m: TimerMode) => {
+    switch (m) {
+      case "focus": return WORK_TIME;
+      case "shortBreak": return SHORT_BREAK;
+      case "longBreak": return LONG_BREAK;
+    }
+  };
+
+  useEffect(() => {
+    const loadState = async () => {
+      try {
+        const res = await fetch("/api/pomodoro");
+        const data = await res.json();
+        if (data.success && data.data) {
+          const state = data.data as PomodoroState;
+          setMode(state.mode || "focus");
+          setSessions(state.sessions || 0);
+          
+          if (state.isRunning && state.startedAt) {
+            const elapsed = Math.floor((Date.now() - new Date(state.startedAt).getTime()) / 1000);
+            const remaining = Math.max(0, state.timeLeft - elapsed);
+            setTimeLeft(remaining);
+            setIsRunning(true);
+          } else {
+            setTimeLeft(state.timeLeft || getTimeForMode(state.mode || "focus"));
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load pomodoro state:", error);
+      }
+      setIsLoaded(true);
+    };
+    loadState();
+  }, []);
+
+  const saveState = async (newState: Partial<PomodoroState>) => {
+    try {
+      await fetch("/api/pomodoro", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newState),
+      });
+    } catch (error) {
+      console.error("Failed to save pomodoro state:", error);
+    }
+  };
 
   const playNotificationSound = () => {
     try {
@@ -60,19 +116,33 @@ export const PomodoroWidget = () => {
       if (mode === "focus") {
         setSessions((prev) => prev + 1);
       }
+      saveState({
+        isRunning: false,
+        timeLeft: getTimeForMode(mode),
+        sessions: mode === "focus" ? sessions + 1 : sessions,
+        startedAt: null,
+      });
     }
     return () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
     };
-  }, [isRunning, timeLeft, mode]);
+  }, [isRunning, timeLeft, mode, sessions]);
 
-  const getTimeForMode = (m: TimerMode) => {
-    switch (m) {
-      case "focus": return WORK_TIME;
-      case "shortBreak": return SHORT_BREAK;
-      case "longBreak": return LONG_BREAK;
+  useEffect(() => {
+    if (isLoaded && !isRunning) {
+      saveState({ timeLeft, mode, sessions, isRunning, startedAt: null });
     }
-  };
+  }, [timeLeft, mode, sessions]);
+
+  useEffect(() => {
+    if (isLoaded) {
+      if (isRunning) {
+        saveState({ isRunning: true, timeLeft, mode, sessions, startedAt: new Date().toISOString() });
+      } else {
+        saveState({ isRunning: false, timeLeft, mode, sessions, startedAt: null });
+      }
+    }
+  }, [isRunning]);
 
   const getModeColor = (m: TimerMode) => {
     switch (m) {
@@ -100,13 +170,26 @@ export const PomodoroWidget = () => {
 
   const resetTimer = () => {
     setIsRunning(false);
-    setTimeLeft(getTimeForMode(mode));
+    const newTime = getTimeForMode(mode);
+    setTimeLeft(newTime);
+    saveState({
+      timeLeft: newTime,
+      isRunning: false,
+      startedAt: null,
+    });
   };
 
   const switchMode = (m: TimerMode) => {
     setIsRunning(false);
     setMode(m);
-    setTimeLeft(getTimeForMode(m));
+    const newTime = getTimeForMode(m);
+    setTimeLeft(newTime);
+    saveState({
+      mode: m,
+      timeLeft: newTime,
+      isRunning: false,
+      startedAt: null,
+    });
   };
 
   const progress = ((getTimeForMode(mode) - timeLeft) / getTimeForMode(mode)) * 100;
