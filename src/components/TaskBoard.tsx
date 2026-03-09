@@ -39,6 +39,7 @@ export const TaskBoard = ({
   onEdit,
   onArchive,
   onToggleSubtask,
+  onPromoteSubtask,
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
@@ -56,6 +57,7 @@ export const TaskBoard = ({
   onEdit: (task: Task) => void,
   onArchive: (id: string) => void,
   onToggleSubtask: (taskId: string, index: number) => void,
+  onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void,
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
@@ -291,6 +293,7 @@ export const TaskBoard = ({
                   onEdit={onEdit}
                   onArchive={onArchive}
                   onToggleSubtask={onToggleSubtask}
+                  onPromoteSubtask={onPromoteSubtask}
                   onUpdatePriority={onUpdatePriority}
                   onStartTimer={onStartTimer}
                   onStopTimer={onStopTimer}

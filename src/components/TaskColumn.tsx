@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -27,6 +27,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onEdit?: (task: Task) => void;
   onArchive?: (id: string) => void;
   onToggleSubtask?: (taskId: string, index: number) => void;
+  onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void;
   onUpdatePriority?: (id: string, priority: TaskPriority) => void;
   onStartTimer?: (id: string, sessionTitle?: string) => void;
   onStopTimer?: (id: string, note?: string) => void;
@@ -46,6 +47,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
   onEdit,
   onArchive,
   onToggleSubtask,
+  onPromoteSubtask,
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
@@ -276,24 +278,42 @@ export const TaskCard = forwardRef<HTMLDivElement, {
               {task.subtasks.slice(0, 2).map((st, i) => (
                 <div
                   key={i}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (onToggleSubtask) onToggleSubtask(task._id, i);
-                  }}
                   className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors group/sub"
                 >
-                  <div className={cn(
-                    "w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0",
-                    st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
-                  )}>
+                  <div 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onToggleSubtask) onToggleSubtask(task._id, i);
+                    }}
+                    className={cn(
+                      "w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
+                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
+                    )}>
                     {st.completed && <Check size={10} className="text-white" />}
                   </div>
-                  <span className={cn(
-                    "text-xs leading-relaxed font-medium transition-colors",
-                    st.completed ? "text-gray-500 line-through" : "text-gray-300"
-                  )}>
+                  <span 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (onToggleSubtask) onToggleSubtask(task._id, i);
+                    }}
+                    className={cn(
+                      "text-xs leading-relaxed font-medium transition-colors flex-1",
+                      st.completed ? "text-gray-500 line-through" : "text-gray-300"
+                    )}>
                     {st.title}
                   </span>
+                  {onPromoteSubtask && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onPromoteSubtask(task._id, i);
+                      }}
+                      className="opacity-0 group-hover/sub:opacity-100 p-1 hover:bg-white/10 rounded transition-all text-gray-500 hover:text-primary"
+                      title="Promote to main task"
+                    >
+                      <ArrowUpToLine size={12} />
+                    </button>
+                  )}
                 </div>
               ))}
               {task.subtasks.length > 2 && (
@@ -390,6 +410,7 @@ export const SortableTaskItem = ({
   onEdit,
   onArchive,
   onToggleSubtask,
+  onPromoteSubtask,
   onUpdatePriority,
   onStartTimer,
   onStopTimer,
@@ -402,6 +423,7 @@ export const SortableTaskItem = ({
   onEdit: (task: Task) => void;
   onArchive: (id: string) => void;
   onToggleSubtask: (taskId: string, index: number) => void;
+  onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void;
   onUpdatePriority: (id: string, priority: TaskPriority) => void;
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
@@ -434,6 +456,7 @@ export const SortableTaskItem = ({
       onEdit={onEdit}
       onArchive={onArchive}
       onToggleSubtask={onToggleSubtask}
+      onPromoteSubtask={onPromoteSubtask}
       onUpdatePriority={onUpdatePriority}
       onStartTimer={onStartTimer}
       onStopTimer={onStopTimer}
@@ -447,7 +470,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, activeId }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, activeId }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -456,6 +479,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onEdit: (task: Task) => void,
   onArchive: (id: string) => void,
   onToggleSubtask: (taskId: string, index: number) => void,
+  onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void,
   onUpdatePriority: (id: string, priority: TaskPriority) => void,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
@@ -501,6 +525,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onEdit={onEdit}
                 onArchive={onArchive}
                 onToggleSubtask={onToggleSubtask}
+                onPromoteSubtask={onPromoteSubtask}
                 onUpdatePriority={onUpdatePriority}
                 onStartTimer={onStartTimer}
                 onStopTimer={onStopTimer}
