@@ -49,8 +49,10 @@ import { ShoppingListModal } from "@/components/ShoppingListModal";
 import { ProjectView } from "@/components/ProjectView";
 import { FinanceView } from "@/components/FinanceView";
 import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
+import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
 import { GymView } from "@/components/GymView";
 import { NotesView } from "@/components/NotesView";
+import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
 import { Confetti, useConfetti } from "@/components/Confetti";
@@ -869,6 +871,7 @@ export default function Dashboard() {
   const [isZenMode, setIsZenMode] = useState(false); // Zen Mode
   const [isBrainDumpOpen, setIsBrainDumpOpen] = useState(false); // Brain Dump
   const [isShoppingListModalOpen, setIsShoppingListModalOpen] = useState(false); // Shopping List modal
+  const [isWeeklySummaryOpen, setIsWeeklySummaryOpen] = useState(false); // Weekly Summary modal
   const [brainDumpText, setBrainDumpText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -878,6 +881,56 @@ export default function Dashboard() {
   const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0);
+  const [isUnlocked, setIsUnlocked] = useState(false);
+
+  const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
+
+  useEffect(() => {
+    const checkAuth = () => {
+      const unlockedAt = localStorage.getItem("auth-unlocked-at");
+      if (unlockedAt) {
+        const elapsed = Date.now() - parseInt(unlockedAt);
+        if (elapsed < INACTIVITY_TIMEOUT) {
+          setIsUnlocked(true);
+        } else {
+          localStorage.removeItem("auth-unlocked");
+          localStorage.removeItem("auth-unlocked-at");
+        }
+      }
+    };
+    checkAuth();
+  }, []);
+
+  useEffect(() => {
+    if (!isUnlocked) return;
+
+    const resetTimer = () => {
+      localStorage.setItem("auth-unlocked-at", Date.now().toString());
+    };
+
+    const handleInactivity = () => {
+      const unlockedAt = localStorage.getItem("auth-unlocked-at");
+      if (unlockedAt) {
+        const elapsed = Date.now() - parseInt(unlockedAt);
+        if (elapsed >= INACTIVITY_TIMEOUT) {
+          setIsUnlocked(false);
+          localStorage.removeItem("auth-unlocked");
+          localStorage.removeItem("auth-unlocked-at");
+        }
+      }
+    };
+
+    const events = ["mousedown", "keydown", "scroll", "touchstart"];
+    events.forEach(event => window.addEventListener(event, resetTimer));
+    const interval = setInterval(handleInactivity, 60000);
+
+    return () => {
+      events.forEach(event => window.removeEventListener(event, resetTimer));
+      clearInterval(interval);
+    };
+  }, [isUnlocked]);
+
+  const handleUnlock = () => setIsUnlocked(true);
 
   const today = new Date();
   const startOfYear = new Date(today.getFullYear(), 0, 0);
@@ -1250,6 +1303,58 @@ export default function Dashboard() {
     }
   };
 
+  const promoteSubtaskToMain = async (taskId: string, subtaskIndex: number) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task || !task.subtasks) return;
+
+    const subtask = task.subtasks[subtaskIndex];
+    const newTask: Task = {
+      _id: `temp-${Date.now()}`,
+      title: subtask.title,
+      description: "",
+      status: "pending",
+      priority: task.priority,
+      order: 0,
+      subtasks: [],
+      isArchived: false,
+      createdAt: new Date().toISOString(),
+      boardId: task.boardId,
+      isMIT: false,
+      category: task.category || "",
+    };
+
+    const oldTasks = [...tasks];
+    const newSubtasks = task.subtasks.filter((_, i) => i !== subtaskIndex);
+    setTasks([...tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t), newTask]);
+
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: newTask.title,
+          description: newTask.description,
+          priority: newTask.priority,
+          status: newTask.status,
+          boardId: newTask.boardId,
+          category: newTask.category,
+          isMIT: newTask.isMIT,
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to create task");
+      const createdTask = await res.json();
+      setTasks(oldTasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t).concat(createdTask));
+
+      await fetch(`/api/tasks/${taskId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ subtasks: newSubtasks }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
   const startTimer = async (taskId: string, sessionTitle?: string) => {
     const oldTasks = [...tasks];
     const now = new Date().toISOString();
@@ -1541,466 +1646,485 @@ export default function Dashboard() {
   };
 
   return (
-    <div className={cn("flex min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-500", isZenMode && "bg-black selection:bg-primary/30 relative")}>
-      {/* Zen Mode Ambient Background */}
-      {isZenMode && (
-        <div className="fixed inset-0 z-0 pointer-events-none">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-black animate-pulse duration-[10000ms]" />
-        </div>
-      )}
-
-      {/* Sidebar hidden in Zen Mode */}
-      {!isZenMode && (
-        <>
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
-          <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} isCollapsed={isRightSidebarCollapsed} setIsCollapsed={setIsRightSidebarCollapsed} />
-        </>
-      )}
-
-      {/* Edit Modal */}
-      <AnimatePresence>
-        {editingTask && (
-          <EditTaskModal
-            task={editingTask}
-            boards={boards}
-            onClose={() => setEditingTask(null)}
-            onSave={saveEditTask}
-            onStartTimer={startTimer}
-            onStopTimer={stopTimer}
-            onPauseTimer={pauseTimer}
-            onResumeTimer={resumeTimer}
-            onDeleteTimeLog={deleteTimeLog}
-            onAddManualTimeLog={addManualTimeLog}
-            onToggleMIT={toggleMIT}
-            onMoveToBoard={moveTaskToBoard}
-            onArchive={archiveTask}
-            onDelete={deleteTask}
-          />
+    <>
+      {!isUnlocked && <LockScreen onUnlock={handleUnlock} />}
+      <div className={cn("flex min-h-screen bg-background text-foreground overflow-hidden transition-colors duration-500", isZenMode && "bg-black selection:bg-primary/30 relative", !isUnlocked && "hidden")}>
+        {/* Zen Mode Ambient Background */}
+        {isZenMode && (
+          <div className="fixed inset-0 z-0 pointer-events-none">
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/10 via-background to-black animate-pulse duration-[10000ms]" />
+          </div>
         )}
-      </AnimatePresence>
 
-      {/* Shopping List Modal */}
-      <ShoppingListModal
-        isOpen={isShoppingListModalOpen}
-        onClose={() => setIsShoppingListModalOpen(false)}
-      />
-
-      {/* Add Task Modal */}
-      <AnimatePresence>
-        {isAddTaskModalOpen && (
-          <AddTaskModal
-            initialTitle=""
-            boards={boards}
-            defaultBoardId={currentBoardId}
-            onClose={() => setIsAddTaskModalOpen(false)}
-            onSave={handleSaveNewTask}
-          />
+        {/* Sidebar hidden in Zen Mode */}
+        {!isZenMode && (
+          <>
+            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
+            <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} isCollapsed={isRightSidebarCollapsed} setIsCollapsed={setIsRightSidebarCollapsed} />
+          </>
         )}
-      </AnimatePresence>
 
-      {/* Brain Dump Modal */}
-      <AnimatePresence>
-        {isBrainDumpOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
-            onClick={() => setIsBrainDumpOpen(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.95, y: 20 }}
-              animate={{ scale: 1, y: 0 }}
-              exit={{ scale: 0.95, y: 20 }}
-              onClick={(e) => e.stopPropagation()}
-              className="w-full max-w-lg bg-surface/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-3xl"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-bold flex items-center gap-2">
-                  <span className="bg-primary/20 text-primary p-2 rounded-xl"><Plus size={20} /></span>
-                  Quick Capture
-                </h3>
-                <span className="text-xs font-mono text-gray-500 bg-black/20 px-2 py-1 rounded">Ctrl + K</span>
-              </div>
-              <textarea
-                autoFocus
-                value={brainDumpText}
-                onChange={(e) => setBrainDumpText(e.target.value)}
-                placeholder="Dump your thoughts here... press Enter to save."
-                className="w-full h-32 bg-black/20 border border-white/5 rounded-2xl p-4 text-lg focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-none placeholder-gray-600"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    saveBrainDump();
-                  }
-                }}
-              />
-              <div className="flex justify-end gap-3 mt-4">
-                <button
-                  onClick={() => setIsBrainDumpOpen(false)}
-                  className="px-6 py-2 rounded-xl text-gray-400 hover:text-white transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={saveBrainDump}
-                  className="px-6 py-2 bg-primary text-white rounded-xl shadow-lg hover:shadow-primary/25 hover:bg-primary/90 transition-all font-bold"
-                >
-                  Capture
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {focusedTask && (
-          <FocusOverlay
-            task={focusedTask}
-            onClose={() => setFocusedTask(null)}
-            onToggleSubtask={toggleTaskSubtask}
-            onStartTimer={startTimer}
-            onStopTimer={stopTimer}
-            onCompleteTask={(id) => {
-              updateTaskStatus(id, "completed");
-              setFocusedTask(null);
-            }}
-          />
-        )}
-      </AnimatePresence>
-
-      <main className={cn(
-        "flex-1 transition-all duration-500 p-4 md:p-8 overflow-y-auto h-screen w-full relative",
-        !isZenMode && (isSidebarCollapsed ? "md:ml-20" : "md:ml-64") + " " + (isRightSidebarCollapsed ? "md:mr-16" : "md:mr-64"),
-        isZenMode && "mx-auto max-w-7xl md:p-12"
-      )}>
-        {/* Active Timer Bar */}
+        {/* Edit Modal */}
         <AnimatePresence>
-          {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className={cn(
-                "fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-500",
-                !isZenMode && (isSidebarCollapsed ? "md:left-20" : "md:left-64") + " " + (isRightSidebarCollapsed ? "md:right-16" : "md:right-64")
-              )}
-            >
-              <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
-                <div className="flex items-center gap-4 overflow-x-auto">
-                  {tasks.filter(t => t.activeTimer?.isActive).map(task => {
-                    const elapsed = Math.floor((Date.now() - new Date(task.activeTimer!.startedAt!).getTime()) / 1000);
-                    const hours = Math.floor(elapsed / 3600);
-                    const minutes = Math.floor((elapsed % 3600) / 60);
-                    const seconds = elapsed % 60;
-                    const timeStr = hours > 0
-                      ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
-                      : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+          {editingTask && (
+            <EditTaskModal
+              task={editingTask}
+              boards={boards}
+              onClose={() => setEditingTask(null)}
+              onSave={saveEditTask}
+              onStartTimer={startTimer}
+              onStopTimer={stopTimer}
+              onPauseTimer={pauseTimer}
+              onResumeTimer={resumeTimer}
+              onDeleteTimeLog={deleteTimeLog}
+              onAddManualTimeLog={addManualTimeLog}
+              onToggleMIT={toggleMIT}
+              onMoveToBoard={moveTaskToBoard}
+              onArchive={archiveTask}
+              onDelete={deleteTask}
+              onPromoteSubtask={promoteSubtaskToMain}
+            />
+          )}
+        </AnimatePresence>
 
-                    return (
-                      <div
-                        key={task._id}
-                        className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 hover:bg-primary/15 transition-all group whitespace-nowrap"
-                      >
-                        <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                        <span className="text-sm font-medium text-white max-w-[200px] truncate">{task.title}</span>
-                        <span className="text-base font-mono font-bold text-primary tabular-nums">
-                          {timeStr}
-                        </span>
-                        <button
-                          onClick={() => stopTimer(task._id)}
-                          className="p-1.5 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
-                          title="Stop timer"
-                        >
-                          <Pause size={12} />
-                        </button>
-                      </div>
-                    );
-                  })}
+        {/* Shopping List Modal */}
+        <ShoppingListModal
+          isOpen={isShoppingListModalOpen}
+          onClose={() => setIsShoppingListModalOpen(false)}
+        />
+
+        {/* Weekly Summary Modal */}
+        <WeeklySummaryModal
+          isOpen={isWeeklySummaryOpen}
+          onClose={() => setIsWeeklySummaryOpen(false)}
+        />
+
+        {/* Add Task Modal */}
+        <AnimatePresence>
+          {isAddTaskModalOpen && (
+            <AddTaskModal
+              initialTitle=""
+              boards={boards}
+              defaultBoardId={currentBoardId}
+              onClose={() => setIsAddTaskModalOpen(false)}
+              onSave={handleSaveNewTask}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Brain Dump Modal */}
+        <AnimatePresence>
+          {isBrainDumpOpen && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 bg-black/60 backdrop-blur-md flex items-center justify-center p-4"
+              onClick={() => setIsBrainDumpOpen(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.95, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.95, y: 20 }}
+                onClick={(e) => e.stopPropagation()}
+                className="w-full max-w-lg bg-surface/80 border border-white/10 rounded-3xl p-6 shadow-2xl backdrop-blur-3xl"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <span className="bg-primary/20 text-primary p-2 rounded-xl"><Plus size={20} /></span>
+                    Quick Capture
+                  </h3>
+                  <span className="text-xs font-mono text-gray-500 bg-black/20 px-2 py-1 rounded">Ctrl + K</span>
                 </div>
-              </div>
+                <textarea
+                  autoFocus
+                  value={brainDumpText}
+                  onChange={(e) => setBrainDumpText(e.target.value)}
+                  placeholder="Dump your thoughts here... press Enter to save."
+                  className="w-full h-32 bg-black/20 border border-white/5 rounded-2xl p-4 text-lg focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/50 transition-all resize-none placeholder-gray-600"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      saveBrainDump();
+                    }
+                  }}
+                />
+                <div className="flex justify-end gap-3 mt-4">
+                  <button
+                    onClick={() => setIsBrainDumpOpen(false)}
+                    className="px-6 py-2 rounded-xl text-gray-400 hover:text-white transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={saveBrainDump}
+                    className="px-6 py-2 bg-primary text-white rounded-xl shadow-lg hover:shadow-primary/25 hover:bg-primary/90 transition-all font-bold"
+                  >
+                    Capture
+                  </button>
+                </div>
+              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Spacer when timer bar is active */}
-        {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
-          <div className="h-16 md:h-14" />
-        )}
-
-        {/* Header */}
-        <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
-          <div className={cn(isZenMode && "hidden md:block")}>
-            <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-              {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'notes' ? 'Notes' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
-            </h1>
-            <p className="text-sm md:text-base text-gray-400">
-              {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'notes' ? 'Capture your thoughts and ideas.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
-            </p>
-          </div>
-          <div className="flex items-center gap-3 ml-auto">
-            {/* Day & Week Counter */}
-            <div className="hidden md:flex items-center gap-3 mr-2">
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
-                <Calendar size={14} className="text-primary" />
-                <span className="text-sm font-medium text-gray-300">{dayNumber}/<span className="text-gray-500">{totalDays}</span></span>
-              </div>
-              <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
-                <Target size={14} className="text-green-500" />
-                <span className="text-sm font-medium text-gray-300">{weekNumber}/<span className="text-gray-500">{totalWeeks}</span></span>
-              </div>
-            </div>
-
-            {/* Zen Mode Toggle */}
-            <button
-              onClick={() => setIsZenMode(!isZenMode)}
-              className={cn(
-                "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all border",
-                isZenMode ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
-              )}
-              title="Zen Mode (Hide Distractions)"
-            >
-              <Maximize2 size={16} />
-              <span className="text-sm font-medium">Zen Mode</span>
-            </button>
-
-            {/* AI Insights Button */}
-            <button
-              onClick={() => {
-                const event = new CustomEvent('toggle-ai-insights');
-                window.dispatchEvent(event);
+        <AnimatePresence>
+          {focusedTask && (
+            <FocusOverlay
+              task={focusedTask}
+              onClose={() => setFocusedTask(null)}
+              onToggleSubtask={toggleTaskSubtask}
+              onStartTimer={startTimer}
+              onStopTimer={stopTimer}
+              onCompleteTask={(id) => {
+                updateTaskStatus(id, "completed");
+                setFocusedTask(null);
               }}
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-400 hover:border-purple-400/50 transition-all"
-              title="AI Insights"
-            >
-              <Sparkles size={16} />
-              <span className="text-sm font-medium">AI</span>
-            </button>
-
-            <div className="w-px h-6 bg-white/10 mx-1 hidden md:block"></div>
-
-            {/* Notification Bell */}
-            {!isZenMode && <NotificationBell />}
-
-            {/* Lofi Girl Button */}
-            <button
-              onClick={() => {
-                if (isLofiPlaying) {
-                  setIsLofiPlaying(false);
-                } else {
-                  window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
-                  setIsLofiPlaying(true);
-                }
-              }}
-              className={clsx(
-                "hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 border",
-                isLofiPlaying
-                  ? "bg-gradient-to-r from-primary/30 to-purple-500/20 border-primary shadow-lg shadow-primary/25 text-primary"
-                  : "bg-surface/80 border-border/60 text-gray-400 hover:text-white hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
-              )}
-              title="Play Lofi Girl on YouTube"
-            >
-              <svg className={clsx("w-5 h-5 transition-transform duration-300", isLofiPlaying && "animate-pulse")} fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
-              </svg>
-              <span className="text-sm font-medium">Lofi Girl</span>
-              {isLofiPlaying && (
-                <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
-              )}
-            </button>
-            {!isZenMode && (
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="md:hidden p-2 bg-surface border border-border rounded-lg text-gray-300 hover:text-white"
-              >
-                <Menu size={24} />
-              </button>
-            )}
-          </div>
-        </header>
-
-        {isZenMode && <div className="h-12 md:h-0"></div>}
-
-        {activeTab === "tasks" && (
-          <div className="max-w-[1600px] mx-auto pb-20">
-            {/* Daily MIT Section */}
-            <MITList
-              tasks={tasks}
-              setTasks={setTasks}
-              onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
-              onToggleMIT={toggleMIT}
-              currentBoardId={currentBoardId}
             />
+          )}
+        </AnimatePresence>
 
-            {/* Board Selector */}
-            <div className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
-              <button
-                onClick={() => setCurrentBoardId(null)}
+        <main className={cn(
+          "flex-1 transition-all duration-500 p-4 md:p-8 overflow-y-auto h-screen w-full relative",
+          !isZenMode && (isSidebarCollapsed ? "md:ml-20" : "md:ml-64") + " " + (isRightSidebarCollapsed ? "md:mr-16" : "md:mr-64"),
+          isZenMode && "mx-auto max-w-7xl md:p-12"
+        )}>
+          {/* Active Timer Bar */}
+          <AnimatePresence>
+            {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: -20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
                 className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
-                  currentBoardId === null
-                    ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
-                    : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
+                  "fixed top-0 left-0 right-0 z-50 bg-surface/30 backdrop-blur-xl border-b border-white/5 shadow-2xl transition-all duration-500",
+                  !isZenMode && (isSidebarCollapsed ? "md:left-20" : "md:left-64") + " " + (isRightSidebarCollapsed ? "md:right-16" : "md:right-64")
                 )}
               >
-                All Tasks
+                <div className="max-w-[1600px] mx-auto px-4 md:px-8 py-3">
+                  <div className="flex items-center gap-4 overflow-x-auto">
+                    {tasks.filter(t => t.activeTimer?.isActive).map(task => {
+                      const elapsed = Math.floor((Date.now() - new Date(task.activeTimer!.startedAt!).getTime()) / 1000);
+                      const hours = Math.floor(elapsed / 3600);
+                      const minutes = Math.floor((elapsed % 3600) / 60);
+                      const seconds = elapsed % 60;
+                      const timeStr = hours > 0
+                        ? `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`
+                        : `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                      return (
+                        <div
+                          key={task._id}
+                          className="flex items-center gap-3 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 hover:bg-primary/15 transition-all group whitespace-nowrap"
+                        >
+                          <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                          <span className="text-sm font-medium text-white max-w-[200px] truncate">{task.title}</span>
+                          <span className="text-base font-mono font-bold text-primary tabular-nums">
+                            {timeStr}
+                          </span>
+                          <button
+                            onClick={() => stopTimer(task._id)}
+                            className="p-1.5 rounded-full bg-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all"
+                            title="Stop timer"
+                          >
+                            <Pause size={12} />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Spacer when timer bar is active */}
+          {tasks.filter(t => t.activeTimer?.isActive).length > 0 && (
+            <div className="h-16 md:h-14" />
+          )}
+
+          {/* Header */}
+          <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
+            <div className={cn(isZenMode && "hidden md:block")}>
+              <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
+                {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'notes' ? 'Notes' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
+              </h1>
+              <p className="text-sm md:text-base text-gray-400">
+                {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'notes' ? 'Capture your thoughts and ideas.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
+              </p>
+            </div>
+            <div className="flex items-center gap-3 ml-auto">
+              {/* Day & Week Counter */}
+              <div className="hidden md:flex items-center gap-3 mr-2">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
+                  <Calendar size={14} className="text-primary" />
+                  <span className="text-sm font-medium text-gray-300">{dayNumber}/<span className="text-gray-500">{totalDays}</span></span>
+                </div>
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface border border-border">
+                  <Target size={14} className="text-green-500" />
+                  <span className="text-sm font-medium text-gray-300">{weekNumber}/<span className="text-gray-500">{totalWeeks}</span></span>
+                </div>
+                <button
+                  onClick={() => setIsWeeklySummaryOpen(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-500/10 to-blue-500/10 border border-purple-500/20 hover:border-purple-500/40 transition-all"
+                  title="Weekly Summary"
+                >
+                  <Sparkles size={14} className="text-purple-400" />
+                  <span className="text-sm font-medium text-purple-400">Week {weekNumber}</span>
+                </button>
+              </div>
+
+              {/* Zen Mode Toggle */}
+              <button
+                onClick={() => setIsZenMode(!isZenMode)}
+                className={cn(
+                  "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all border",
+                  isZenMode ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
+                )}
+                title="Zen Mode (Hide Distractions)"
+              >
+                <Maximize2 size={16} />
+                <span className="text-sm font-medium">Zen Mode</span>
               </button>
 
-              {boards.map(board => (
+              {/* AI Insights Button */}
+              <button
+                onClick={() => {
+                  const event = new CustomEvent('toggle-ai-insights');
+                  window.dispatchEvent(event);
+                }}
+                className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-purple-500/20 to-blue-500/20 border border-purple-500/30 text-purple-400 hover:border-purple-400/50 transition-all"
+                title="AI Insights"
+              >
+                <Sparkles size={16} />
+                <span className="text-sm font-medium">AI</span>
+              </button>
+
+              <div className="w-px h-6 bg-white/10 mx-1 hidden md:block"></div>
+
+              {/* Notification Bell */}
+              {!isZenMode && <NotificationBell />}
+
+              {/* Lofi Girl Button */}
+              <button
+                onClick={() => {
+                  if (isLofiPlaying) {
+                    setIsLofiPlaying(false);
+                  } else {
+                    window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
+                    setIsLofiPlaying(true);
+                  }
+                }}
+                className={clsx(
+                  "hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 border",
+                  isLofiPlaying
+                    ? "bg-gradient-to-r from-primary/30 to-purple-500/20 border-primary shadow-lg shadow-primary/25 text-primary"
+                    : "bg-surface/80 border-border/60 text-gray-400 hover:text-white hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
+                )}
+                title="Play Lofi Girl on YouTube"
+              >
+                <svg className={clsx("w-5 h-5 transition-transform duration-300", isLofiPlaying && "animate-pulse")} fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
+                </svg>
+                <span className="text-sm font-medium">Lofi Girl</span>
+                {isLofiPlaying && (
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
+                )}
+              </button>
+              {!isZenMode && (
                 <button
-                  key={board._id}
-                  onClick={() => setCurrentBoardId(board._id)}
+                  onClick={() => setIsSidebarOpen(true)}
+                  className="md:hidden p-2 bg-surface border border-border rounded-lg text-gray-300 hover:text-white"
+                >
+                  <Menu size={24} />
+                </button>
+              )}
+            </div>
+          </header>
+
+          {isZenMode && <div className="h-12 md:h-0"></div>}
+
+          {activeTab === "tasks" && (
+            <div className="max-w-[1600px] mx-auto pb-20">
+              {/* Daily MIT Section */}
+              <MITList
+                tasks={tasks}
+                setTasks={setTasks}
+                onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
+                onToggleMIT={toggleMIT}
+                currentBoardId={currentBoardId}
+              />
+
+              {/* Board Selector */}
+              <div className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
+                <button
+                  onClick={() => setCurrentBoardId(null)}
                   className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
-                    currentBoardId === board._id
+                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
+                    currentBoardId === null
                       ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
                       : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
                   )}
                 >
-                  {board.title}
-                  {currentBoardId === board._id && (
-                    <span
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        deleteBoard(board._id);
-                      }}
-                      className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
-                      title="Delete Board"
-                    >
-                      <Trash2 size={12} />
-                    </span>
-                  )}
+                  All Tasks
                 </button>
-              ))}
 
-              {isCreatingBoard ? (
-                <form onSubmit={createBoard} className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                  <input
-                    autoFocus
-                    type="text"
-                    value={newBoardTitle}
-                    onChange={(e) => setNewBoardTitle(e.target.value)}
-                    placeholder="Board Name..."
-                    className="w-32 bg-surface text-sm px-3 py-2 rounded-lg border border-primary focus:outline-none text-white placeholder-gray-500"
-                    onBlur={() => !newBoardTitle && setIsCreatingBoard(false)}
-                  />
-                  <button type="submit" className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                    <Check size={14} />
+                {boards.map(board => (
+                  <button
+                    key={board._id}
+                    onClick={() => setCurrentBoardId(board._id)}
+                    className={cn(
+                      "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
+                      currentBoardId === board._id
+                        ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                        : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
+                    )}
+                  >
+                    {board.title}
+                    {currentBoardId === board._id && (
+                      <span
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteBoard(board._id);
+                        }}
+                        className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
+                        title="Delete Board"
+                      >
+                        <Trash2 size={12} />
+                      </span>
+                    )}
                   </button>
-                  <button type="button" onClick={() => setIsCreatingBoard(false)} className="p-2 text-gray-500 hover:text-white">
-                    <X size={14} />
-                  </button>
-                </form>
-              ) : (
-                <button
-                  onClick={() => setIsCreatingBoard(true)}
-                  className="px-3 py-2 rounded-lg border border-dashed border-border text-gray-500 hover:text-white hover:border-gray-400 transition-all flex items-center gap-1.5 text-xs uppercase font-bold tracking-wide ml-2 whitespace-nowrap"
-                >
-                  <Plus size={14} /> Add Board
-                </button>
-              )}
-            </div>
-            <div className={cn("mb-8 max-w-3xl mx-auto transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
-              <div className="flex gap-4">
-                <div
-                  onClick={() => setIsAddTaskModalOpen(true)}
-                  className="relative group cursor-text flex-1"
-                >
-                  <div className="h-full w-full bg-surface/50 backdrop-blur-xl border border-white/5 pl-6 pr-4 py-5 rounded-2xl text-lg transition-all shadow-2xl font-medium tracking-wide text-gray-500 hover:bg-black/60 hover:border-primary/50 flex items-center justify-between">
-                    <span>What needs to be done?</span>
-                    <button
-                      className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] transition-all"
-                    >
-                      <Plus size={20} className="stroke-[3px]" />
+                ))}
+
+                {isCreatingBoard ? (
+                  <form onSubmit={createBoard} className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
+                    <input
+                      autoFocus
+                      type="text"
+                      value={newBoardTitle}
+                      onChange={(e) => setNewBoardTitle(e.target.value)}
+                      placeholder="Board Name..."
+                      className="w-32 bg-surface text-sm px-3 py-2 rounded-lg border border-primary focus:outline-none text-white placeholder-gray-500"
+                      onBlur={() => !newBoardTitle && setIsCreatingBoard(false)}
+                    />
+                    <button type="submit" className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90">
+                      <Check size={14} />
                     </button>
-                  </div>
-                </div>
-
-                <button
-                  onClick={() => setIsShoppingListModalOpen(true)}
-                  className="bg-surface/50 backdrop-blur-xl border border-white/5 px-6 py-5 rounded-2xl transition-all shadow-2xl tracking-wide text-gray-400 hover:text-white hover:bg-black/60 hover:border-primary/50 flex flex-col items-center justify-center gap-1.5 group"
-                >
-                  <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
-                  <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Cart</span>
-                </button>
+                    <button type="button" onClick={() => setIsCreatingBoard(false)} className="p-2 text-gray-500 hover:text-white">
+                      <X size={14} />
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setIsCreatingBoard(true)}
+                    className="px-3 py-2 rounded-lg border border-dashed border-border text-gray-500 hover:text-white hover:border-gray-400 transition-all flex items-center gap-1.5 text-xs uppercase font-bold tracking-wide ml-2 whitespace-nowrap"
+                  >
+                    <Plus size={14} /> Add Board
+                  </button>
+                )}
               </div>
-            </div>
-
-            {isLoading ? (
-              <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                {["Backlog", "In Focus", "Done", "Pin for Later"].map((col, colIdx) => (
-                  <div key={col} className="bg-surface/50 border border-border/50 rounded-2xl p-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <div className="h-5 w-24 bg-white/5 animate-pulse rounded-lg" />
-                      <div className="h-5 w-8 bg-white/5 animate-pulse rounded-lg" />
+              <div className={cn("mb-8 max-w-3xl mx-auto transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
+                <div className="flex gap-4">
+                  <div
+                    onClick={() => setIsAddTaskModalOpen(true)}
+                    className="relative group cursor-text flex-1"
+                  >
+                    <div className="h-full w-full bg-surface/50 backdrop-blur-xl border border-white/5 pl-6 pr-4 py-5 rounded-2xl text-lg transition-all shadow-2xl font-medium tracking-wide text-gray-500 hover:bg-black/60 hover:border-primary/50 flex items-center justify-between">
+                      <span>What needs to be done?</span>
+                      <button
+                        className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] transition-all"
+                      >
+                        <Plus size={20} className="stroke-[3px]" />
+                      </button>
                     </div>
-                    <div className="space-y-3">
-                      {[1, 2, 3].map((task) => (
-                        <div key={task} className="bg-background/30 border border-border/30 rounded-xl p-4 space-y-3">
-                          <div className="flex items-start gap-2">
-                            <div className="w-4 h-4 bg-white/5 animate-pulse rounded mt-1" />
-                            <div className="flex-1 space-y-2">
-                              <div className="h-4 w-3/4 bg-white/5 animate-pulse rounded" />
-                              <div className="h-3 w-1/2 bg-white/5 animate-pulse rounded" />
+                  </div>
+
+                  <button
+                    onClick={() => setIsShoppingListModalOpen(true)}
+                    className="bg-surface/50 backdrop-blur-xl border border-white/5 px-6 py-5 rounded-2xl transition-all shadow-2xl tracking-wide text-gray-400 hover:text-white hover:bg-black/60 hover:border-primary/50 flex flex-col items-center justify-center gap-1.5 group"
+                  >
+                    <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
+                    <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Cart</span>
+                  </button>
+                </div>
+              </div>
+
+              {isLoading ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+                  {["Backlog", "In Focus", "Done", "Pin for Later"].map((col, colIdx) => (
+                    <div key={col} className="bg-surface/50 border border-border/50 rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="h-5 w-24 bg-white/5 animate-pulse rounded-lg" />
+                        <div className="h-5 w-8 bg-white/5 animate-pulse rounded-lg" />
+                      </div>
+                      <div className="space-y-3">
+                        {[1, 2, 3].map((task) => (
+                          <div key={task} className="bg-background/30 border border-border/30 rounded-xl p-4 space-y-3">
+                            <div className="flex items-start gap-2">
+                              <div className="w-4 h-4 bg-white/5 animate-pulse rounded mt-1" />
+                              <div className="flex-1 space-y-2">
+                                <div className="h-4 w-3/4 bg-white/5 animate-pulse rounded" />
+                                <div className="h-3 w-1/2 bg-white/5 animate-pulse rounded" />
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="h-5 w-16 bg-white/5 animate-pulse rounded-full" />
+                              <div className="h-5 w-12 bg-white/5 animate-pulse rounded-full" />
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
-                            <div className="h-5 w-16 bg-white/5 animate-pulse rounded-full" />
-                            <div className="h-5 w-12 bg-white/5 animate-pulse rounded-full" />
-                          </div>
-                        </div>
-                      ))}
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <TaskBoard
-                tasks={tasks}
-                setTasks={setTasks}
-                onUpdateStatus={updateTaskStatus}
-                onDelete={deleteTask}
-                onEdit={setEditingTask}
-                onArchive={archiveTask}
-                onToggleSubtask={toggleTaskSubtask}
-                onUpdatePriority={updateTaskPriority}
-                onStartTimer={startTimer}
-                onStopTimer={stopTimer}
-                onPauseTimer={pauseTimer}
-                onResumeTimer={resumeTimer}
-                onFocus={setFocusedTask}
-                onMoveToBoard={moveTaskToBoard}
-                boards={boards}
-                isZenMode={isZenMode}
-              />
-            )}
-          </div>
-        )}
+                  ))}
+                </div>
+              ) : (
+                <TaskBoard
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  onUpdateStatus={updateTaskStatus}
+                  onDelete={deleteTask}
+                  onEdit={setEditingTask}
+                  onArchive={archiveTask}
+                  onToggleSubtask={toggleTaskSubtask}
+                  onPromoteSubtask={promoteSubtaskToMain}
+                  onUpdatePriority={updateTaskPriority}
+                  onStartTimer={startTimer}
+                  onStopTimer={stopTimer}
+                  onPauseTimer={pauseTimer}
+                  onResumeTimer={resumeTimer}
+                  onFocus={setFocusedTask}
+                  onMoveToBoard={moveTaskToBoard}
+                  boards={boards}
+                  isZenMode={isZenMode}
+                />
+              )}
+            </div>
+          )}
 
-        {activeTab === "projects" && <ProjectView />}
-        {activeTab === "stats" && <AnalyticsView />}
-        {activeTab === "habits" && <HabitView />}
-        {activeTab === "weekly" && <WeeklyGoalsView />}
-        {activeTab === "vision" && <VisionBoardView />}
-        {activeTab === "roadmap" && <RoadmapView />}
-        {activeTab === "watch" && <WatchLaterView />}
-        {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
-        {activeTab === "sniper" && <SniperView />}
-        {activeTab === "socials" && <SocialHubView />}
-        {activeTab === "leads" && <LeadsView />}
-        {activeTab === "inbox" && <InboxView />}
-        {activeTab === "finance" && <FinanceView />}
-        {activeTab === "bucket" && <BucketListView />}
-        {activeTab === "settings" && <SettingsView />}
+          {activeTab === "projects" && <ProjectView />}
+          {activeTab === "stats" && <AnalyticsView />}
+          {activeTab === "habits" && <HabitView />}
+          {activeTab === "weekly" && <WeeklyGoalsView />}
+          {activeTab === "vision" && <VisionBoardView />}
+          {activeTab === "roadmap" && <RoadmapView />}
+          {activeTab === "watch" && <WatchLaterView />}
+          {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
+          {activeTab === "sniper" && <SniperView />}
+          {activeTab === "socials" && <SocialHubView />}
+          {activeTab === "leads" && <LeadsView />}
+          {activeTab === "inbox" && <InboxView />}
+          {activeTab === "finance" && <FinanceView />}
+          {activeTab === "bucket" && <BucketListView />}
+          {activeTab === "settings" && <SettingsView />}
 
-        {activeTab === "calendar" && <CalendarView />}
-        {activeTab === "gym" && <GymView />}
-        {activeTab === "notes" && <NotesView />}
-      </main>
+          {activeTab === "calendar" && <CalendarView />}
+          {activeTab === "gym" && <GymView />}
+          {activeTab === "notes" && <NotesView />}
+        </main>
 
-      <AISummaryWidget tasks={tasks} />
-      <Confetti trigger={confettiTrigger} />
-    </div >
+        <AISummaryWidget tasks={tasks} />
+        <Confetti trigger={confettiTrigger} />
+      </div >
+    </>
   );
 }

@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft } from "lucide-react";
+import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TimeTracker } from "./TimeTracker";
@@ -26,6 +26,7 @@ interface EditTaskModalProps {
     onMoveToBoard: (taskId: string, boardId: string | null) => void;
     onArchive: (id: string) => void;
     onDelete: (id: string) => void;
+    onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void;
 }
 
 export const EditTaskModal = ({
@@ -42,7 +43,8 @@ export const EditTaskModal = ({
     onToggleMIT,
     onMoveToBoard,
     onArchive,
-    onDelete
+    onDelete,
+    onPromoteSubtask
 }: EditTaskModalProps) => {
     const [title, setTitle] = useState(task?.title || "");
     const [description, setDescription] = useState(task?.description || "");
@@ -213,6 +215,15 @@ export const EditTaskModal = ({
                                                 st.completed && "text-gray-500 line-through decoration-gray-600"
                                             )}
                                         />
+                                        {onPromoteSubtask && (
+                                            <button 
+                                                onClick={() => onPromoteSubtask(task._id, i)} 
+                                                className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                                title="Promote to main task"
+                                            >
+                                                <ArrowUpToLine size={14} />
+                                            </button>
+                                        )}
                                         <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                                             <Trash2 size={14} />
                                         </button>

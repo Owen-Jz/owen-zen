@@ -28,7 +28,7 @@ const PomodoroStateSchema = new mongoose.Schema({
   },
 });
 
-PomodoroStateSchema.pre('save', function(next) {
+PomodoroStateSchema.pre('save', function (this: any, next: any) {
   this.updatedAt = new Date();
   next();
 });
