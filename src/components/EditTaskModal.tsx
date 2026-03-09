@@ -156,7 +156,7 @@ export const EditTaskModal = ({
                                 value={description}
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Add more details to this task..."
-                                className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[100px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
+                                className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[300px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
                             />
                         </div>
 
