@@ -1,4 +1,4 @@
-export type TaskStatus = "pending" | "in-progress" | "completed" | "pinned";
+export type TaskStatus = "pending" | "in-progress" | "completed" | "pinned" | "ai-agent";
 export type TaskPriority = "high" | "medium" | "low";
 
 export interface SubTask {

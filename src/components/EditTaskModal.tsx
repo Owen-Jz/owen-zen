@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine } from "lucide-react";
+import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TimeTracker } from "./TimeTracker";
@@ -75,6 +75,20 @@ export const EditTaskModal = ({
         setSubtasks(subtasks.filter((_, i) => i !== index));
     };
 
+    const moveSubtaskUp = (index: number) => {
+        if (index === 0) return;
+        const updated = [...subtasks];
+        [updated[index - 1], updated[index]] = [updated[index], updated[index - 1]];
+        setSubtasks(updated);
+    };
+
+    const moveSubtaskDown = (index: number) => {
+        if (index === subtasks.length - 1) return;
+        const updated = [...subtasks];
+        [updated[index], updated[index + 1]] = [updated[index + 1], updated[index]];
+        setSubtasks(updated);
+    };
+
     const handleSave = () => {
         onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category);
         // Also save board move if changed (separate API call usually, but handled here via callback)
@@ -106,14 +120,14 @@ export const EditTaskModal = ({
                 className="relative w-full max-w-4xl bg-surface/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]"
             >
                 {/* Header */}
-                <div className="flex items-start justify-between p-6 border-b border-white/5 bg-white/5">
+                <div className="flex items-start justify-between p-6 border-b border-white/5 bg-gradient-to-r from-white/5 to-transparent">
                     <div className="flex-1 mr-8">
                         <input
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Task Title"
-                            className="w-full bg-transparent text-2xl font-bold text-white placeholder-gray-500 outline-none border-none p-0 focus:ring-0"
+                            className="w-full bg-transparent text-2xl font-bold text-white placeholder-gray-500 outline-none border-none p-0 focus:ring-0 focus:placeholder-gray-600 transition-colors"
                         />
                         <div className="flex items-center gap-4 mt-2 text-xs text-gray-400">
                             <div className="flex items-center gap-1">
@@ -216,14 +230,34 @@ export const EditTaskModal = ({
                                             )}
                                         />
                                         {onPromoteSubtask && (
-                                            <button 
-                                                onClick={() => onPromoteSubtask(task._id, i)} 
+                                            <button
+                                                onClick={(e) => {
+                                                    e.preventDefault();
+                                                    onPromoteSubtask(task._id, i);
+                                                    setSubtasks(subtasks.filter((_, idx) => idx !== i));
+                                                }}
                                                 className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
                                                 title="Promote to main task"
                                             >
                                                 <ArrowUpToLine size={14} />
                                             </button>
                                         )}
+                                        <button
+                                            onClick={() => moveSubtaskUp(i)}
+                                            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                            title="Move up"
+                                            disabled={i === 0}
+                                        >
+                                            <ArrowUp size={14} />
+                                        </button>
+                                        <button
+                                            onClick={() => moveSubtaskDown(i)}
+                                            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                            title="Move down"
+                                            disabled={i === subtasks.length - 1}
+                                        >
+                                            <ArrowDown size={14} />
+                                        </button>
                                         <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
                                             <Trash2 size={14} />
                                         </button>
@@ -277,16 +311,24 @@ export const EditTaskModal = ({
                                             key={p}
                                             onClick={() => setPriority(p)}
                                             className={cn(
-                                                "px-2 py-2 rounded-lg text-xs font-bold border transition-all capitalize flex flex-col items-center gap-1",
+                                                "px-2 py-3 rounded-lg text-xs font-bold border transition-all capitalize flex flex-col items-center gap-2 relative overflow-hidden",
                                                 priority === p
-                                                    ? p === 'high' ? "bg-red-500/20 border-red-500 text-red-500" : p === 'medium' ? "bg-yellow-500/20 border-yellow-500 text-yellow-500" : "bg-blue-500/20 border-blue-500 text-blue-500"
+                                                    ? p === 'high' ? "bg-red-500/20 border-red-500 text-red-500 shadow-[0_0_15px_rgba(239,68,68,0.3)]" : p === 'medium' ? "bg-yellow-500/20 border-yellow-500 text-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.3)]" : "bg-blue-500/20 border-blue-500 text-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)]"
                                                     : "border-white/5 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/10"
                                             )}
                                         >
-                                            <div className={cn("w-2 h-2 rounded-full",
+                                            {priority === p && (
+                                                <motion.div
+                                                    layoutId="priority-glow"
+                                                    className={cn("absolute inset-0 opacity-20",
+                                                        p === 'high' ? "bg-red-500" : p === 'medium' ? "bg-yellow-500" : "bg-blue-500"
+                                                    )}
+                                                />
+                                            )}
+                                            <div className={cn("w-2.5 h-2.5 rounded-full relative z-10",
                                                 p === 'high' ? "bg-red-500" : p === 'medium' ? "bg-yellow-500" : "bg-blue-500"
                                             )} />
-                                            {p}
+                                            <span className="relative z-10">{p}</span>
                                         </button>
                                     ))}
                                 </div>

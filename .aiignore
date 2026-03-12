@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Next.js Build Output
+.next/
+out/
+build/
+
+# Package Manager Locks (AI doesn't need to read these huge files)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Logs and Env
+*.log
+.env*
+.DS_Store
+
+# Media & Assets (This is usually where tokens disappear!)
+public/assets/
+public/images/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.ico
+*.pdf
+
+# Git and IDE
+.git/
+.vscode/
+.idea/
+
+# Testing
+coverage/
+.nyc_output/

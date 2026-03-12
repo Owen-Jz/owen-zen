@@ -883,6 +883,10 @@ export default function Dashboard() {
   const [, forceUpdate] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
 
+  // Global Search State
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
   const INACTIVITY_TIMEOUT = 30 * 60 * 1000;
 
   useEffect(() => {
@@ -1304,30 +1308,40 @@ export default function Dashboard() {
   };
 
   const promoteSubtaskToMain = async (taskId: string, subtaskIndex: number) => {
-    const task = tasks.find(t => t._id === taskId);
-    if (!task || !task.subtasks) return;
+    const parentTask = tasks.find(t => t._id === taskId);
+    if (!parentTask || !parentTask.subtasks) return;
 
-    const subtask = task.subtasks[subtaskIndex];
+    const subtask = parentTask.subtasks[subtaskIndex];
+    if (!subtask) return;
+
+    const tempId = `temp-${Date.now()}`;
     const newTask: Task = {
-      _id: `temp-${Date.now()}`,
+      _id: tempId,
       title: subtask.title,
       description: "",
       status: "pending",
-      priority: task.priority,
+      priority: parentTask.priority,
       order: 0,
       subtasks: [],
       isArchived: false,
       createdAt: new Date().toISOString(),
-      boardId: task.boardId,
+      boardId: parentTask.boardId,
       isMIT: false,
-      category: task.category || "",
+      category: parentTask.category || "",
+      isTemp: true,
     };
 
-    const oldTasks = [...tasks];
-    const newSubtasks = task.subtasks.filter((_, i) => i !== subtaskIndex);
-    setTasks([...tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t), newTask]);
+    const newSubtasks = parentTask.subtasks.filter((_, i) => i !== subtaskIndex);
+    const previousTasks = [...tasks];
+
+    // Optimistic Update: Update parent task and add new task simultaneously
+    setTasks(prev => {
+      const updated = prev.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t);
+      return [...updated, newTask];
+    });
 
     try {
+      // 1. Create the new task
       const res = await fetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1341,17 +1355,25 @@ export default function Dashboard() {
           isMIT: newTask.isMIT,
         }),
       });
-      if (!res.ok) throw new Error("Failed to create task");
-      const createdTask = await res.json();
-      setTasks(oldTasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t).concat(createdTask));
 
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error("Failed to create task");
+
+      const createdTask = json.data;
+
+      // 2. Update the parent task to remove the subtask persistently
       await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: newSubtasks }),
       });
-    } catch {
-      setTasks(oldTasks);
+
+      // 3. Swap the temp task with the real one from server
+      setTasks(prev => prev.map(t => t._id === tempId ? createdTask : t));
+
+    } catch (error) {
+      console.error("Task promotion failed:", error);
+      setTasks(previousTasks);
     }
   };
 
@@ -1905,6 +1927,85 @@ export default function Dashboard() {
               {/* Notification Bell */}
               {!isZenMode && <NotificationBell />}
 
+              {/* Global Search */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsSearchOpen(!isSearchOpen)}
+                  className={cn(
+                    "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all",
+                    isSearchOpen
+                      ? "bg-primary/20 border-primary text-primary"
+                      : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
+                  )}
+                  title="Search Tasks"
+                >
+                  <Search size={18} />
+                </button>
+
+                {/* Search Dropdown */}
+                <AnimatePresence>
+                  {isSearchOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-[100]"
+                    >
+                      <div className="p-3 border-b border-border">
+                        <input
+                          type="text"
+                          autoFocus
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search all tasks..."
+                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-primary/50"
+                        />
+                      </div>
+                      <div className="max-h-[300px] overflow-y-auto">
+                        {searchQuery.length > 0 ? (
+                          tasks
+                            .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                            .slice(0, 8)
+                            .map(t => (
+                              <button
+                                key={t._id}
+                                onClick={() => {
+                                  setEditingTask(t);
+                                  setIsSearchOpen(false);
+                                  setSearchQuery("");
+                                }}
+                                className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-border/50 last:border-0"
+                              >
+                                <div className="text-sm font-medium text-white truncate">{t.title}</div>
+                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                  <span className={cn(
+                                    "px-1.5 py-0.5 rounded text-[10px] uppercase font-bold",
+                                    t.priority === "high" ? "bg-red-500/20 text-red-500" :
+                                      t.priority === "medium" ? "bg-yellow-500/20 text-yellow-500" :
+                                        "bg-gray-500/20 text-gray-500"
+                                  )}>
+                                    {t.priority}
+                                  </span>
+                                  <span className="capitalize">{t.status}</span>
+                                </div>
+                              </button>
+                            ))
+                        ) : (
+                          <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                            Type to search across all tasks
+                          </div>
+                        )}
+                        {searchQuery.length > 0 && tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                          <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                            No tasks found
+                          </div>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {/* Lofi Girl Button */}
               <button
                 onClick={() => {
@@ -2050,8 +2151,8 @@ export default function Dashboard() {
               </div>
 
               {isLoading ? (
-                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
-                  {["Backlog", "In Focus", "Done", "Pin for Later"].map((col, colIdx) => (
+                <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-6">
+                  {["Backlog", "In Focus", "Done", "Pin for Later", "AI Agent"].map((col, colIdx) => (
                     <div key={col} className="bg-surface/50 border border-border/50 rounded-2xl p-4">
                       <div className="flex items-center justify-between mb-4">
                         <div className="h-5 w-24 bg-white/5 animate-pulse rounded-lg" />

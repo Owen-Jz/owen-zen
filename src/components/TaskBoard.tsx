@@ -186,11 +186,12 @@ export const TaskBoard = ({
     });
   };
 
-  const columns: { id: TaskStatus; title: string }[] = [
+  const columns: { id: TaskStatus | "ai-agent"; title: string }[] = [
     { id: "pending", title: "Backlog" },
     { id: "in-progress", title: "In Focus" },
     { id: "completed", title: "Done" },
-    { id: "pinned", title: "Pin for Later" }
+    { id: "pinned", title: "Pin for Later" },
+    { id: "ai-agent", title: "AI Agent" }
   ];
 
   // Only show non-archived tasks and apply filters
@@ -273,7 +274,7 @@ export const TaskBoard = ({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-6">
           {columns.map(col => {
             const isFocusCol = col.id === "in-progress";
             return (
