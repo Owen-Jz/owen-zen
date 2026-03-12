@@ -15,7 +15,7 @@ const VERSES = [
   { text: "Whatever you do, work heartily, as for the Lord and not for men.", ref: "Colossians 3:23" },
   { text: "Trust in the Lord with all your heart, and do not lean on your own understanding.", ref: "Proverbs 3:5" },
   { text: "The soul of the sluggard craves and gets nothing, while the soul of the diligent is richly supplied.", ref: "Proverbs 13:4" },
-  { text: "Do not despise these small beginnings, for the Lord rejoices to see the work begin.", ref: "Zechariah 4:10" },
+  { text: "Do not despise these small beginnings,  for the Lord rejoices to see the work begin.", ref: "Zechariah 4:10" },
   { text: "Let us not become weary in doing good, for at the proper time we will reap a harvest if we do not give up.", ref: "Galatians 6:9" },
   { text: "Iron sharpens iron, and one man sharpens another.", ref: "Proverbs 27:17" },
   { text: "Where there is no vision, the people perish.", ref: "Proverbs 29:18" }
