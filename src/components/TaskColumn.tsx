@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -504,6 +504,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
           {id === "in-progress" && <Clock size={14} className="text-primary" />}
           {id === "completed" && <Check size={14} className="text-green-500" />}
           {id === "pinned" && <Pin size={14} className="text-purple-500" />}
+          {id === "ai-agent" && <Sparkles size={14} className="text-cyan-400" />}
           {title}
         </h3>
         <span className="bg-surface/80 py-0.5 px-2.5 rounded-full text-[10px] font-mono font-bold text-gray-300 border border-white/10 shadow-inner">

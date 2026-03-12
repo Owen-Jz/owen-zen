@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Timer, Play, Pause, Maximize2, Minimize2, CheckCircle2 } from "lucide-react";
+import { X, Check, Play, Pause, Minimize2, CheckCircle2, AlignLeft, ChevronDown, ChevronUp, Circle } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -36,7 +36,7 @@ interface FocusOverlayProps {
   onToggleSubtask: (taskId: string, index: number) => void;
   onStartTimer: (taskId: string, sessionTitle?: string) => void;
   onStopTimer: (taskId: string, note?: string) => void;
-  onCompleteTask: (taskId: string) => void;
+  onCompleteTask: (id: string) => void;
 }
 
 export const FocusOverlay = ({
@@ -45,12 +45,14 @@ export const FocusOverlay = ({
   onToggleSubtask,
   onStartTimer,
   onStopTimer,
-  onCompleteTask
+  onCompleteTask,
 }: FocusOverlayProps) => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [sessionTitle, setSessionTitle] = useState("");
   const [showStopModal, setShowStopModal] = useState(false);
   const [stopNote, setStopNote] = useState("");
+  const [showNotes, setShowNotes] = useState(false);
+  const [quickNotes, setQuickNotes] = useState("");
 
   // Timer logic
   useEffect(() => {
@@ -97,10 +99,18 @@ export const FocusOverlay = ({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] bg-background/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 md:p-12"
+      className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden"
     >
+      {/* Atmospheric Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] animate-pulse-slow" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-purple-500/3 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '4s' }} />
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
+      </div>
       {/* Top Bar */}
-      <div className="absolute top-6 right-6 flex items-center gap-4">
+      <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
         <button
           onClick={onClose}
           className="p-3 rounded-full bg-surface border border-border text-gray-400 hover:text-white hover:bg-surface-hover transition-all group"
@@ -116,10 +126,42 @@ export const FocusOverlay = ({
         {/* Timer Display */}
         <div className="relative group">
           <div className={cn(
-            "text-[8rem] md:text-[10rem] font-black tabular-nums tracking-tighter leading-none transition-colors duration-500",
-            task.activeTimer?.isActive ? "text-white drop-shadow-[0_0_30px_rgba(255,255,255,0.1)]" : "text-gray-800"
+            "text-[8rem] md:text-[10rem] font-black tabular-nums tracking-tighter leading-none transition-all duration-500",
+            task.activeTimer?.isActive
+              ? "text-white drop-shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+              : "text-white/20"
           )}>
             {task.activeTimer?.isActive ? formatTime(elapsedTime) : formatTime(task.totalTimeSpent || 0)}
+          </div>
+
+          {/* Progress Ring */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10">
+            <svg className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] -rotate-90">
+              <circle
+                cx="50%"
+                cy="50%"
+                r="45%"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                className="text-white/5"
+              />
+              <circle
+                cx="50%"
+                cy="50%"
+                r="45%"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="4"
+                strokeLinecap="round"
+                strokeDasharray={283 * 2}
+                strokeDashoffset={283 * 2 - (progress / 100) * 283 * 2}
+                className={cn(
+                  "transition-all duration-700",
+                  task.activeTimer?.isActive ? "text-primary drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]" : "text-white/20"
+                )}
+              />
+            </svg>
           </div>
 
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">
@@ -130,16 +172,16 @@ export const FocusOverlay = ({
                   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' });
                   onStartTimer(task._id, dateStr);
                 }}
-                className="flex items-center gap-2 px-6 py-3 bg-primary text-white rounded-full font-bold text-lg hover:brightness-110 active:scale-95 transition-all shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
+                className="flex items-center gap-2 px-8 py-4 bg-primary text-white rounded-full font-bold text-lg hover:brightness-110 active:scale-95 transition-all shadow-[0_0_30px_rgba(220,38,38,0.4)] hover:shadow-[0_0_50px_rgba(220,38,38,0.6)]"
               >
-                <Play size={20} fill="currentColor" /> Start Focus
+                <Play size={22} fill="currentColor" /> Start Focus
               </button>
             ) : (
               <button
                 onClick={() => setShowStopModal(true)}
-                className="flex items-center gap-2 px-6 py-3 bg-red-500/20 text-red-500 border border-red-500/50 rounded-full font-bold text-lg hover:bg-red-500 hover:text-white transition-all"
+                className="flex items-center gap-2 px-8 py-4 bg-white/10 text-white border border-white/20 rounded-full font-bold text-lg hover:bg-white/20 hover:border-white/30 transition-all backdrop-blur-sm"
               >
-                <Pause size={20} fill="currentColor" /> Pause
+                <Pause size={20} fill="currentColor" /> End Session
               </button>
             )}
           </div>
@@ -157,10 +199,19 @@ export const FocusOverlay = ({
 
           {/* Subtasks List */}
           {task.subtasks && task.subtasks.length > 0 && (
-            <div className="bg-surface/50 border border-border rounded-2xl p-6 text-left max-h-[40vh] overflow-y-auto custom-scrollbar">
+            <div className="bg-surface/30 border border-white/5 rounded-2xl p-6 text-left max-h-[40vh] overflow-y-auto custom-scrollbar backdrop-blur-sm">
               <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-gray-500">Subtasks</span>
-                <span className="text-xs font-mono text-gray-500">{completedSubtasks}/{totalSubtasks}</span>
+                <span className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                  <Circle size={12} className={cn("fill-current", progress === 100 ? "text-green-500" : "text-gray-500")} />
+                  Subtasks
+                </span>
+                <span className={cn(
+                  "text-xs font-mono px-2 py-1 rounded-full",
+                  progress === 100 ? "bg-green-500/20 text-green-500" : "bg-white/10 text-gray-400"
+                )}>
+                  {completedSubtasks}/{totalSubtasks}
+                  {progress === 100 && " ✓"}
+                </span>
               </div>
               <div className="space-y-3">
                 {task.subtasks.map((st, i) => (
@@ -192,6 +243,39 @@ export const FocusOverlay = ({
               </div>
             </div>
           )}
+
+          {/* Quick Notes - Collapsible */}
+          <div className="bg-surface/30 border border-white/5 rounded-2xl overflow-hidden">
+            <button
+              onClick={() => setShowNotes(!showNotes)}
+              className="w-full flex items-center justify-between p-4 text-left hover:bg-white/5 transition-colors"
+            >
+              <span className="text-xs font-bold uppercase tracking-wider text-gray-500 flex items-center gap-2">
+                <AlignLeft size={14} /> Quick Notes
+                {quickNotes && <span className="w-2 h-2 bg-primary rounded-full ml-2" />}
+              </span>
+              {showNotes ? <ChevronUp size={16} className="text-gray-500" /> : <ChevronDown size={16} className="text-gray-500" />}
+            </button>
+            <AnimatePresence>
+              {showNotes && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="overflow-hidden"
+                >
+                  <textarea
+                    value={quickNotes}
+                    onChange={(e) => setQuickNotes(e.target.value)}
+                    placeholder="Jot down quick notes while you focus..."
+                    className="w-full bg-transparent border-t border-white/5 p-4 focus:border-primary/50 outline-none min-h-[120px] resize-none text-gray-300 placeholder-gray-600 scrollbar-thin scrollbar-thumb-white/10"
+                    autoFocus={showNotes}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
 
           {/* Complete Task Button */}
           <button
