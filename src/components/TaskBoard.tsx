@@ -140,7 +140,7 @@ export const TaskBoard = ({
     // Normal Reorder / Status Change
     let newStatus: TaskStatus | undefined;
 
-    if (["pending", "in-progress", "completed", "pinned"].includes(overIdStr)) {
+    if (["pending", "in-progress", "completed", "pinned", "ai-agent"].includes(overIdStr)) {
       newStatus = overIdStr as TaskStatus;
     } else {
       const overTask = tasks.find(t => t._id === overIdStr);
