@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp:*)",
+      "mcp__figma__generate_figma_design",
+      "Bash(start \"http://localhost:8080/mobile-login.html#figmacapture=e6c1c63a-98e7-432b-927b-f3b1f10cd1b4&figmaendpoint=https%3A%2F%2Fmcp.figma.com%2Fmcp%2Fcapture%2Fe6c1c63a-98e7-432b-927b-f3b1f10cd1b4%2Fsubmit&figmadelay=2000\")",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npm run build 2>&1 | head -50)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npx tsc --noEmit --skipLibCheck src/components/MealPlanView.tsx 2>&1)",
+      "Bash(npx tsc:*)",
+      "Bash(taskkill /F /IM node.exe 2>/dev/null; sleep 2)",
+      "Bash(npm run:*)",
+      "Bash(curl -s http://localhost:3001 2>&1)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}

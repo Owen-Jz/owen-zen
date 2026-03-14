@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -32,6 +32,7 @@ import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
 import { HabitView } from "@/components/HabitView";
 import { VisionBoardView } from "@/components/VisionBoardView";
+import { RealityView } from "@/components/RealityView";
 import { AnalyticsView } from "@/components/AnalyticsView";
 import SandboxDashboard from "@/components/SandboxDashboard";
 import { WatchLaterView } from "@/components/WatchLaterView";
@@ -52,9 +53,11 @@ import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
 import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
 import { GymView } from "@/components/GymView";
 import { NotesView } from "@/components/NotesView";
+import { MealPlanView } from "@/components/MealPlanView";
 import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
+import { DisciplineChallenge } from "@/components/DisciplineChallenge";
 import { Confetti, useConfetti } from "@/components/Confetti";
 
 import { TimeTracker } from "@/components/TimeTracker";
@@ -150,12 +153,14 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "projects", label: "Project HQ", icon: LayoutTemplate },
         { id: "stats", label: "Stats", icon: TrendingUp },
         { id: "habits", label: "Habits", icon: Trophy },
+        { id: "discipline", label: "Discipline Challenge", icon: Shield },
       ]
     },
     {
       title: "Health",
       links: [
         { id: "gym", label: "Gym Tracker", icon: Dumbbell },
+        { id: "mealplan", label: "Meal Plan", icon: UtensilsCrossed },
       ]
     },
     {
@@ -163,6 +168,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       links: [
         { id: "weekly", label: "Weekly Goals", icon: Target },
         { id: "vision", label: "Vision Board", icon: Palette },
+        { id: "reality", label: "Reality Check", icon: Eye },
         { id: "roadmap", label: "2026 Roadmap", icon: Target },
         { id: "bucket", label: "2026 Bucket List", icon: Star },
         { id: "calendar", label: "Calendar", icon: Calendar },
@@ -205,14 +211,21 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         isCollapsed ? "md:w-20" : "md:w-64"
       )}>
         <div className="p-6 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-3 overflow-hidden">
-            <div className="w-8 h-8 relative shrink-0">
+          <a href="/landing" className="flex items-center gap-3 overflow-hidden group">
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="w-8 h-8 relative shrink-0"
+            >
               <Image src="/logo.svg" alt="Owen Zen" fill className="object-contain" />
-            </div>
-            <span className={cn("font-bold text-lg tracking-tight whitespace-nowrap transition-all duration-300", isCollapsed && "md:hidden")}>
+            </motion.div>
+            <motion.span
+              whileHover={{ color: "var(--primary)" }}
+              className={cn("font-bold text-lg tracking-tight whitespace-nowrap transition-all duration-300", isCollapsed && "md:hidden")}
+            >
               Owen Zen
-            </span>
-          </div>
+            </motion.span>
+          </a>
           <button onClick={() => setIsOpen(false)} className="md:hidden text-gray-400 hover:text-white">
             <X size={20} />
           </button>
@@ -220,8 +233,14 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
         <div className="flex-1 overflow-y-auto scrollbar-hide pb-24 mt-2">
           <nav className="px-3 space-y-6">
-            {linkSections.map((section) => (
-              <div key={section.title} className="space-y-1">
+            {linkSections.map((section, sectionIndex) => (
+              <motion.div
+                key={section.title}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.3, delay: sectionIndex * 0.05 }}
+                className="space-y-1"
+              >
                 <button
                   onClick={() => toggleSection(section.title)}
                   className={cn(
@@ -251,23 +270,26 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                       transition={{ duration: 0.2 }}
                       className="space-y-1 overflow-hidden"
                     >
-                      {section.links.map((link) => {
+                      {section.links.map((link, linkIndex) => {
                         const Icon = link.icon;
                         const isActive = activeTab === link.id;
                         return (
-                          <button
+                          <motion.button
                             key={link.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ duration: 0.2, delay: linkIndex * 0.03 }}
                             onClick={() => {
                               setActiveTab(link.id);
                               setIsOpen(false);
                             }}
                             className={cn(
                               "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
-                              isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white"
+                              isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white hover:translate-x-1"
                             )}
                             title={isCollapsed ? link.label : undefined}
                           >
-                            <Icon size={18} className={cn("shrink-0", isActive && "text-primary")} />
+                            <Icon size={18} className={cn("shrink-0 transition-transform duration-200", isActive && "text-primary", "group-hover:scale-110")} />
                             <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300 text-sm", isCollapsed && "md:hidden")}>
                               {link.label}
                             </span>
@@ -277,13 +299,13 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                                 className="absolute left-0 w-1 h-5 bg-primary rounded-r-full md:left-1"
                               />
                             )}
-                          </button>
+                          </motion.button>
                         );
                       })}
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </div>
+              </motion.div>
             ))}
           </nav>
 
@@ -499,6 +521,94 @@ const SettingsView = () => {
             <div className="text-xs text-gray-500 mt-1">Deep Blue</div>
           </button>
 
+          {/* Midnight Theme */}
+          <button onClick={() => setTheme('midnight')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#0a0a1a] rounded-lg mb-4 border border-[#2d2d5a] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#6366f1]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#6366f1] shadow-[0_0_15px_rgba(99,102,241,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#818cf8] text-xs font-mono">MIDNIGHT</div>
+            </div>
+            <div className="font-bold text-lg">Midnight</div>
+            <div className="text-xs text-gray-500 mt-1">Deep Indigo</div>
+          </button>
+
+          {/* Cherry Theme */}
+          <button onClick={() => setTheme('cherry')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#1a0a14] rounded-lg mb-4 border border-[#4a2040] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#ec4899]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#ec4899] shadow-[0_0_15px_rgba(236,72,153,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#f472b6] text-xs font-mono">CHERRY</div>
+            </div>
+            <div className="font-bold text-lg">Cherry</div>
+            <div className="text-xs text-gray-500 mt-1">Passion Pink</div>
+          </button>
+
+          {/* Forest Theme */}
+          <button onClick={() => setTheme('forest')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#051a0d] rounded-lg mb-4 border border-[#145230] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#22c55e]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#22c55e] shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#4ade80] text-xs font-mono">FOREST</div>
+            </div>
+            <div className="font-bold text-lg">Forest</div>
+            <div className="text-xs text-gray-500 mt-1">Deep Green</div>
+          </button>
+
+          {/* Nord Theme */}
+          <button onClick={() => setTheme('nord')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#0d1117] rounded-lg mb-4 border border-[#30363d] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#88c0d0]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#88c0d0] shadow-[0_0_15px_rgba(136,192,208,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#81a1c1] text-xs font-mono">NORD</div>
+            </div>
+            <div className="font-bold text-lg">Nord</div>
+            <div className="text-xs text-gray-500 mt-1">Arctic Cool</div>
+          </button>
+
+          {/* Dracula Theme */}
+          <button onClick={() => setTheme('dracula')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#0d0d14] rounded-lg mb-4 border border-[#3d3d5c] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#bd93f9]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#bd93f9] shadow-[0_0_15px_rgba(189,147,249,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#d6acff] text-xs font-mono">DRACULA</div>
+            </div>
+            <div className="font-bold text-lg">Dracula</div>
+            <div className="text-xs text-gray-500 mt-1">Purple Night</div>
+          </button>
+
+          {/* Chocolate Theme */}
+          <button onClick={() => setTheme('chocolate')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#1a1410] rounded-lg mb-4 border border-[#4a3a2e] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#cd853f]/30 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#cd853f] shadow-[0_0_15px_rgba(205,133,63,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#daa520] text-xs font-mono">CHOCO</div>
+            </div>
+            <div className="font-bold text-lg">Chocolate</div>
+            <div className="text-xs text-gray-500 mt-1">Coffee Brown</div>
+          </button>
+
+          {/* Arctic Theme */}
+          <button onClick={() => setTheme('arctic')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#e0f2fe] rounded-lg mb-4 border border-[#7dd3fc] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#0ea5e9]/20 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#0ea5e9] shadow-[0_0_15px_rgba(14,165,233,0.5)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#0284c7] text-xs font-mono">ARCTIC</div>
+            </div>
+            <div className="font-bold text-lg">Arctic</div>
+            <div className="text-xs text-gray-500 mt-1">Icy White</div>
+          </button>
+
+          {/* Neon Theme */}
+          <button onClick={() => setTheme('neon')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#050505] rounded-lg mb-4 border border-[#252525] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#39ff14]/20 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#39ff14] shadow-[0_0_20px_rgba(57,255,20,0.7)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#7fff00] text-xs font-mono">NEON</div>
+            </div>
+            <div className="font-bold text-lg">Neon</div>
+            <div className="text-xs text-gray-500 mt-1">Electric Green</div>
+          </button>
+
         </div>
       </div>
     </div>
@@ -510,7 +620,40 @@ const SniperView = () => <SandboxDashboard />;
 
 const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore: (id: string) => void, onDelete: (id: string) => void }) => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const archivedTasks = tasks.filter(t => t.isArchived && t.title.toLowerCase().includes(searchQuery.toLowerCase()));
+
+  const handleSelect = (id: string, selected: boolean) => {
+    setSelectedTasks(prev => {
+      const newSet = new Set(prev);
+      if (selected) {
+        newSet.add(id);
+      } else {
+        newSet.delete(id);
+      }
+      return newSet;
+    });
+  };
+
+  const handleSelectAll = () => {
+    setSelectedTasks(new Set(archivedTasks.map(t => t._id)));
+  };
+
+  const handleClearSelection = () => {
+    setSelectedTasks(new Set());
+  };
+
+  const handleBulkRestore = () => {
+    selectedTasks.forEach(id => onRestore(id));
+    setSelectedTasks(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (confirm(`Are you sure you want to permanently delete ${selectedTasks.size} ${selectedTasks.size === 1 ? 'task' : 'tasks'}? This cannot be undone.`)) {
+      selectedTasks.forEach(id => onDelete(id));
+      setSelectedTasks(new Set());
+    }
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -531,21 +674,65 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
         </div>
       </div>
 
+      {/* Bulk Actions Toolbar */}
+      {selectedTasks.size > 0 && (
+        <div className="flex items-center justify-between bg-surface/80 border border-primary/30 rounded-xl p-3 animate-in slide-in-from-top-2">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-bold text-primary">{selectedTasks.size} selected</span>
+            <button onClick={handleClearSelection} className="text-gray-500 hover:text-white p-1">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="flex gap-2">
+            <button onClick={handleBulkRestore} className="px-3 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors">
+              Restore Selected
+            </button>
+            <button onClick={handleBulkDelete} className="px-3 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-colors">
+              Delete Selected
+            </button>
+          </div>
+        </div>
+      )}
+
       {archivedTasks.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-border rounded-xl text-gray-600">
           {searchQuery ? "No matching archived tasks found." : "Archive is empty."}
         </div>
       ) : (
         <div className="grid gap-3">
+          {selectedTasks.size === 0 && (
+            <div className="flex justify-end mb-2">
+              <button onClick={handleSelectAll} className="text-xs text-gray-500 hover:text-white transition-colors">
+                Select All ({archivedTasks.length})
+              </button>
+            </div>
+          )}
           {archivedTasks.map(task => (
-            <div key={task._id} className="bg-surface/50 border border-border p-4 rounded-xl flex justify-between items-center opacity-70 hover:opacity-100 transition-opacity">
-              <div className="flex flex-col gap-1 min-w-0">
-                <span className="text-gray-400 line-through truncate">{task.title}</span>
-                {task.completedAt && (
-                  <span className="text-[10px] text-green-500/80 font-mono">
-                    Finished {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
-                  </span>
-                )}
+            <div
+              key={task._id}
+              className={cn(
+                "bg-surface/50 border border-border p-4 rounded-xl flex justify-between items-center opacity-70 hover:opacity-100 transition-all",
+                selectedTasks.has(task._id) && "border-primary/50 bg-primary/5 opacity-100"
+              )}
+            >
+              <div className="flex items-center gap-3 min-w-0">
+                <button
+                  onClick={() => handleSelect(task._id, !selectedTasks.has(task._id))}
+                  className={cn(
+                    "shrink-0 p-1 rounded transition-colors",
+                    selectedTasks.has(task._id) ? "text-primary" : "text-gray-600 hover:text-gray-400"
+                  )}
+                >
+                  {selectedTasks.has(task._id) ? <CheckSquare size={18} /> : <Square size={18} />}
+                </button>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <span className="text-gray-400 line-through truncate">{task.title}</span>
+                  {task.completedAt && (
+                    <span className="text-[10px] text-green-500/80 font-mono">
+                      Finished {new Date(task.completedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2 shrink-0 ml-4">
                 <button onClick={() => onRestore(task._id)} className="p-2 text-primary hover:bg-primary/10 rounded-lg text-xs font-bold uppercase">
@@ -1286,6 +1473,103 @@ export default function Dashboard() {
     }
   };
 
+  // Bulk action handlers
+  const bulkDeleteTasks = async (ids: string[]) => {
+    if (!confirm(`Are you sure you want to delete ${ids.length} ${ids.length === 1 ? 'task' : 'tasks'}? This cannot be undone.`)) {
+      return;
+    }
+
+    const oldTasks = [...tasks];
+
+    // Optimistic update: remove immediately
+    setTasks(tasks.filter(t => !ids.includes(t._id)));
+
+    try {
+      // Delete each task
+      await Promise.all(ids.map(id => fetch(`/api/tasks/${id}`, { method: "DELETE" })));
+      // Success - tasks stay deleted
+    } catch {
+      // Rollback on error
+      setTasks(oldTasks);
+      alert('Failed to delete tasks. Please try again.');
+    }
+  };
+
+  const bulkArchiveTasks = async (ids: string[]) => {
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => ids.includes(t._id) ? { ...t, isArchived: true } : t));
+
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isArchived: true }),
+        })
+      ));
+    } catch {
+      setTasks(oldTasks);
+      alert('Failed to archive tasks. Please try again.');
+    }
+  };
+
+  const bulkRestoreTasks = async (ids: string[]) => {
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => ids.includes(t._id) ? { ...t, isArchived: false } : t));
+
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ isArchived: false }),
+        })
+      ));
+    } catch {
+      setTasks(oldTasks);
+      alert('Failed to restore tasks. Please try again.');
+    }
+  };
+
+  const bulkUpdateTaskStatus = async (ids: string[], status: TaskStatus) => {
+    const oldTasks = [...tasks];
+    const completedAt = status === "completed" ? new Date().toISOString() : undefined;
+
+    setTasks(tasks.map(t => ids.includes(t._id) ? { ...t, status, completedAt } : t));
+
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status, completedAt }),
+        })
+      ));
+    } catch {
+      setTasks(oldTasks);
+      alert('Failed to update tasks. Please try again.');
+    }
+  };
+
+  const bulkUpdateTaskPriority = async (ids: string[], priority: TaskPriority) => {
+    const oldTasks = [...tasks];
+
+    setTasks(tasks.map(t => ids.includes(t._id) ? { ...t, priority } : t));
+
+    try {
+      await Promise.all(ids.map(id =>
+        fetch(`/api/tasks/${id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ priority }),
+        })
+      ));
+    } catch {
+      setTasks(oldTasks);
+      alert('Failed to update priority. Please try again.');
+    }
+  };
+
   const toggleTaskSubtask = async (taskId: string, subtaskIndex: number) => {
     const task = tasks.find(t => t._id === taskId);
     if (!task || !task.subtasks) return;
@@ -1865,16 +2149,34 @@ export default function Dashboard() {
             <div className="h-16 md:h-14" />
           )}
 
+          {/* Animated Content Container */}
+          <motion.div
+            key={activeTab}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: "easeOut" }}
+            className="w-full"
+          >
           {/* Header */}
-          <header className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}>
-            <div className={cn(isZenMode && "hidden md:block")}>
+          <motion.header
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className={cn("flex items-center justify-between mb-8 md:mb-12 max-w-[1600px] mx-auto transition-all duration-500", isZenMode && "opacity-0 hover:opacity-100 absolute top-4 left-4 right-4 z-40 bg-black/50 p-4 rounded-2xl backdrop-blur-md")}
+          >
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.4, delay: 0.1 }}
+              className={cn(isZenMode && "hidden md:block")}
+            >
               <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">
-                {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'notes' ? 'Notes' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
+                {activeTab === 'projects' ? 'Project Command' : activeTab === 'sniper' ? 'Sniper Command' : activeTab === 'socials' ? 'Social HQ' : activeTab === 'leads' ? 'Leads CRM' : activeTab === 'inbox' ? 'The Inbox' : activeTab === 'notes' ? 'Notes' : activeTab === 'bucket' ? '2026 Bucket List' : activeTab === 'settings' ? 'System Settings' : activeTab === 'archive' ? 'The Vault' : activeTab === 'habits' ? 'Daily Protocols' : activeTab === 'discipline' ? '90-Day Discipline Challenge' : activeTab === 'weekly' ? 'Weekly Goals' : activeTab === 'vision' ? 'The Blueprint' : activeTab === 'reality' ? 'Reality Check' : activeTab === 'watch' ? 'Watch Later' : activeTab === 'gym' ? 'Gym Tracker' : `${greeting}, Owen. ${dailyEmoji}`}
               </h1>
               <p className="text-sm md:text-base text-gray-400">
-                {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'notes' ? 'Capture your thoughts and ideas.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
+                {activeTab === 'projects' ? 'High-level view of your core initiatives.' : activeTab === 'sniper' ? 'Tracking Smart Money flows.' : activeTab === 'archive' ? 'History of executed tasks.' : activeTab === 'habits' ? 'Consistency is the key to mastery.' : activeTab === 'discipline' ? 'Conquer addiction through daily discipline.' : activeTab === 'weekly' ? 'Track your weekly wins and habits.' : activeTab === 'vision' ? 'Eyes on the prize.' : activeTab === 'reality' ? 'Ground yourself in what matters most.' : activeTab === 'watch' ? 'Your curated video collection.' : activeTab === 'leads' ? 'Track, nurture and convert your leads.' : activeTab === 'inbox' ? 'Capture everything. Process deliberately.' : activeTab === 'notes' ? 'Capture your thoughts and ideas.' : activeTab === 'bucket' ? 'Epic things to do before 2027.' : activeTab === 'gym' ? 'Track your workouts and build consistency.' : dailyQuote}
               </p>
-            </div>
+            </motion.div>
             <div className="flex items-center gap-3 ml-auto">
               {/* Day & Week Counter */}
               <div className="hidden md:flex items-center gap-3 mr-2">
@@ -2041,23 +2343,39 @@ export default function Dashboard() {
                 </button>
               )}
             </div>
-          </header>
+          </motion.header>
 
           {isZenMode && <div className="h-12 md:h-0"></div>}
 
           {activeTab === "tasks" && (
-            <div className="max-w-[1600px] mx-auto pb-20">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="max-w-[1600px] mx-auto pb-20"
+            >
               {/* Daily MIT Section */}
-              <MITList
-                tasks={tasks}
-                setTasks={setTasks}
-                onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
-                onToggleMIT={toggleMIT}
-                currentBoardId={currentBoardId}
-              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: 0.1 }}
+              >
+                <MITList
+                  tasks={tasks}
+                  setTasks={setTasks}
+                  onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
+                  onToggleMIT={toggleMIT}
+                  currentBoardId={currentBoardId}
+                />
+              </motion.div>
 
               {/* Board Selector */}
-              <div className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.2 }}
+                className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}
+              >
                 <button
                   onClick={() => setCurrentBoardId(null)}
                   className={cn(
@@ -2123,7 +2441,7 @@ export default function Dashboard() {
                     <Plus size={14} /> Add Board
                   </button>
                 )}
-              </div>
+              </motion.div>
               <div className={cn("mb-8 max-w-3xl mx-auto transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
                 <div className="flex gap-4">
                   <div
@@ -2197,16 +2515,23 @@ export default function Dashboard() {
                   onMoveToBoard={moveTaskToBoard}
                   boards={boards}
                   isZenMode={isZenMode}
+                  onBulkDelete={bulkDeleteTasks}
+                  onBulkArchive={bulkArchiveTasks}
+                  onBulkRestore={bulkRestoreTasks}
+                  onBulkUpdateStatus={bulkUpdateTaskStatus}
+                  onBulkUpdatePriority={bulkUpdateTaskPriority}
                 />
               )}
-            </div>
+            </motion.div>
           )}
 
           {activeTab === "projects" && <ProjectView />}
           {activeTab === "stats" && <AnalyticsView />}
           {activeTab === "habits" && <HabitView />}
+          {activeTab === "discipline" && <DisciplineChallenge />}
           {activeTab === "weekly" && <WeeklyGoalsView />}
           {activeTab === "vision" && <VisionBoardView />}
+          {activeTab === "reality" && <RealityView />}
           {activeTab === "roadmap" && <RoadmapView />}
           {activeTab === "watch" && <WatchLaterView />}
           {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
@@ -2220,7 +2545,9 @@ export default function Dashboard() {
 
           {activeTab === "calendar" && <CalendarView />}
           {activeTab === "gym" && <GymView />}
+          {activeTab === "mealplan" && <MealPlanView />}
           {activeTab === "notes" && <NotesView />}
+          </motion.div>
         </main>
 
         <AISummaryWidget tasks={tasks} />
