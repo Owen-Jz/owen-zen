@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare, BarChart2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -31,6 +31,7 @@ import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board } 
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
 import { HabitView } from "@/components/HabitView";
+import { HabitAnalyticsView } from "@/components/HabitAnalyticsView";
 import { VisionBoardView } from "@/components/VisionBoardView";
 import { RealityView } from "@/components/RealityView";
 import { AnalyticsView } from "@/components/AnalyticsView";
@@ -153,6 +154,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "projects", label: "Project HQ", icon: LayoutTemplate },
         { id: "stats", label: "Stats", icon: TrendingUp },
         { id: "habits", label: "Habits", icon: Trophy },
+        { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
       ]
     },
@@ -2528,6 +2530,7 @@ export default function Dashboard() {
           {activeTab === "projects" && <ProjectView />}
           {activeTab === "stats" && <AnalyticsView />}
           {activeTab === "habits" && <HabitView />}
+          {activeTab === "habit-analytics" && <HabitAnalyticsView />}
           {activeTab === "discipline" && <DisciplineChallenge />}
           {activeTab === "weekly" && <WeeklyGoalsView />}
           {activeTab === "vision" && <VisionBoardView />}
