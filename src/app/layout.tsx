@@ -45,6 +45,8 @@ export const metadata: Metadata = {
   },
 };
 
+import { Providers } from "@/components/Providers";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -53,9 +55,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.variable} antialiased min-h-screen relative`}>
-        <SpotlightEffect />
-        <ServiceWorkerRegistration />
-        {children}
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
+        <Providers>
+          <SpotlightEffect />
+          <ServiceWorkerRegistration />
+          {children}
+        </Providers>
       </body>
     </html>
   );

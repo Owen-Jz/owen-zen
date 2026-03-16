@@ -174,7 +174,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-2 flex-1 min-w-0">
             {/* Drag Handle - Only functional if listeners provided */}
-            <button {...attributes} {...listeners} className={cn("p-1.5 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")}>
+            <button {...attributes} {...listeners} className={cn("p-1.5 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")} aria-label="Drag to reorder task">
               <GripVertical size={16} />
             </button>
             <h4 className={cn(
@@ -195,7 +195,11 @@ export const TaskCard = forwardRef<HTMLDivElement, {
 
             {!isOverlay && (
               <div className="relative" ref={menuRef}>
-                <button onClick={() => setMenuOpen(!menuOpen)} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
+                <button
+                  onClick={() => setMenuOpen(!menuOpen)}
+                  className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
+                  aria-label="Task options menu"
+                >
                   <MoreVertical size={16} />
                 </button>
 
@@ -297,7 +301,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                       if (onToggleSubtask) onToggleSubtask(task._id, i);
                     }}
                     className={cn(
-                      "text-xs leading-relaxed font-medium transition-colors flex-1",
+                      "text-xs leading-relaxed font-medium transition-colors flex-1 whitespace-normal break-words",
                       st.completed ? "text-gray-500 line-through" : "text-gray-300"
                     )}>
                     {st.title}

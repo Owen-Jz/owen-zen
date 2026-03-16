@@ -6,8 +6,19 @@ import {
     Plus, X, TrendingUp, TrendingDown, DollarSign, PiggyBank,
     ChevronLeft, ChevronRight, Trash2, BarChart3, List, Target,
     AlertCircle, CheckCircle2, AlertTriangle, Wallet, ArrowDownCircle,
-    ArrowUpCircle, Tag, Calendar, FileText, Sparkles
+    ArrowUpCircle, Tag, Calendar, FileText, Sparkles, Search, Filter
 } from "lucide-react";
+
+// Import new components
+import { ExpenseSearch, SearchParams } from "./finance/SearchComponents";
+import { ExpenseTable } from "./finance/ExpenseTable";
+import {
+    BudgetVarianceCard,
+    SpendingTrendCard,
+    TopCategoriesCard,
+    PredictionCard,
+    AlertsCard,
+} from "./finance/AnalysisComponents";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -46,6 +57,7 @@ interface CategoryBreakdown {
     budget: number;
     budgetProgress: number;
     percentage: number;
+    change?: number;
 }
 
 interface MonthlyComparison {
@@ -85,6 +97,72 @@ interface StatsData {
     dailyTrend: DailyTrend[];
     monthlyComparison: MonthlyComparison[];
     insights: Insight[];
+}
+
+// Analytics types
+interface AnalyticsData {
+    summary: {
+        totalExpenses: number;
+        totalIncome: number;
+        balance: number;
+        monthOverMonthChange: number;
+        transactionCount: number;
+    };
+    averages: {
+        daily: number;
+        weekly: number;
+        threeMonthRolling: number;
+    };
+    projections: {
+        monthEndEstimate: number;
+        basedOnDays: number;
+        totalDaysInMonth: number;
+        confidenceLevel: string;
+    };
+    topCategories: CategoryBreakdown[];
+    allCategories: CategoryBreakdown[];
+    monthlyTrend: MonthlyComparison[];
+    budgetVariance: {
+        budget: number;
+        actual: number;
+        remaining: number;
+        percentageUsed: number;
+        isOverBudget: boolean;
+        isWarning: boolean;
+    } | null;
+    categoryBudgets: {
+        categoryId: string;
+        name: string;
+        color: string;
+        icon: string;
+        budget: number;
+        actual: number;
+        percentageUsed: number;
+        isOverBudget: boolean;
+        isWarning: boolean;
+    }[];
+    alerts: {
+        unusualSpikes: number;
+        isOverBudget: boolean;
+        budgetWarning: boolean;
+        spendingIncreased: boolean;
+        increasePercentage: number;
+    };
+}
+
+interface SearchResult {
+    data: Expense[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+        hasMore: boolean;
+    };
+    performance: {
+        queryTimeMs: number;
+        meetsTarget: boolean;
+    };
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -180,15 +258,18 @@ const BudgetBar = ({ cat, totalBudget }: { cat: CategoryBreakdown; totalBudget: 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 type ModalType = "expense" | "income" | "budget" | "category" | null;
-type ViewMode = "overview" | "transactions" | "budget";
+type ViewMode = "overview" | "transactions" | "budget" | "analytics";
 
 export function FinanceView() {
     const [month, setMonth] = useState(currentMonth());
     const [stats, setStats] = useState<StatsData | null>(null);
+    const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
     const [expenses, setExpenses] = useState<Expense[]>([]);
+    const [searchResults, setSearchResults] = useState<SearchResult | null>(null);
     const [incomes, setIncomes] = useState<Income[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
+    const [searching, setSearching] = useState(false);
     const [modal, setModal] = useState<ModalType>(null);
     const [viewMode, setViewMode] = useState<ViewMode>("overview");
     const [txFilter, setTxFilter] = useState<"all" | "expense" | "income">("all");
@@ -233,6 +314,55 @@ export function FinanceView() {
     }, [month]);
 
     useEffect(() => { fetchAll(); }, [fetchAll]);
+
+    // Fetch analytics data
+    const fetchAnalytics = useCallback(async () => {
+        setLoading(true);
+        try {
+            const res = await fetch(`/api/finance/analytics?month=${month}`);
+            const json = await res.json();
+            if (json.success) setAnalytics(json.analytics);
+        } catch (e) {
+            console.error("Error fetching analytics:", e);
+        } finally {
+            setLoading(false);
+        }
+    }, [month]);
+
+    useEffect(() => {
+        if (viewMode === "analytics") {
+            fetchAnalytics();
+        }
+    }, [viewMode, fetchAnalytics]);
+
+    // Search handler
+    const handleSearch = useCallback(async (params: SearchParams) => {
+        if (viewMode !== "transactions") {
+            setViewMode("transactions");
+        }
+
+        setSearching(true);
+        try {
+            const queryParams = new URLSearchParams();
+            if (params.q) queryParams.set("q", params.q);
+            if (params.categoryId) queryParams.set("categoryId", params.categoryId);
+            if (params.dateFrom) queryParams.set("dateFrom", params.dateFrom);
+            if (params.dateTo) queryParams.set("dateTo", params.dateTo);
+            if (params.amountMin) queryParams.set("amountMin", params.amountMin);
+            if (params.amountMax) queryParams.set("amountMax", params.amountMax);
+            if (params.booleanOperator) queryParams.set("booleanOperator", params.booleanOperator);
+
+            const res = await fetch(`/api/finance/search?${queryParams.toString()}`);
+            const json = await res.json();
+            if (json.success) {
+                setSearchResults(json);
+            }
+        } catch (e) {
+            console.error("Error searching:", e);
+        } finally {
+            setSearching(false);
+        }
+    }, [viewMode]);
 
     const closeModal = () => {
         setModal(null);
@@ -365,14 +495,14 @@ export function FinanceView() {
             </div>
 
             {/* ── View Tabs ── */}
-            <div className="flex gap-2 border-b border-border pb-0">
-                {(["overview", "transactions", "budget"] as ViewMode[]).map((v) => (
+            <div className="flex gap-2 border-b border-border pb-0 overflow-x-auto">
+                {(["overview", "transactions", "analytics", "budget"] as ViewMode[]).map((v) => (
                     <button key={v} onClick={() => setViewMode(v)}
-                        className={`px-4 py-2.5 text-sm font-semibold capitalize rounded-t-lg border-b-2 transition-all ${viewMode === v
+                        className={`px-4 py-2.5 text-sm font-semibold capitalize rounded-t-lg border-b-2 transition-all whitespace-nowrap ${viewMode === v
                             ? "border-primary text-primary"
                             : "border-transparent text-gray-400 hover:text-white"
                             }`}>
-                        {v === "overview" ? "Overview" : v === "transactions" ? "Transactions" : "Budget"}
+                        {v === "overview" ? "Overview" : v === "transactions" ? "Transactions" : v === "analytics" ? "Analytics" : "Budget"}
                     </button>
                 ))}
             </div>
@@ -555,71 +685,214 @@ export function FinanceView() {
                         {/* ══ TRANSACTIONS ══ */}
                         {viewMode === "transactions" && (
                             <div className="space-y-4">
-                                {/* Filter */}
-                                <div className="flex items-center gap-2">
-                                    {(["all", "expense", "income"] as const).map((f) => (
-                                        <button key={f} onClick={() => setTxFilter(f)}
-                                            className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${txFilter === f
-                                                ? "bg-primary/20 text-primary border border-primary/40"
-                                                : "bg-surface border border-border text-gray-400 hover:text-white"
-                                                }`}>
-                                            {f === "all" ? "All" : f === "expense" ? "Expenses" : "Income"}
-                                        </button>
-                                    ))}
-                                    <span className="text-xs text-gray-600 ml-auto">{filteredTx.length} records</span>
-                                </div>
+                                {/* Search */}
+                                <ExpenseSearch
+                                    onSearch={handleSearch}
+                                    categories={categories.filter(c => c.type === "expense")}
+                                />
 
-                                {/* List */}
-                                {filteredTx.length === 0 ? (
-                                    <div className="text-center text-gray-600 py-16 border border-dashed border-border rounded-2xl">
-                                        No transactions yet — add your first one!
+                                {/* Show search results or regular list */}
+                                {searchResults ? (
+                                    <div className="space-y-3">
+                                        <div className="flex items-center justify-between text-sm text-gray-400">
+                                            <span>Search results: {searchResults.pagination.total} found</span>
+                                            <span className="text-xs">
+                                                Query time: {searchResults.performance.queryTimeMs}ms
+                                                {searchResults.performance.meetsTarget && (
+                                                    <span className="text-green-400 ml-1">✓</span>
+                                                )}
+                                            </span>
+                                        </div>
+                                        <ExpenseTable
+                                            expenses={searchResults.data as any}
+                                            loading={searching}
+                                            pagination={searchResults.pagination}
+                                            onDelete={(exp) => deleteExpense(exp._id)}
+                                        />
                                     </div>
                                 ) : (
-                                    <div className="space-y-2">
-                                        {filteredTx.map((tx) => {
-                                            const isExpense = tx.kind === "expense";
-                                            const expTx = tx as typeof expenses[0] & { kind: "expense"; displayDate: string };
-                                            const incTx = tx as typeof incomes[0] & { kind: "income"; displayDate: string };
+                                    <>
+                                        {/* Filter */}
+                                        <div className="flex items-center gap-2">
+                                            {(["all", "expense", "income"] as const).map((f) => (
+                                                <button key={f} onClick={() => setTxFilter(f)}
+                                                    className={`px-4 py-1.5 rounded-lg text-sm font-medium capitalize transition-all ${txFilter === f
+                                                        ? "bg-primary/20 text-primary border border-primary/40"
+                                                        : "bg-surface border border-border text-gray-400 hover:text-white"
+                                                        }`}>
+                                                    {f === "all" ? "All" : f === "expense" ? "Expenses" : "Income"}
+                                                </button>
+                                            ))}
+                                            <span className="text-xs text-gray-600 ml-auto">{filteredTx.length} records</span>
+                                        </div>
 
-                                            return (
-                                                <motion.div
-                                                    key={tx._id}
-                                                    initial={{ opacity: 0, x: -10 }}
-                                                    animate={{ opacity: 1, x: 0 }}
-                                                    className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between group hover:border-white/10 transition-all"
-                                                >
-                                                    <div className="flex items-center gap-3 min-w-0">
-                                                        <div className="text-xl shrink-0">
-                                                            {isExpense ? (expTx.categoryId?.icon || "💸") : "💰"}
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <div className="font-medium text-white truncate">
-                                                                {isExpense
-                                                                    ? (expTx.categoryId?.name || "Uncategorized")
-                                                                    : incTx.source}
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 flex items-center gap-2">
-                                                                <span>{new Date(tx.displayDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
-                                                                {isExpense && expTx.note && (
-                                                                    <><span>·</span><span className="truncate max-w-[120px]">{expTx.note}</span></>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-3 shrink-0">
-                                                        <span className={`font-bold text-lg ${isExpense ? "text-red-400" : "text-green-400"}`}>
-                                                            {isExpense ? "-" : "+"}{fmt(tx.amount)}
-                                                        </span>
-                                                        <button
-                                                            onClick={() => isExpense ? deleteExpense(tx._id) : deleteIncome(tx._id)}
-                                                            className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                        {/* List */}
+                                        {filteredTx.length === 0 ? (
+                                            <div className="text-center text-gray-600 py-16 border border-dashed border-border rounded-2xl">
+                                                No transactions yet — add your first one!
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {filteredTx.map((tx) => {
+                                                    const isExpense = tx.kind === "expense";
+                                                    const expTx = tx as typeof expenses[0] & { kind: "expense"; displayDate: string };
+                                                    const incTx = tx as typeof incomes[0] & { kind: "income"; displayDate: string };
+
+                                                    return (
+                                                        <motion.div
+                                                            key={tx._id}
+                                                            initial={{ opacity: 0, x: -10 }}
+                                                            animate={{ opacity: 1, x: 0 }}
+                                                            className="bg-surface border border-border rounded-xl px-4 py-3 flex items-center justify-between group hover:border-white/10 transition-all"
                                                         >
-                                                            <Trash2 size={14} />
-                                                        </button>
+                                                            <div className="flex items-center gap-3 min-w-0">
+                                                                <div className="text-xl shrink-0">
+                                                                    {isExpense ? (expTx.categoryId?.icon || "💸") : "💰"}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <div className="font-medium text-white truncate">
+                                                                        {isExpense
+                                                                            ? (expTx.categoryId?.name || "Uncategorized")
+                                                                            : incTx.source}
+                                                                    </div>
+                                                                    <div className="text-xs text-gray-500 flex items-center gap-2">
+                                                                        <span>{new Date(tx.displayDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
+                                                                        {isExpense && expTx.note && (
+                                                                            <><span>·</span><span className="truncate max-w-[120px]">{expTx.note}</span></>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 shrink-0">
+                                                                <span className={`font-bold text-lg ${isExpense ? "text-red-400" : "text-green-400"}`}>
+                                                                    {isExpense ? "-" : "+"}{fmt(tx.amount)}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => isExpense ? deleteExpense(tx._id) : deleteIncome(tx._id)}
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                                >
+                                                                    <Trash2 size={14} />
+                                                                </button>
+                                                            </div>
+                                                        </motion.div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+
+                        {/* ══ ANALYTICS ══ */}
+                        {viewMode === "analytics" && (
+                            <div className="space-y-6">
+                                {loading ? (
+                                    <div className="flex items-center justify-center h-64">
+                                        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                                    </div>
+                                ) : analytics ? (
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                        {/* Alerts */}
+                                        <AlertsCard
+                                            unusualSpikes={analytics.alerts.unusualSpikes}
+                                            isOverBudget={analytics.alerts.isOverBudget}
+                                            budgetWarning={analytics.alerts.budgetWarning}
+                                            spendingIncreased={analytics.alerts.spendingIncreased}
+                                            increasePercentage={analytics.alerts.increasePercentage}
+                                        />
+
+                                        {/* Budget Variance */}
+                                        {analytics.budgetVariance && (
+                                            <BudgetVarianceCard
+                                                budget={analytics.budgetVariance.budget}
+                                                actual={analytics.budgetVariance.actual}
+                                                remaining={analytics.budgetVariance.remaining}
+                                                percentageUsed={analytics.budgetVariance.percentageUsed}
+                                                isOverBudget={analytics.budgetVariance.isOverBudget}
+                                                isWarning={analytics.budgetVariance.isWarning}
+                                                categoryBudgets={analytics.categoryBudgets}
+                                            />
+                                        )}
+
+                                        {/* Spending Trend */}
+                                        <SpendingTrendCard
+                                            data={analytics.monthlyTrend.map((m) => ({
+                                                label: m.label,
+                                                value: m.expenses,
+                                                secondaryValue: m.income,
+                                            }))}
+                                            currentMonth={month}
+                                            previousMonth={String(parseInt(month.split("-")[1]) - 1)}
+                                            percentageChange={analytics.summary.monthOverMonthChange}
+                                        />
+
+                                        {/* Top Categories */}
+                                        <TopCategoriesCard
+                                            categories={analytics.topCategories.map((c) => ({
+                                                name: c.name,
+                                                icon: c.icon,
+                                                color: c.color,
+                                                amount: c.amount,
+                                                percentage: c.percentage,
+                                                change: c.change,
+                                            }))}
+                                        />
+
+                                        {/* Predictions */}
+                                        <PredictionCard
+                                            estimatedTotal={analytics.projections.monthEndEstimate}
+                                            currentTotal={analytics.summary.totalExpenses}
+                                            dailyAverage={analytics.averages.daily}
+                                            weeklyAverage={analytics.averages.weekly}
+                                            daysElapsed={analytics.projections.basedOnDays}
+                                            totalDays={analytics.projections.totalDaysInMonth}
+                                            confidenceLevel={analytics.projections.confidenceLevel as "high" | "medium" | "low"}
+                                            trend={
+                                                analytics.summary.monthOverMonthChange > 5
+                                                    ? "increasing"
+                                                    : analytics.summary.monthOverMonthChange < -5
+                                                        ? "decreasing"
+                                                        : "stable"
+                                            }
+                                        />
+
+                                        {/* Summary Stats */}
+                                        <div className="bg-surface border border-border rounded-2xl p-6 space-y-4">
+                                            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                                                Key Metrics
+                                            </h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="bg-background/50 rounded-xl p-4">
+                                                    <div className="text-xs text-gray-500 mb-1">3-Month Average</div>
+                                                    <div className="text-xl font-bold text-white">
+                                                        {fmt(analytics.averages.threeMonthRolling)}
                                                     </div>
-                                                </motion.div>
-                                            );
-                                        })}
+                                                </div>
+                                                <div className="bg-background/50 rounded-xl p-4">
+                                                    <div className="text-xs text-gray-500 mb-1">Daily Average</div>
+                                                    <div className="text-xl font-bold text-white">
+                                                        {fmt(analytics.averages.daily)}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-background/50 rounded-xl p-4">
+                                                    <div className="text-xs text-gray-500 mb-1">Transactions</div>
+                                                    <div className="text-xl font-bold text-white">
+                                                        {analytics.summary.transactionCount}
+                                                    </div>
+                                                </div>
+                                                <div className="bg-background/50 rounded-xl p-4">
+                                                    <div className="text-xs text-gray-500 mb-1">Balance</div>
+                                                    <div className={`text-xl font-bold ${analytics.summary.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                                        {fmt(Math.abs(analytics.summary.balance))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center text-gray-600 py-16">
+                                        No analytics data available
                                     </div>
                                 )}
                             </div>

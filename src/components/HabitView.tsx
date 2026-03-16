@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle } from "lucide-react";
+import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
 import { clsx } from "clsx";
@@ -41,6 +41,7 @@ export const HabitView = () => {
     const [habits, setHabits] = useState<Habit[]>([]);
     const [newHabit, setNewHabit] = useState("");
     const [loading, setLoading] = useState(true);
+    const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
     const fetchHabits = async () => {
         try {
@@ -124,6 +125,15 @@ export const HabitView = () => {
         checkAndSeed();
     }, []);
 
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setOpenDropdownId(null);
+        if (openDropdownId) {
+            document.addEventListener('click', handleClickOutside);
+            return () => document.removeEventListener('click', handleClickOutside);
+        }
+    }, [openDropdownId]);
+
     const addHabit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newHabit.trim()) return;
@@ -167,6 +177,36 @@ export const HabitView = () => {
         });
 
         fetchHabits(); // Refresh for accurate streaks
+    };
+
+    // Complete habit via dropdown (explicit intention)
+    const completeWithIntention = async (id: string) => {
+        const targetDate = new Date();
+        const targetDayStr = toLocalString(targetDate);
+
+        // Check if already completed
+        const habit = habits.find(h => h._id === id);
+        if (!habit) return;
+
+        const hasDone = habit.completedDates.some(d => toLocalString(d) === targetDayStr);
+        if (hasDone) return; // Already completed
+
+        // Optimistic update
+        setHabits(habits.map(h => {
+            if (h._id === id) {
+                return { ...h, completedDates: [...h.completedDates, targetDate.toISOString()] };
+            }
+            return h;
+        }));
+
+        await fetch(`/api/habits/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "toggle", date: targetDate.toISOString() }),
+        });
+
+        setOpenDropdownId(null);
+        fetchHabits();
     };
 
     const deleteHabit = async (id: string) => {
@@ -466,9 +506,93 @@ export const HabitView = () => {
                                                 ? "bg-primary border-primary text-white shadow-[0_0_10px_rgba(220,38,38,0.4)] scale-110"
                                                 : "border-gray-600 text-transparent hover:border-primary hover:scale-105"
                                         )}
+                                        aria-label={isDoneToday ? `Mark ${habit.title} as incomplete` : `Mark ${habit.title} as complete`}
                                     >
                                         <Check size={14} strokeWidth={4} />
                                     </button>
+
+                                    {/* Dropdown for Intention */}
+                                    <div className="relative">
+                                        <button
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                setOpenDropdownId(openDropdownId === habit._id ? null : habit._id);
+                                            }}
+                                            className={cn(
+                                                "w-6 h-6 rounded flex items-center justify-center transition-all flex-shrink-0 z-10",
+                                                isDoneToday
+                                                    ? "text-gray-500 hover:text-gray-400"
+                                                    : "text-gray-600 hover:text-primary"
+                                            )}
+                                            title="View habit details"
+                                        >
+                                            <ChevronDown size={16} />
+                                        </button>
+
+                                        {/* Dropdown Menu */}
+                                        {openDropdownId === habit._id && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: -8, scale: 0.96 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -8, scale: 0.96 }}
+                                                transition={{ duration: 0.15, ease: "easeOut" }}
+                                                className="absolute left-0 top-full mt-2 w-72 bg-surface border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden"
+                                                onClick={(e) => e.stopPropagation()}
+                                            >
+                                                {/* Habit Details Header */}
+                                                <div className="p-4 bg-gradient-to-br from-white/5 to-transparent border-b border-white/5">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <span className={cn(
+                                                            "text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full",
+                                                            habit.category === 'health' && "bg-green-500/20 text-green-400",
+                                                            habit.category === 'mindset' && "bg-purple-500/20 text-purple-400",
+                                                            habit.category === 'work' && "bg-blue-500/20 text-blue-400"
+                                                        )}>
+                                                            {habit.category}
+                                                        </span>
+                                                        <span className="flex items-center gap-1 text-xs text-orange-500">
+                                                            <Flame size={12} />
+                                                            <span className="font-mono font-bold">{habit.streak} day streak</span>
+                                                        </span>
+                                                    </div>
+                                                    <h3 className="text-white font-semibold text-base leading-tight">{habit.title}</h3>
+                                                </div>
+
+                                                {/* Description */}
+                                                {habit.description && (
+                                                    <div className="px-4 py-3 border-b border-white/5">
+                                                        <p className="text-xs text-gray-400 leading-relaxed">{habit.description}</p>
+                                                    </div>
+                                                )}
+
+                                                {/* Action Button */}
+                                                <div className="p-3">
+                                                    <button
+                                                        onClick={() => completeWithIntention(habit._id)}
+                                                        disabled={isDoneToday}
+                                                        className={cn(
+                                                            "w-full text-left px-4 py-3 rounded-lg text-sm transition-all flex items-center gap-3",
+                                                            isDoneToday
+                                                                ? "bg-green-500/20 text-green-400 cursor-not-allowed"
+                                                                : "bg-primary/20 text-primary hover:bg-primary hover:text-white border border-primary/30 hover:border-primary"
+                                                        )}
+                                                    >
+                                                        {isDoneToday ? (
+                                                            <>
+                                                                <Check size={16} />
+                                                                <span className="font-medium">Completed for today</span>
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Check size={16} />
+                                                                <span className="font-medium">I should live to carry this out</span>
+                                                            </>
+                                                        )}
+                                                    </button>
+                                                </div>
+                                            </motion.div>
+                                        )}
+                                    </div>
 
                                     {/* Text Content */}
                                     <div className="flex-1 min-w-0 flex flex-col justify-center">
