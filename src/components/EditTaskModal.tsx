@@ -225,7 +225,7 @@ export const EditTaskModal = ({
                                                 setSubtasks(updated);
                                             }}
                                             className={cn(
-                                                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0",
+                                                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0 whitespace-normal break-words",
                                                 st.completed && "text-gray-500 line-through decoration-gray-600"
                                             )}
                                         />

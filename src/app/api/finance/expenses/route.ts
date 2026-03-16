@@ -1,10 +1,19 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Expense from "@/models/Expense";
 import FinanceCategory from "@/models/FinanceCategory";
+import { financeRateLimiter, strictRateLimiter } from "@/lib/rateLimit";
 
 // GET - Fetch expenses
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
+    // Apply rate limiting
+    const rateLimitResult = financeRateLimiter.check(req);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { success: false, message: "Rate limit exceeded. Please try again later." },
+            { status: 429, headers: { 'Retry-After': '60' } }
+        );
+    }
     try {
         await dbConnect();
 
@@ -42,7 +51,15 @@ export async function GET(req: Request) {
 }
 
 // POST - Create new expense
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
+    // Apply stricter rate limiting for write operations
+    const rateLimitResult = strictRateLimiter.check(req);
+    if (!rateLimitResult.success) {
+        return NextResponse.json(
+            { success: false, message: "Rate limit exceeded. Please try again later." },
+            { status: 429, headers: { 'Retry-After': '60' } }
+        );
+    }
     try {
         await dbConnect();
 

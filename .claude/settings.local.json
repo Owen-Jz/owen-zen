@@ -12,7 +12,18 @@
       "Bash(curl -s http://localhost:3001 2>&1)",
       "mcp__ide__getDiagnostics",
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npm install recharts)",
-      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\\\\src\\\\lib\" && mv chartConfigs.ts chartConfigs.tsx)"
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\\\\src\\\\lib\" && mv chartConfigs.ts chartConfigs.tsx)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npm install)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npx vitest run --reporter=verbose 2>&1 | head -60)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npx vitest run 2>&1 | tail -20)",
+      "Bash(npm install:*)",
+      "Bash(taskkill /F /IM node.exe 2>nul; sleep 2; echo \"Killed node processes\")",
+      "Bash(taskkill /F /IM node.exe 2>nul; rm -rf \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\\\\.next\\\\dev\\\\lock\" 2>nul; echo \"Cleaned up\")",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && curl -s http://localhost:3002/api/notes 2>&1 | head -20)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -f src/components/NotesView.tsx src/lib/apiUtils.ts src/lib/offlineQueue.ts src/app/api/notes/route.ts src/app/api/notes/\\\\[id\\\\]/route.ts src/models/Note.ts)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -f src/components/NotesView.tsx src/app/api/notes/route.ts src/app/api/notes/\\\\[id\\\\]/route.ts src/models/Note.ts)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -rf .next && npx tsc --noEmit --skipLibCheck 2>&1 | head -10)",
+      "Bash(npm test:*)"
     ]
   }
 }

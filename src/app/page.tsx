@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Share2, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare, BarChart2 } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare, BarChart2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -30,38 +31,81 @@ import { AddTaskModal } from "@/components/AddTaskModal";
 import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board } from "@/types";
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
-import { HabitView } from "@/components/HabitView";
-import { HabitAnalyticsView } from "@/components/HabitAnalyticsView";
-import { VisionBoardView } from "@/components/VisionBoardView";
-import { RealityView } from "@/components/RealityView";
-import { AnalyticsView } from "@/components/AnalyticsView";
-import SandboxDashboard from "@/components/SandboxDashboard";
-import { WatchLaterView } from "@/components/WatchLaterView";
-import { SocialHubView } from "@/components/SocialHubView";
-
-import { FocusOverlay } from "@/components/FocusOverlay"; // Import Focus Mode
-import { CalendarView } from "@/components/CalendarView"; // Import Calendar View
-import { RoadmapView } from "@/components/RoadmapView"; // Import Roadmap View
-import { LeadsView } from "@/components/LeadsView"; // Import Leads CRM
-import { InboxView } from "@/components/InboxView";
-import { BucketListView } from "@/components/BucketListView";
-import { NotificationBell } from "@/components/NotificationBell"; // Import Notification Bell
+import { NotificationBell } from "@/components/NotificationBell";
 import { Loading } from "@/components/Loading";
-import { ShoppingListModal } from "@/components/ShoppingListModal";
-import { ProjectView } from "@/components/ProjectView";
-import { FinanceView } from "@/components/FinanceView";
-import { WeeklyGoalsView } from "@/components/WeeklyGoalsView";
 import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
-import { GymView } from "@/components/GymView";
-import { NotesView } from "@/components/NotesView";
-import { MealPlanView } from "@/components/MealPlanView";
 import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
-import { DisciplineChallenge } from "@/components/DisciplineChallenge";
 import { Confetti, useConfetti } from "@/components/Confetti";
-
 import { TimeTracker } from "@/components/TimeTracker";
+import { FocusOverlay } from "@/components/FocusOverlay";
+import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
+
+// Lazy load views for better performance
+const HabitView = dynamic(() => import("@/components/HabitView").then(mod => ({ default: mod.HabitView })), {
+  loading: () => <Loading />
+});
+const HabitAnalyticsView = dynamic(() => import("@/components/HabitAnalyticsView").then(mod => ({ default: mod.HabitAnalyticsView })), {
+  loading: () => <Loading />
+});
+const VisionBoardView = dynamic(() => import("@/components/VisionBoardView").then(mod => ({ default: mod.VisionBoardView })), {
+  loading: () => <Loading />
+});
+const RealityView = dynamic(() => import("@/components/RealityView").then(mod => ({ default: mod.RealityView })), {
+  loading: () => <Loading />
+});
+const AnalyticsView = dynamic(() => import("@/components/AnalyticsView").then(mod => ({ default: mod.AnalyticsView })), {
+  loading: () => <Loading />
+});
+const WatchLaterView = dynamic(() => import("@/components/WatchLaterView").then(mod => ({ default: mod.WatchLaterView })), {
+  loading: () => <Loading />
+});
+const CalendarView = dynamic(() => import("@/components/CalendarView").then(mod => ({ default: mod.CalendarView })), {
+  loading: () => <Loading />
+});
+const ContentCalendar = dynamic(() => import("@/components/ContentCalendar").then(mod => ({ default: mod.ContentCalendar })), {
+  loading: () => <Loading />
+});
+const RoadmapView = dynamic(() => import("@/components/RoadmapView").then(mod => ({ default: mod.RoadmapView })), {
+  loading: () => <Loading />
+});
+const LeadsView = dynamic(() => import("@/components/LeadsView").then(mod => ({ default: mod.LeadsView })), {
+  loading: () => <Loading />
+});
+const InboxView = dynamic(() => import("@/components/InboxView").then(mod => ({ default: mod.InboxView })), {
+  loading: () => <Loading />
+});
+const BucketListView = dynamic(() => import("@/components/BucketListView").then(mod => ({ default: mod.BucketListView })), {
+  loading: () => <Loading />
+});
+const ProjectView = dynamic(() => import("@/components/ProjectView").then(mod => ({ default: mod.ProjectView })), {
+  loading: () => <Loading />
+});
+const FinanceView = dynamic(() => import("@/components/FinanceView").then(mod => ({ default: mod.FinanceView })), {
+  loading: () => <Loading />
+});
+const WeeklyGoalsView = dynamic(() => import("@/components/WeeklyGoalsView").then(mod => ({ default: mod.WeeklyGoalsView })), {
+  loading: () => <Loading />
+});
+const GymView = dynamic(() => import("@/components/GymView").then(mod => ({ default: mod.GymView })), {
+  loading: () => <Loading />
+});
+const MealPlanView = dynamic(() => import("@/components/MealPlanView").then(mod => ({ default: mod.MealPlanView })), {
+  loading: () => <Loading />
+});
+const DisciplineChallenge = dynamic(() => import("@/components/DisciplineChallenge").then(mod => ({ default: mod.DisciplineChallenge })), {
+  loading: () => <Loading />
+});
+const ShoppingListModal = dynamic(() => import("@/components/ShoppingListModal").then(mod => ({ default: mod.ShoppingListModal })), {
+  loading: () => null
+});
+const SandboxDashboard = dynamic(() => import("@/components/SandboxDashboard").then(mod => ({ default: mod.default })), {
+  loading: () => <Loading />
+});
+const NotesView = dynamic(() => import("@/components/NotesView").then(mod => ({ default: mod.default })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -180,17 +224,16 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       title: "Tools",
       links: [
         { id: "inbox", label: "The Inbox", icon: Inbox },
-        { id: "notes", label: "Notes", icon: FileText },
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
-        { id: "socials", label: "Social Hub", icon: Share2 },
       ]
     },
     {
       title: "System",
       links: [
         { id: "watch", label: "Watch Later", icon: Circle },
+        { id: "notes", label: "Notes", icon: FileText },
         { id: "archive", label: "Archive", icon: Archive },
         { id: "settings", label: "Settings", icon: Settings },
       ]
@@ -1036,6 +1079,7 @@ const RightSidebar = ({
       <button
         onClick={() => setIsCollapsed(!isCollapsed)}
         className="hidden md:flex mt-4 mx-auto p-2 bg-surface-hover border border-border rounded-lg hover:bg-white/10 transition-colors"
+        aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <Menu size={16} className="text-gray-400" />
       </button>
@@ -1071,6 +1115,9 @@ export default function Dashboard() {
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
+
+  // Command Palette
+  const { isOpen: isCommandPaletteOpen, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
 
   // Global Search State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -2092,7 +2139,7 @@ export default function Dashboard() {
           )}
         </AnimatePresence>
 
-        <main className={cn(
+        <main id="main-content" className={cn(
           "flex-1 transition-all duration-500 p-4 md:p-8 overflow-y-auto h-screen w-full relative",
           !isZenMode && (isSidebarCollapsed ? "md:ml-20" : "md:ml-64") + " " + (isRightSidebarCollapsed ? "md:mr-16" : "md:mr-64"),
           isZenMode && "mx-auto max-w-7xl md:p-12"
@@ -2538,23 +2585,36 @@ export default function Dashboard() {
           {activeTab === "roadmap" && <RoadmapView />}
           {activeTab === "watch" && <WatchLaterView />}
           {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
+          {activeTab === "notes" && <NotesView />}
           {activeTab === "sniper" && <SniperView />}
-          {activeTab === "socials" && <SocialHubView />}
           {activeTab === "leads" && <LeadsView />}
           {activeTab === "inbox" && <InboxView />}
           {activeTab === "finance" && <FinanceView />}
           {activeTab === "bucket" && <BucketListView />}
           {activeTab === "settings" && <SettingsView />}
 
-          {activeTab === "calendar" && <CalendarView />}
+          {activeTab === "calendar" && <ContentCalendar />}
           {activeTab === "gym" && <GymView />}
           {activeTab === "mealplan" && <MealPlanView />}
-          {activeTab === "notes" && <NotesView />}
           </motion.div>
         </main>
 
         <AISummaryWidget tasks={tasks} />
         <Confetti trigger={confettiTrigger} />
+
+        {/* Command Palette (Cmd+K) */}
+        <CommandPalette
+          isOpen={isCommandPaletteOpen}
+          onClose={() => setCommandPaletteOpen(false)}
+          onSelect={(id) => setActiveTab(id)}
+        />
+
+        {/* Keyboard shortcut hint */}
+        <div className="fixed bottom-4 right-4 z-40 hidden md:flex items-center gap-2 px-3 py-2 bg-surface/80 backdrop-blur-sm border border-border rounded-lg text-xs text-gray-500">
+          <kbd className="px-1.5 py-0.5 bg-white/5 rounded">⌘</kbd>
+          <kbd className="px-1.5 py-0.5 bg-white/5 rounded">K</kbd>
+          <span>to navigate</span>
+        </div>
       </div >
     </>
   );

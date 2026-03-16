@@ -75,3 +75,14 @@ export interface Project {
     links: ProjectLink[];
     createdAt: string;
 }
+
+export interface Note {
+    _id: string;
+    userId: string;
+    title: string;
+    content: string;
+    isPinned: boolean;
+    isArchived: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
