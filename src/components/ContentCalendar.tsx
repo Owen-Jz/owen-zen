@@ -115,6 +115,10 @@ export const ContentCalendar = () => {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [calendarId, setCalendarId] = useState<string | null>(null);
 
+  // State for Post model posts (from Post Bucket)
+  const [bucketPosts, setBucketPosts] = useState<any[]>([]);
+  const [pendingSchedulePost, setPendingSchedulePost] = useState<any>(null);
+
   // Form state
   const [isEditing, setIsEditing] = useState(false);
   const [editingPostId, setEditingPostId] = useState<string | null>(null);
@@ -149,6 +153,23 @@ export const ContentCalendar = () => {
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  // Fetch posts with scheduledFor from Post model
+  const fetchBucketPosts = useCallback(async () => {
+    try {
+      const res = await fetch("/api/posts?scheduled=true");
+      const json = await res.json();
+      if (json.success) {
+        setBucketPosts(json.data);
+      }
+    } catch (error) {
+      console.error("Failed to fetch bucket posts:", error);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchBucketPosts();
+  }, [fetchBucketPosts]);
 
   // Update URL when filters change
   useEffect(() => {
@@ -219,23 +240,77 @@ export const ContentCalendar = () => {
   // Get posts for a specific date
   const getPostsForDate = useCallback((date: Date) => {
     const dateStr = date.toISOString().split("T")[0];
+
+    // Native ContentCalendar posts
     const dayPosts = posts.filter((post) => {
       const postDate = new Date(post.scheduledAt).toISOString().split("T")[0];
       return postDate === dateStr;
     });
-    const networks = new Set(dayPosts.map((p) => p.network));
-    return { posts: dayPosts, networks };
-  }, [posts]);
+
+    // Transform Post model posts to calendar format
+    const bucketPostsForDate = bucketPosts.filter((post) => {
+      if (!post.scheduledFor) return false;
+      const postDate = new Date(post.scheduledFor).toISOString().split("T")[0];
+      return postDate === dateStr;
+    }).map(post => ({
+      _id: `bucket-${post._id}`,
+      network: Array.isArray(post.platforms) ? post.platforms[0] : post.platforms,
+      caption: post.content,
+      mediaUrls: post.imageUrl ? [{ url: post.imageUrl, type: "image" as const }] : [],
+      notes: post.strategy || '',
+      scheduledAt: post.scheduledFor,
+      status: 'scheduled' as const,
+      isFromBucket: true,
+      originalPostId: post._id
+    }));
+
+    // Combine both
+    const allPosts = [...dayPosts, ...bucketPostsForDate];
+    const networks = new Set(allPosts.map((p) => p.network));
+    return { posts: allPosts, networks };
+  }, [posts, bucketPosts]);
 
   // Get posts for selected date in modal
   const getSelectedDayPosts = useCallback(() => {
     if (!selectedDate) return [];
     const dateStr = selectedDate.toISOString().split("T")[0];
-    return posts.filter((post) => {
+
+    // Native ContentCalendar posts
+    const dayPosts = posts.filter((post) => {
       const postDate = new Date(post.scheduledAt).toISOString().split("T")[0];
       return postDate === dateStr;
     });
-  }, [selectedDate, posts]);
+
+    // Bucket posts (Post model)
+    const bucketPostsForDate = bucketPosts.filter((post) => {
+      if (!post.scheduledFor) return false;
+      const postDate = new Date(post.scheduledFor).toISOString().split("T")[0];
+      return postDate === dateStr;
+    }).map(post => ({
+      _id: `bucket-${post._id}`,
+      network: Array.isArray(post.platforms) ? post.platforms[0] : post.platforms,
+      caption: post.content,
+      mediaUrls: post.imageUrl ? [{ url: post.imageUrl, type: "image" as const }] : [],
+      notes: post.strategy || '',
+      scheduledAt: post.scheduledFor,
+      status: 'scheduled' as const,
+      isFromBucket: true,
+      originalPostId: post._id
+    }));
+
+    return [...dayPosts, ...bucketPostsForDate];
+  }, [selectedDate, posts, bucketPosts]);
+
+  // Handle dropped post from Post Bucket
+  const handlePostDrop = (post: any, date: Date) => {
+    setSelectedDate(date);
+    setPendingSchedulePost(post);
+    setIsModalOpen(true);
+    setIsEditing(true);
+    setEditingPostId(null);
+    setFormData(getDefaultFormData(date));
+    setFormError(null);
+  };
 
   // Navigation
   const nextMonth = () => {
@@ -397,6 +472,36 @@ export const ContentCalendar = () => {
 
   // Save post
   const savePost = async (isAutoSave = false) => {
+    // Handle scheduling from Post Bucket
+    if (pendingSchedulePost) {
+      const postId = pendingSchedulePost._id;
+      const [hours, minutes] = formData.scheduledTime.split(":").map(Number);
+      const scheduledDate = new Date(selectedDate!);
+      scheduledDate.setHours(hours, minutes, 0, 0);
+
+      try {
+        const res = await fetch(`/api/posts/${postId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            scheduledFor: scheduledDate.toISOString(),
+            status: 'scheduled'
+          })
+        });
+
+        if (res.ok) {
+          await fetchBucketPosts();
+          setPendingSchedulePost(null);
+          setIsModalOpen(false);
+          setIsEditing(false);
+        }
+      } catch (error) {
+        console.error("Failed to schedule post:", error);
+        setFormError("Failed to schedule post");
+      }
+      return;
+    }
+
     if (!calendarId || !selectedDate) return;
 
     // Validate

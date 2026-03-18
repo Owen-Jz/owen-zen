@@ -106,6 +106,9 @@ const SandboxDashboard = dynamic(() => import("@/components/SandboxDashboard").t
 const NotesView = dynamic(() => import("@/components/NotesView").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
+const PostBucketView = dynamic(() => import("@/components/PostBucketView").then(mod => ({ default: mod.PostBucketView })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -218,6 +221,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "roadmap", label: "2026 Roadmap", icon: Target },
         { id: "bucket", label: "2026 Bucket List", icon: Star },
         { id: "calendar", label: "Calendar", icon: Calendar },
+        { id: "post-bucket", label: "Post Bucket", icon: Inbox },
       ]
     },
     {
@@ -2596,6 +2600,7 @@ export default function Dashboard() {
           {activeTab === "calendar" && <ContentCalendar />}
           {activeTab === "gym" && <GymView />}
           {activeTab === "mealplan" && <MealPlanView />}
+          {activeTab === "post-bucket" && <PostBucketView />}
           </motion.div>
         </main>
 
