@@ -79,9 +79,16 @@ A keyboard-triggered modal (Alt+S) that displays all dashboard sections/views in
 | Key | Action |
 |-----|--------|
 | `Tab` | Move between cards (wraps through all columns) |
-| `Arrow keys` | Navigate within current column (up/down) |
+| `ArrowUp` | Move to previous card in column |
+| `ArrowDown` | Move to next card in column |
+| `ArrowLeft` | Move to previous column (same row) |
+| `ArrowRight` | Move to next column (same row) |
+| `Home` | Jump to first card in current column |
+| `End` | Jump to last card in current column |
 | `Enter` | Select focused card |
 | `Escape` | Close modal |
+
+**Boundary behavior:** Arrow left/right wraps within the same row (first column → last column and vice versa).
 
 ## Sections & Views
 
