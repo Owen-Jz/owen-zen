@@ -23,11 +23,10 @@ const FoodEntrySchema = new mongoose.Schema({
 });
 
 // Normalize date to midnight for consistent querying
-FoodEntrySchema.pre('save', function(next) {
+FoodEntrySchema.pre('save', async function() {
   const date = new Date(this.date);
   date.setHours(0, 0, 0, 0);
   this.date = date;
-  next();
 });
 
 export default mongoose.models.FoodEntry || mongoose.model('FoodEntry', FoodEntrySchema);

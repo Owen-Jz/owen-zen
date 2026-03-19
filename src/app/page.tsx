@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Shield, Square, CheckSquare, BarChart2 } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -94,6 +94,9 @@ const GymView = dynamic(() => import("@/components/GymView").then(mod => ({ defa
 const MealPlanView = dynamic(() => import("@/components/MealPlanView").then(mod => ({ default: mod.MealPlanView })), {
   loading: () => <Loading />
 });
+const FoodTrackerView = dynamic(() => import("@/components/FoodTrackerView").then(mod => ({ default: mod.default })), {
+  loading: () => <Loading />
+});
 const DisciplineChallenge = dynamic(() => import("@/components/DisciplineChallenge").then(mod => ({ default: mod.DisciplineChallenge })), {
   loading: () => <Loading />
 });
@@ -107,6 +110,9 @@ const NotesView = dynamic(() => import("@/components/NotesView").then(mod => ({ 
   loading: () => <Loading />
 });
 const PostBucketView = dynamic(() => import("@/components/PostBucketView").then(mod => ({ default: mod.PostBucketView })), {
+  loading: () => <Loading />
+});
+const PromptLibraryView = dynamic(() => import("@/components/PromptLibraryView").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
 
@@ -210,6 +216,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       links: [
         { id: "gym", label: "Gym Tracker", icon: Dumbbell },
         { id: "mealplan", label: "Meal Plan", icon: UtensilsCrossed },
+        { id: "food", label: "Food Tracker", icon: Utensils },
       ]
     },
     {
@@ -231,6 +238,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
+        { id: "prompts", label: "Prompt Library", icon: MessageSquare },
       ]
     },
     {
@@ -855,14 +863,6 @@ const RightSidebar = ({
       } catch (err) { }
     };
     fetchSpentToday();
-  }, []);
-
-
-  useEffect(() => {
-    fetch('/api/quick-links')
-      .then(r => r.json())
-      .then(j => { if (j.success) setQuickLinks(j.data); })
-      .catch(() => { });
   }, []);
 
   const addQuickLink = async (e: React.FormEvent) => {
@@ -2600,7 +2600,9 @@ export default function Dashboard() {
           {activeTab === "calendar" && <ContentCalendar />}
           {activeTab === "gym" && <GymView />}
           {activeTab === "mealplan" && <MealPlanView />}
+          {activeTab === "food" && <FoodTrackerView />}
           {activeTab === "post-bucket" && <PostBucketView />}
+          {activeTab === "prompts" && <PromptLibraryView />}
           </motion.div>
         </main>
 

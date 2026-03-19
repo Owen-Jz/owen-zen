@@ -2,13 +2,23 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import FoodEntry from '@/models/FoodEntry';
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     await dbConnect();
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
 
-    const entry = await FoodEntry.findOne({ date: today });
+    // Get date from request body or use today
+    const { date } = await request.json().catch(() => ({}));
+
+    let entryDate: Date;
+    if (date) {
+      const [year, month, day] = date.split('-').map(Number);
+      entryDate = new Date(year, month - 1, day, 12, 0, 0);
+    } else {
+      entryDate = new Date();
+    }
+    entryDate.setHours(0, 0, 0, 0);
+
+    const entry = await FoodEntry.findOne({ date: entryDate });
 
     if (!entry || entry.items.length === 0) {
       return NextResponse.json({ error: 'No food items to analyze' }, { status: 400 });
@@ -51,7 +61,7 @@ Items: ${itemsList}`;
     entry.analyzedAt = new Date();
     await entry.save();
 
-    return NextResponse.json({ totalCalories: calories });
+    return NextResponse.json(entry);
   } catch (error) {
     console.error('Food analyze error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

@@ -235,7 +235,9 @@ export const PomodoroWidget = () => {
           />
         </svg>
         <div className="absolute inset-0 flex items-center justify-center">
-          <span className="text-lg font-bold">{formatTime(timeLeft)}</span>
+          <span className={`text-lg font-bold ${isRunning ? "animate-pulse text-primary drop-shadow-[0_0_8px_rgba(220,38,38,0.5)]" : ""}`}>
+            {formatTime(timeLeft)}
+          </span>
         </div>
       </div>
 

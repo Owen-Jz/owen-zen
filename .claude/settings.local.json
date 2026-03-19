@@ -23,7 +23,8 @@
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -f src/components/NotesView.tsx src/lib/apiUtils.ts src/lib/offlineQueue.ts src/app/api/notes/route.ts src/app/api/notes/\\\\[id\\\\]/route.ts src/models/Note.ts)",
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -f src/components/NotesView.tsx src/app/api/notes/route.ts src/app/api/notes/\\\\[id\\\\]/route.ts src/models/Note.ts)",
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -rf .next && npx tsc --noEmit --skipLibCheck 2>&1 | head -10)",
-      "Bash(npm test:*)"
+      "Bash(npm test:*)",
+      "Bash(git add:*)"
     ]
   }
 }

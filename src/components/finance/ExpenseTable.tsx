@@ -104,12 +104,19 @@ export function ExpenseTable({
     }).format(amount);
   };
 
+  // Helper to escape HTML and prevent XSS
+  const escapeHtml = (text: string): string => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+
   const renderHighlightedNote = (note: string | undefined, highlighted: string | undefined) => {
     if (!note && !highlighted) return <span className="text-gray-500">-</span>;
     if (highlighted) {
       return (
         <span
-          dangerouslySetInnerHTML={{ __html: highlighted }}
+          dangerouslySetInnerHTML={{ __html: escapeHtml(highlighted) }}
           className="text-gray-300"
         />
       );

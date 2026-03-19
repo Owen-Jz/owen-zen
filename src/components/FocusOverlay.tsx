@@ -52,11 +52,16 @@ export const FocusOverlay = ({
   const [showStopModal, setShowStopModal] = useState(false);
   const [stopNote, setStopNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+
+  // Progress ring constants - matches r="45%" in SVG
+  const PROGRESS_RING_RADIUS = 45;
+  const PROGRESS_RING_CIRCUMFERENCE = 2 * Math.PI * PROGRESS_RING_RADIUS;
   const [quickNotes, setQuickNotes] = useState("");
 
   // Timer logic
   useEffect(() => {
-    if (!task.activeTimer?.isActive) {
+    // Check both isActive AND startedAt for proper null safety
+    if (!task.activeTimer?.isActive || !task.activeTimer?.startedAt) {
       setElapsedTime(0);
       return;
     }
@@ -136,7 +141,12 @@ export const FocusOverlay = ({
 
           {/* Progress Ring */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10">
-            <svg className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] -rotate-90">
+            <motion.svg
+              className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] -rotate-90"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               <circle
                 cx="50%"
                 cy="50%"
@@ -146,7 +156,7 @@ export const FocusOverlay = ({
                 strokeWidth="2"
                 className="text-white/5"
               />
-              <circle
+              <motion.circle
                 cx="50%"
                 cy="50%"
                 r="45%"
@@ -154,14 +164,15 @@ export const FocusOverlay = ({
                 stroke="currentColor"
                 strokeWidth="4"
                 strokeLinecap="round"
-                strokeDasharray={283 * 2}
-                strokeDashoffset={283 * 2 - (progress / 100) * 283 * 2}
+                strokeDasharray={PROGRESS_RING_CIRCUMFERENCE}
+                initial={{ strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE }}
+                animate={{ strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE - (progress / 100) * PROGRESS_RING_CIRCUMFERENCE }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
                 className={cn(
-                  "transition-all duration-700",
                   task.activeTimer?.isActive ? "text-primary drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]" : "text-white/20"
                 )}
               />
-            </svg>
+            </motion.svg>
           </div>
 
           <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-2">

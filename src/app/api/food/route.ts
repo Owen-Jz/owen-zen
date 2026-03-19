@@ -5,18 +5,25 @@ import FoodEntry from '@/models/FoodEntry';
 export async function POST(request: Request) {
   try {
     await dbConnect();
-    const { items } = await request.json();
+    const { items, date } = await request.json();
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json({ error: 'Items required' }, { status: 400 });
     }
 
-    // Get today's date normalized to midnight
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Parse the date - use provided date or today
+    let entryDate: Date;
+    if (date) {
+      // Parse date string as local date (YYYY-MM-DD)
+      const [year, month, day] = date.split('-').map(Number);
+      entryDate = new Date(year, month - 1, day, 12, 0, 0); // Noon to avoid timezone issues
+    } else {
+      entryDate = new Date();
+    }
+    entryDate.setHours(0, 0, 0, 0);
 
-    // Find existing entry for today
-    let entry = await FoodEntry.findOne({ date: today });
+    // Find existing entry for the date
+    let entry = await FoodEntry.findOne({ date: entryDate });
 
     if (entry) {
       // Append new items
@@ -27,7 +34,7 @@ export async function POST(request: Request) {
     } else {
       // Create new entry
       entry = await FoodEntry.create({
-        date: today,
+        date: entryDate,
         items,
       });
     }
@@ -45,13 +52,17 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('date');
 
-    let date = new Date();
+    let entryDate: Date;
     if (dateParam) {
-      date = new Date(dateParam);
+      // Parse date string as local date (YYYY-MM-DD)
+      const [year, month, day] = dateParam.split('-').map(Number);
+      entryDate = new Date(year, month - 1, day, 12, 0, 0); // Noon to avoid timezone issues
+    } else {
+      entryDate = new Date();
     }
-    date.setHours(0, 0, 0, 0);
+    entryDate.setHours(0, 0, 0, 0);
 
-    const entry = await FoodEntry.findOne({ date });
+    const entry = await FoodEntry.findOne({ date: entryDate });
     return NextResponse.json(entry || { items: [], totalCalories: null });
   } catch (error) {
     console.error('Food GET error:', error);
