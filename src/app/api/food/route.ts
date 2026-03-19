@@ -39,7 +39,13 @@ export async function POST(request: Request) {
       });
     }
 
-    return NextResponse.json(entry);
+    return NextResponse.json({
+      _id: entry._id,
+      date: entry.date,
+      items: entry.items,
+      totalCalories: entry.totalCalories,
+      analyzedAt: entry.analyzedAt,
+    });
   } catch (error) {
     console.error('Food POST error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });

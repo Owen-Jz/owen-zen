@@ -41,6 +41,7 @@ import { Confetti, useConfetti } from "@/components/Confetti";
 import { TimeTracker } from "@/components/TimeTracker";
 import { FocusOverlay } from "@/components/FocusOverlay";
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
+import { SectionsGrid, useSectionsGrid } from "@/components/SectionsGrid";
 
 // Lazy load views for better performance
 const HabitView = dynamic(() => import("@/components/HabitView").then(mod => ({ default: mod.HabitView })), {
@@ -1122,6 +1123,9 @@ export default function Dashboard() {
 
   // Command Palette
   const { isOpen: isCommandPaletteOpen, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
+
+  // Sections Grid (Alt+S)
+  const { isOpen: isSectionsGridOpen, setIsOpen: setSectionsGridOpen } = useSectionsGrid();
 
   // Global Search State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -2613,6 +2617,13 @@ export default function Dashboard() {
         <CommandPalette
           isOpen={isCommandPaletteOpen}
           onClose={() => setCommandPaletteOpen(false)}
+          onSelect={(id) => setActiveTab(id)}
+        />
+
+        {/* Sections Grid (Alt+S) */}
+        <SectionsGrid
+          isOpen={isSectionsGridOpen}
+          onClose={() => setSectionsGridOpen(false)}
           onSelect={(id) => setActiveTab(id)}
         />
 

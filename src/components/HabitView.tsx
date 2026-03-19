@@ -43,6 +43,107 @@ export const HabitView = () => {
     const [loading, setLoading] = useState(true);
     const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
 
+    // Weekly habits state
+    const [weeklyHabits, setWeeklyHabits] = useState<any[]>([]);
+    const [newWeeklyHabit, setNewWeeklyHabit] = useState("");
+
+    // --- getCurrentWeekKey Helper ---
+    const getCurrentWeekKey = (): string => {
+        const now = new Date();
+        const t = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+        const day = t.getUTCDay() || 7;
+        t.setUTCDate(t.getUTCDate() + 4 - day);
+        const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+        const weekNum = Math.ceil((((t.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+        return `${t.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+    };
+
+    // --- Fetch Weekly Habits ---
+    const fetchWeeklyHabits = async () => {
+        try {
+            const res = await fetch("/api/weekly-habits");
+            const json = await res.json();
+            if (json.success) {
+                setWeeklyHabits(json.data);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // --- Weekly Defaults ---
+    const weeklyDefaults = [
+        { title: "Full Body Gym Session", category: "health", description: "Train hard, track reps and sets" },
+        { title: "Weekly Review", category: "work", description: "Review the week's wins, losses, and next actions" },
+        { title: "Clear Inbox to Zero", category: "work", description: "Process all outstanding emails and messages" },
+    ];
+
+    const seedWeeklyDefaults = async () => {
+        for (const d of weeklyDefaults) {
+            await fetch("/api/weekly-habits", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(d)
+            });
+        }
+        fetchWeeklyHabits();
+    };
+
+    // --- Toggle Weekly Habit ---
+    const toggleWeeklyHabit = async (id: string) => {
+        const weekKey = getCurrentWeekKey();
+        setWeeklyHabits(weeklyHabits.map(h => {
+            const hasDone = h.completedWeeks?.includes(weekKey);
+            return {
+                ...h,
+                completedWeeks: hasDone
+                    ? h.completedWeeks.filter((w: string) => w !== weekKey)
+                    : [...(h.completedWeeks || []), weekKey]
+            };
+        }));
+        await fetch(`/api/weekly-habits/${id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ action: "toggle" }),
+        });
+        fetchWeeklyHabits();
+    };
+
+    // --- Add Weekly Habit ---
+    const addWeeklyHabit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newWeeklyHabit.trim()) return;
+        await fetch("/api/weekly-habits", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title: newWeeklyHabit }),
+        });
+        setNewWeeklyHabit("");
+        fetchWeeklyHabits();
+    };
+
+    // --- Delete Weekly Habit ---
+    const deleteWeeklyHabit = async (id: string) => {
+        if (!confirm("Delete this weekly habit?")) return;
+        setWeeklyHabits(weeklyHabits.filter(h => h._id !== id));
+        await fetch(`/api/weekly-habits/${id}`, { method: "DELETE" });
+    };
+
+    // Check and seed weekly habits on mount
+    useEffect(() => {
+        fetchWeeklyHabits();
+        const checkAndSeedWeekly = async () => {
+            const res = await fetch("/api/weekly-habits");
+            const json = await res.json();
+            if (json.data && json.data.length === 0) {
+                seedWeeklyDefaults();
+            } else {
+                setWeeklyHabits(json.data);
+            }
+        };
+        checkAndSeedWeekly();
+    }, []);
+
     const fetchHabits = async () => {
         try {
             const res = await fetch("/api/habits");
@@ -437,6 +538,117 @@ export const HabitView = () => {
                 </div>
             </div>
 
+            {/* --- Weekly Stats Cards --- */}
+            {(() => {
+                const totalWeekly = weeklyHabits.length;
+                const currentWeekKey = getCurrentWeekKey();
+                const completedThisWeek = weeklyHabits.filter(h => h.completedWeeks?.includes(currentWeekKey)).length;
+                const thisWeekRate = totalWeekly > 0 ? Math.round((completedThisWeek / totalWeekly) * 100) : 0;
+
+                // Weekly consistency over last 8 weeks
+                const last8Weeks = Array.from({ length: 8 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (7 * i));
+                    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                    const day = t.getUTCDay() || 7;
+                    t.setUTCDate(t.getUTCDate() + 4 - day);
+                    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+                    const weekNum = Math.ceil((((t.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+                    return `${t.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
+                }).reverse();
+
+                const weeklyConsistencyRate = last8Weeks.length > 0
+                    ? Math.round(last8Weeks.reduce((acc, wk) => {
+                        const completedAll = weeklyHabits.every(h => h.completedWeeks?.includes(wk));
+                        return acc + (completedAll ? 1 : 0);
+                    }, 0) / last8Weeks.length * 100)
+                    : 0;
+
+                // Max streak across all weekly habits
+                const weeklyMaxStreak = weeklyHabits.length > 0 ? Math.max(0, ...weeklyHabits.map(h => h.streak)) : 0;
+
+                // Total weeks completed across all habits
+                const totalWeeksCompleted = weeklyHabits.reduce((acc, h) => acc + (h.completedWeeks?.length || 0), 0);
+
+                return (
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                        {/* This Week */}
+                        <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-green-500/30 transition-all relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative z-10 flex justify-between items-start mb-4">
+                                <div>
+                                    <div className="text-sm text-gray-400 font-medium mb-1">This Week</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        {completedThisWeek} <span className="text-gray-500 text-base font-medium">/ {totalWeekly}</span>
+                                    </div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center">
+                                    <Calendar size={20} className="text-green-500" />
+                                </div>
+                            </div>
+                            <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
+                                <div className="bg-green-500 h-2 rounded-full transition-all duration-500" style={{ width: `${thisWeekRate}%` }} />
+                            </div>
+                            <div className="relative z-10 text-right mt-2 text-xs text-green-500 font-bold">{thisWeekRate}% Complete</div>
+                        </div>
+
+                        {/* Weekly Consistency */}
+                        <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-cyan-500/30 transition-all relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative z-10 flex justify-between items-start mb-4">
+                                <div>
+                                    <div className="text-sm text-gray-400 font-medium mb-1">Weekly Consistency</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        {weeklyConsistencyRate}%
+                                    </div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                                    <TrendingUp size={20} className="text-cyan-500" />
+                                </div>
+                            </div>
+                            <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
+                                <div className="bg-cyan-500 h-2 rounded-full transition-all duration-500" style={{ width: `${weeklyConsistencyRate}%` }} />
+                            </div>
+                            <div className="relative z-10 text-right mt-2 text-xs text-cyan-500 font-bold">Last 8 weeks</div>
+                        </div>
+
+                        {/* Current Streak */}
+                        <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-orange-500/30 transition-all relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative z-10 flex justify-between items-start mb-4">
+                                <div>
+                                    <div className="text-sm text-gray-400 font-medium mb-1">Current Streak</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        {weeklyMaxStreak} <span className="text-gray-500 text-base font-medium">wks</span>
+                                    </div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-orange-500/20 flex items-center justify-center">
+                                    <Flame size={20} className="text-orange-500" />
+                                </div>
+                            </div>
+                            <div className="relative z-10 text-right mt-2 text-xs text-orange-500 font-bold">Max streak</div>
+                        </div>
+
+                        {/* Total Weeks */}
+                        <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-yellow-500/30 transition-all relative overflow-hidden group">
+                            <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="relative z-10 flex justify-between items-start mb-4">
+                                <div>
+                                    <div className="text-sm text-gray-400 font-medium mb-1">Total Weeks</div>
+                                    <div className="text-2xl font-bold text-white">
+                                        {totalWeeksCompleted}
+                                    </div>
+                                </div>
+                                <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
+                                    <Trophy size={20} className="text-yellow-500" />
+                                </div>
+                            </div>
+                            <div className="relative z-10 text-right mt-2 text-xs text-yellow-500 font-bold">All-time weeks</div>
+                        </div>
+                    </div>
+                );
+            })()}
+
             {/* --- Main List --- */}
             <div className="bg-surface/20 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
                 {/* Header */}
@@ -674,6 +886,159 @@ export const HabitView = () => {
                     </form>
                 </div>
             </div>
+
+            {/* --- Weekly Habits List --- */}
+            <div className="bg-surface/20 backdrop-blur-xl border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+                {/* Header */}
+                <div className="p-4 md:p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between bg-black/20 gap-4">
+                    <div className="flex items-center gap-3 w-full md:w-auto">
+                        <Calendar className="text-green-500 shrink-0" size={24} />
+                        <h2 className="text-xl font-bold text-white whitespace-nowrap">Weekly Non-Negotiables</h2>
+                    </div>
+                </div>
+
+                {/* List Items */}
+                <div className="divide-y divide-white/5">
+                    <AnimatePresence mode="popLayout">
+                        {weeklyHabits.map(habit => {
+                            const weekKey = getCurrentWeekKey();
+                            const isDoneThisWeek = habit.completedWeeks?.includes(weekKey);
+                            return (
+                                <motion.div
+                                    layout
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, height: 0 }}
+                                    key={habit._id}
+                                    className={cn(
+                                        "group flex items-center gap-4 p-4 hover:bg-white/5 transition-all relative",
+                                        isDoneThisWeek ? "bg-green-500/5" : ""
+                                    )}
+                                >
+                                    {/* Checkbox */}
+                                    <button
+                                        onClick={() => toggleWeeklyHabit(habit._id)}
+                                        className={cn(
+                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-10",
+                                            isDoneThisWeek
+                                                ? "bg-green-500 border-green-500 text-white shadow-[0_0_10px_rgba(34,197,94,0.4)] scale-110"
+                                                : "border-gray-600 text-transparent hover:border-green-500 hover:scale-105"
+                                        )}
+                                        aria-label={isDoneThisWeek ? `Mark ${habit.title} as incomplete` : `Mark ${habit.title} as complete`}
+                                    >
+                                        <Check size={14} strokeWidth={4} />
+                                    </button>
+
+                                    {/* Text Content */}
+                                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                                        <div className={cn(
+                                            "font-medium truncate transition-all text-base",
+                                            isDoneThisWeek ? "text-gray-400 line-through decoration-gray-600 decoration-2" : "text-gray-100 group-hover:text-white"
+                                        )}>
+                                            {habit.title}
+                                        </div>
+                                        {habit.description && (
+                                            <div className="text-xs text-gray-500 truncate mt-0.5 group-hover:text-gray-400">
+                                                {habit.description}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Metadata & Actions */}
+                                    <div className="flex items-center gap-6">
+                                        {/* Streak Badge */}
+                                        <div className={cn("flex items-center gap-1.5 px-2 py-1 rounded bg-black/20 border border-white/5", habit.streak > 3 ? "text-orange-500 border-orange-500/20 bg-orange-500/10" : "text-gray-500")}>
+                                            <Flame size={12} />
+                                            <span className="text-xs font-mono font-bold">{habit.streak} wk</span>
+                                        </div>
+
+                                        {/* Delete Action */}
+                                        <button
+                                            onClick={() => deleteWeeklyHabit(habit._id)}
+                                            className="text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 px-2"
+                                            title="Delete weekly habit"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </AnimatePresence>
+
+                    {/* Add New Weekly Habit Input Row */}
+                    <form onSubmit={addWeeklyHabit} className="group flex items-center gap-4 p-4 hover:bg-white/5 transition-all border-t border-white/5 bg-black/20">
+                        <div className="w-6 h-6 rounded-full border-2 border-dashed border-gray-700 flex items-center justify-center shrink-0 group-hover:border-gray-500">
+                            <Plus size={14} className="text-gray-700 group-hover:text-gray-500" />
+                        </div>
+                        <input
+                            type="text"
+                            value={newWeeklyHabit}
+                            onChange={(e) => setNewWeeklyHabit(e.target.value)}
+                            placeholder="Add a new weekly habit..."
+                            className="bg-transparent border-none outline-none text-gray-400 placeholder-gray-600 w-full font-medium h-full focus:text-white"
+                        />
+                        <button type="submit" disabled={!newWeeklyHabit.trim()} className="text-xs font-bold uppercase tracking-wider text-green-500 opacity-0 group-hover:opacity-100 disabled:opacity-0 transition-all">
+                            Add
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            {/* --- Weekly Consistency Bar Chart --- */}
+            {(() => {
+                const last16Weeks = Array.from({ length: 16 }, (_, i) => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - (7 * i));
+                    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+                    const day = t.getUTCDay() || 7;
+                    t.setUTCDate(t.getUTCDate() + 4 - day);
+                    const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+                    const weekNum = Math.ceil((((t.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+                    return {
+                        weekKey: `${t.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`,
+                        date: new Date(t)
+                    };
+                }).reverse();
+
+                return (
+                    <div className="space-y-4">
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center gap-2">
+                            <Calendar size={14} />
+                            16-Week Consistency
+                        </h3>
+                        <div className="flex flex-col gap-2">
+                            {last16Weeks.map(({ weekKey, date }) => {
+                                const totalWeekly = weeklyHabits.length;
+                                const completedCount = weeklyHabits.filter(h => h.completedWeeks?.includes(weekKey)).length;
+                                const rate = totalWeekly > 0 ? completedCount / totalWeekly : 0;
+                                const isComplete = rate === 1;
+                                const isPartial = rate > 0 && rate < 1;
+
+                                return (
+                                    <div key={weekKey} className="flex items-center gap-3">
+                                        <div className="text-[10px] font-mono text-gray-500 w-16 shrink-0">
+                                            {weekKey.split('-')[1]}
+                                        </div>
+                                        <div className="flex-1 h-5 bg-black/40 rounded overflow-hidden">
+                                            <div
+                                                className={cn(
+                                                    "h-full rounded transition-all duration-500",
+                                                    isComplete ? "bg-green-500" : isPartial ? "bg-green-500/50" : "bg-gray-800"
+                                                )}
+                                                style={{ width: `${Math.max(rate * 100, 2)}%` }}
+                                            />
+                                        </div>
+                                        <div className="text-[10px] font-mono text-gray-500 w-20 text-right">
+                                            {completedCount}/{totalWeekly}
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                );
+            })()}
 
             {/* --- Heatmap Footer (Collapsible/Subtle) --- */}
             <div className="space-y-4">

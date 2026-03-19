@@ -24,7 +24,11 @@
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -f src/components/NotesView.tsx src/app/api/notes/route.ts src/app/api/notes/\\\\[id\\\\]/route.ts src/models/Note.ts)",
       "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && rm -rf .next && npx tsc --noEmit --skipLibCheck 2>&1 | head -10)",
       "Bash(npm test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(npx eslint:*)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npx next build --no-lint 2>&1 | tail -30)",
+      "Bash(cd \"C:\\\\Users\\\\owen\\\\Downloads\\\\Projects\\\\owen-zen\" && npx next build 2>&1 | tail -40)",
+      "Bash(curl -s http://localhost:3003/api/weekly-habits | head -50)"
     ]
   }
 }
