@@ -266,12 +266,12 @@ export const ContentCalendar = () => {
 
     // Combine both
     const allPosts = [...dayPosts, ...bucketPostsForDate];
-    const networks = new Set(allPosts.map((p) => p.network));
+    const networks = new Set<Network>(allPosts.map((p) => p.network));
     return { posts: allPosts, networks };
   }, [posts, bucketPosts]);
 
   // Get posts for selected date in modal
-  const getSelectedDayPosts = useCallback(() => {
+  const getSelectedDayPosts = useCallback((): ContentPost[] => {
     if (!selectedDate) return [];
     const dateStr = selectedDate.toISOString().split("T")[0];
 
@@ -294,6 +294,8 @@ export const ContentCalendar = () => {
       notes: post.strategy || '',
       scheduledAt: post.scheduledFor,
       status: 'scheduled' as const,
+      createdAt: post.createdAt || new Date().toISOString(),
+      updatedAt: post.updatedAt || new Date().toISOString(),
       isFromBucket: true,
       originalPostId: post._id
     }));
