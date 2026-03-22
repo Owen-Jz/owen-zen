@@ -8,6 +8,7 @@ import {
   Target, Palette, Eye, Star, Calendar, Inbox,
   Crosshair, Wallet, Users, MessageSquare,
   Circle, FileText, Archive, Settings,
+  BookOpen,
 } from "lucide-react";
 interface ViewItem {
   id: string;
@@ -40,6 +41,7 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
         { id: "habits", label: "Habits", icon: Trophy },
         { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
+        { id: "daily-word", label: "Daily Word", icon: BookOpen },
       ]
     },
     {
