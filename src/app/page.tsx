@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -36,6 +36,7 @@ import { Loading } from "@/components/Loading";
 import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
 import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
+import { DailyWordWidget } from "@/components/DailyWordWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
 import { Confetti, useConfetti } from "@/components/Confetti";
 import { TimeTracker } from "@/components/TimeTracker";
@@ -827,6 +828,13 @@ const RightSidebar = ({
   const [isQuickLinksOpen, setIsQuickLinksOpen] = useState(true);
   const [spentToday, setSpentToday] = useState<number | null>(null);
 
+  useEffect(() => {
+    fetch('/api/quick-links')
+      .then(r => r.json())
+      .then(j => { if (j.success) setQuickLinks(j.data); })
+      .catch(() => { });
+  }, []);
+
   // Time states
   const [timeExt, setTimeExt] = useState({
     sf: '',
@@ -1120,6 +1128,7 @@ export default function Dashboard() {
   const [isLofiPlaying, setIsLofiPlaying] = useState(false);
   const [, forceUpdate] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const hasInitializedTimers = useRef(false); // Track if we've auto-paused timers on load
 
   // Command Palette
   const { isOpen: isCommandPaletteOpen, setIsOpen: setCommandPaletteOpen } = useCommandPalette();
@@ -1328,6 +1337,55 @@ export default function Dashboard() {
     };
     fetchTasks();
   }, [currentBoardId]);
+
+  // Auto-pause any running timers on page load (handles refresh while timer is running)
+  useEffect(() => {
+    if (tasks.length > 0 && !hasInitializedTimers.current) {
+      hasInitializedTimers.current = true;
+
+      // Find all tasks with active (running) timers
+      const tasksWithActiveTimers = tasks.filter(t => t.activeTimer?.isActive);
+
+      if (tasksWithActiveTimers.length > 0) {
+        const now = new Date().toISOString();
+
+        // Calculate all timer updates upfront to avoid stale closure issues
+        const timerUpdates = tasksWithActiveTimers.map(task => {
+          const currentElapsed = Math.floor(
+            (new Date(now).getTime() - new Date(task.activeTimer!.startedAt!).getTime()) / 1000
+          );
+          const newAccumulated = (task.activeTimer!.accumulatedTime || 0) + currentElapsed;
+
+          return {
+            taskId: task._id,
+            updatedActiveTimer: {
+              ...task.activeTimer!,
+              isActive: false,
+              accumulatedTime: newAccumulated
+            }
+          };
+        });
+
+        // Update local state for all timers at once
+        setTasks(tasks.map(t => {
+          const update = timerUpdates.find(u => u.taskId === t._id);
+          if (update) {
+            return { ...t, activeTimer: update.updatedActiveTimer };
+          }
+          return t;
+        }));
+
+        // Persist each timer update to the database
+        timerUpdates.forEach(({ taskId, updatedActiveTimer }) => {
+          fetch(`/api/tasks/${taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ activeTimer: updatedActiveTimer }),
+          }).catch(err => console.error("Failed to auto-pause timer:", err));
+        });
+      }
+    }
+  }, [tasks]);
 
   const createBoard = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2411,6 +2469,16 @@ export default function Dashboard() {
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="max-w-[1600px] mx-auto pb-20"
             >
+              {/* Daily Word */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.05 }}
+                className="mb-6"
+              >
+                <DailyWordWidget />
+              </motion.div>
+
               {/* Daily MIT Section */}
               <motion.div
                 initial={{ opacity: 0, scale: 0.95 }}
@@ -2587,6 +2655,16 @@ export default function Dashboard() {
           {activeTab === "habits" && <HabitView />}
           {activeTab === "habit-analytics" && <HabitAnalyticsView />}
           {activeTab === "discipline" && <DisciplineChallenge />}
+          {activeTab === "daily-word" && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="max-w-2xl mx-auto"
+            >
+              <DailyWordWidget />
+            </motion.div>
+          )}
           {activeTab === "weekly" && <WeeklyGoalsView />}
           {activeTab === "vision" && <VisionBoardView />}
           {activeTab === "reality" && <RealityView />}
