@@ -88,15 +88,28 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
       </div>
 
       {showColors && (
-        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-700 rounded-lg shadow-lg p-2 flex gap-2 z-50">
-          {COLOR_MAP.map(({ hex }) => (
+        <div className="absolute top-full left-0 mt-2 bg-white dark:bg-slate-700 rounded-lg shadow-lg p-2 z-50">
+          <div className="flex gap-2">
+            {COLOR_MAP.map(({ hex }) => (
+              <button
+                key={hex}
+                className="w-6 h-6 rounded-full border-2 border-transparent hover:border-slate-400 transition-colors"
+                style={{ backgroundColor: hex }}
+                onClick={() => changeColor(hex)}
+              />
+            ))}
+          </div>
+          <div className="flex gap-2 mt-2 pt-2 border-t border-slate-200 dark:border-slate-600">
             <button
-              key={hex}
-              className="w-6 h-6 rounded-full border-2 border-transparent hover:border-slate-400 transition-colors"
-              style={{ backgroundColor: hex }}
-              onClick={() => changeColor(hex)}
-            />
-          ))}
+              className="text-xs text-red-500 hover:text-red-600 px-2 py-1 rounded"
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('canvas:deleteNode', { detail: id }));
+                setShowColors(false);
+              }}
+            >
+              Delete
+            </button>
+          </div>
         </div>
       )}
     </div>
