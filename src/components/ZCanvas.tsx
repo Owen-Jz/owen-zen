@@ -2,18 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import ReactFlow, {
-  Background,
-  Controls,
-  MiniMap,
-  Node,
-  Edge,
-  Viewport,
-  useNodesState,
-  useEdgesState,
-  ReactFlowProvider,
-  useReactFlow,
-} from '@xyflow/react';
+import { ReactFlow, Background, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CanvasNode } from './canvas/CanvasNode';
@@ -31,8 +20,8 @@ interface CanvasData {
 }
 
 function CanvasInner() {
-  const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<Edge[]>([]);
   const [isDark, setIsDark] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
@@ -68,7 +57,27 @@ function CanvasInner() {
       setNodes(canvasData.data.nodes || []);
       setEdges(canvasData.data.edges || []);
     }
-  }, [canvasData, setNodes, setEdges]);
+  }, [canvasData]);
+
+  // Debounced save
+  const debouncedSave = useCallback((vp: Viewport, nds: Node[], eds: Edge[]) => {
+    if (saveTimeout.current) clearTimeout(saveTimeout.current);
+    saveTimeout.current = setTimeout(() => {
+      saveMutation.mutate({ viewport: vp, nodes: nds, edges: eds });
+    }, 500);
+  }, [saveMutation]);
+
+  const onMoveEnd = useCallback((_: unknown, viewport: Viewport) => {
+    debouncedSave(viewport, nodes, edges);
+  }, [debouncedSave, nodes, edges]);
+
+  const onNodesChange = useCallback((changes: NodeChange[]) => {
+    setNodes(nds => applyNodeChanges(changes, nds));
+  }, []);
+
+  const onEdgesChange = useCallback((changes: EdgeChange[]) => {
+    setEdges(eds => applyEdgeChanges(changes, eds));
+  }, []);
 
   // Ctrl+K to open command palette
   useEffect(() => {
@@ -85,7 +94,6 @@ function CanvasInner() {
   // Keyboard shortcuts: Delete, F, Escape
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Delete selected nodes
       if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
         const selectedNodes = nodes.filter(n => n.selected);
         if (selectedNodes.length > 0) {
@@ -95,11 +103,9 @@ function CanvasInner() {
           ));
         }
       }
-      // Fit view
       if (e.key === 'f' || e.key === 'F') {
         fitView({ padding: 0.2 });
       }
-      // Escape
       if (e.key === 'Escape') {
         setNodes(nds => nds.map(n => ({ ...n, selected: false })));
         setCreatingNode(null);
@@ -109,32 +115,13 @@ function CanvasInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [nodes, fitView]);
 
-  const debouncedSave = useCallback((vp: Viewport, nds: Node[], eds: Edge[]) => {
-    if (saveTimeout.current) clearTimeout(saveTimeout.current);
-    saveTimeout.current = setTimeout(() => {
-      saveMutation.mutate({ viewport: vp, nodes: nds, edges: eds });
-    }, 500);
-  }, [saveMutation]);
-
-  const onMoveEnd = useCallback((_: unknown, viewport: Viewport) => {
-    debouncedSave(viewport, nodes, edges);
-  }, [debouncedSave, nodes, edges]);
-
   const onCreateFromPalette = useCallback((content: string) => {
     const viewport = { x: 0, y: 0, zoom: 1 };
     const centerX = (-viewport.x + window.innerWidth / 2) / viewport.zoom;
     const centerY = (-viewport.y + window.innerHeight / 2) / viewport.zoom;
     const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: centerX - 80, y: centerY - 40 }, data: { content, color: '#f97316', labels: [] as string[] } };
     setNodes(nds => [...nds, newNode]);
-  }, [setNodes]);
-
-  const onNodesChangeHandler = useCallback((changes: Parameters<typeof onNodesChange>[0]) => {
-    onNodesChange(changes);
-  }, [onNodesChange]);
-
-  const onEdgesChangeHandler = useCallback((changes: Parameters<typeof onEdgesChange>[0]) => {
-    onEdgesChange(changes);
-  }, [onEdgesChange]);
+  }, []);
 
   const onPaneDoubleClick = useCallback((event: React.MouseEvent) => {
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
@@ -156,6 +143,16 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:deleteNode', handleDelete);
   }, []);
 
+  // Listen for add node custom event (from toolbar)
+  useEffect(() => {
+    const handleAddNode = (e: Event) => {
+      const node = (e as CustomEvent).detail;
+      setNodes(nds => [...nds, node]);
+    };
+    window.addEventListener('canvas:addNode', handleAddNode);
+    return () => window.removeEventListener('canvas:addNode', handleAddNode);
+  }, []);
+
   // Pass onUpdate to all nodes so CanvasNode can call it
   const nodesWithCallbacks = nodes.map(n => ({
     ...n,
@@ -169,8 +166,8 @@ function CanvasInner() {
       <ReactFlow
         nodes={nodesWithCallbacks}
         edges={edges}
-        onNodesChange={onNodesChangeHandler}
-        onEdgesChange={onEdgesChangeHandler}
+        onNodesChange={onNodesChange}
+        onEdgesChange={onEdgesChange}
         onMoveEnd={onMoveEnd}
         onDoubleClick={onPaneDoubleClick}
         nodeTypes={nodeTypes}
@@ -190,7 +187,6 @@ function CanvasInner() {
           maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.1)'}
         />
       </ReactFlow>
-      {/* Save status toast */}
       {saveStatus !== 'idle' && (
         <div className="fixed bottom-4 right-4 text-xs text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow">
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
@@ -225,7 +221,7 @@ function CanvasInner() {
       )}
       {showPalette && (
         <CommandPalette
-          nodes={nodes as any}
+          nodes={nodes}
           onCreateNode={onCreateFromPalette}
           onClose={() => setShowPalette(false)}
         />
