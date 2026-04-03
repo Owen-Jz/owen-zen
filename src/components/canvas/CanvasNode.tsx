@@ -21,9 +21,9 @@ const COLOR_MAP = [
 
 export function CanvasNode({ data, selected, id }: NodeProps) {
   const [editing, setEditing] = useState(false);
-  const [text, setText] = useState((data as CanvasNodeData).content);
+  const [text, setText] = useState((data as unknown as CanvasNodeData).content);
   const [showColors, setShowColors] = useState(false);
-  const nodeData = data as CanvasNodeData & { onUpdate?: (id: string, data: Partial<CanvasNodeData>) => void };
+  const nodeData = data as unknown as CanvasNodeData & { onUpdate?: (id: string, data: Partial<CanvasNodeData>) => void };
 
   const onDoubleClick = useCallback(() => setEditing(true), []);
 
@@ -40,7 +40,7 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
     }
     if (e.key === 'Escape') {
       setEditing(false);
-      setText((data as CanvasNodeData).content);
+      setText((data as unknown as CanvasNodeData).content);
     }
   }, [id, text, data, nodeData]);
 
