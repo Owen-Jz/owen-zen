@@ -5,7 +5,11 @@ import { useReactFlow } from '@xyflow/react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addNode } from '@/lib/canvasUtils';
 
-export function CanvasToolbar() {
+interface CanvasToolbarProps {
+  saveStatus?: 'idle' | 'saving' | 'saved';
+}
+
+export function CanvasToolbar({ saveStatus }: CanvasToolbarProps) {
   const [visible, setVisible] = useState(true);
   const [isDark, setIsDark] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
