@@ -19,6 +19,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CanvasNode } from './canvas/CanvasNode';
 import { CanvasEdge } from './canvas/CanvasEdge';
 import { CommandPalette } from './canvas/CommandPalette';
+import { CanvasToolbar } from './canvas/CanvasToolbar';
 
 const nodeTypes = { idea: CanvasNode };
 const edgeTypes = { default: CanvasEdge };
@@ -34,6 +35,7 @@ function CanvasInner() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [isDark, setIsDark] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
   const { screenToFlowPosition, fitView } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -51,7 +53,13 @@ function CanvasInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       }).then(r => r.json()),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['canvas'] }),
+    onMutate: () => setSaveStatus('saving'),
+    onSuccess: () => {
+      setSaveStatus('saved');
+      setTimeout(() => setSaveStatus('idle'), 2000);
+    },
+    onError: () => setSaveStatus('idle'),
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['canvas'] }),
   });
 
   // Restore canvas on load
@@ -182,6 +190,13 @@ function CanvasInner() {
           maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.1)'}
         />
       </ReactFlow>
+      {/* Save status toast */}
+      {saveStatus !== 'idle' && (
+        <div className="fixed bottom-4 right-4 text-xs text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow">
+          {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
+        </div>
+      )}
+      <CanvasToolbar saveStatus={saveStatus} />
       {creatingNode && (
         <div
           className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-xl p-4 min-w-[200px] z-50"
