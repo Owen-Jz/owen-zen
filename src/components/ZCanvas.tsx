@@ -35,7 +35,7 @@ function CanvasInner() {
   const [isDark, setIsDark] = useState(false);
   const [showPalette, setShowPalette] = useState(false);
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
@@ -73,6 +73,33 @@ function CanvasInner() {
     window.addEventListener('keydown', handleKey);
     return () => window.removeEventListener('keydown', handleKey);
   }, []);
+
+  // Keyboard shortcuts: Delete, F, Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Delete selected nodes
+      if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
+        const selectedNodes = nodes.filter(n => n.selected);
+        if (selectedNodes.length > 0) {
+          setNodes(nds => nds.filter(n => !n.selected));
+          setEdges(eds => eds.filter(ed =>
+            !selectedNodes.some(n => n.id === ed.source || n.id === ed.target)
+          ));
+        }
+      }
+      // Fit view
+      if (e.key === 'f' || e.key === 'F') {
+        fitView({ padding: 0.2 });
+      }
+      // Escape
+      if (e.key === 'Escape') {
+        setNodes(nds => nds.map(n => ({ ...n, selected: false })));
+        setCreatingNode(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, fitView]);
 
   const debouncedSave = useCallback((vp: Viewport, nds: Node[], eds: Edge[]) => {
     if (saveTimeout.current) clearTimeout(saveTimeout.current);
