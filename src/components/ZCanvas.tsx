@@ -133,12 +133,33 @@ function CanvasInner() {
     setCreatingNode({ x: position.x, y: position.y, text: '' });
   }, [screenToFlowPosition]);
 
+  const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string }) => {
+    setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
+  }, []);
+
+  // Listen for delete custom event
+  useEffect(() => {
+    const handleDelete = (e: Event) => {
+      const id = (e as CustomEvent).detail;
+      setNodes(nds => nds.filter(n => n.id !== id));
+      setEdges(eds => eds.filter(ed => ed.source !== id && ed.target !== id));
+    };
+    window.addEventListener('canvas:deleteNode', handleDelete);
+    return () => window.removeEventListener('canvas:deleteNode', handleDelete);
+  }, []);
+
+  // Pass onUpdate to all nodes so CanvasNode can call it
+  const nodesWithCallbacks = nodes.map(n => ({
+    ...n,
+    data: { ...n.data, onUpdate: onNodeUpdate },
+  }));
+
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
     <div className={isDark ? 'dark' : ''} style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithCallbacks}
         edges={edges}
         onNodesChange={onNodesChangeHandler}
         onEdgesChange={onEdgesChangeHandler}
