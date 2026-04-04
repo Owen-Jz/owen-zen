@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -100,6 +100,9 @@ const FoodTrackerView = dynamic(() => import("@/components/FoodTrackerView").the
   loading: () => <Loading />
 });
 const DisciplineChallenge = dynamic(() => import("@/components/DisciplineChallenge").then(mod => ({ default: mod.DisciplineChallenge })), {
+  loading: () => <Loading />
+});
+const ZCanvas = dynamic(() => import("@/components/ZCanvas").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
 const ShoppingListModal = dynamic(() => import("@/components/ShoppingListModal").then(mod => ({ default: mod.ShoppingListModal })), {
@@ -231,6 +234,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "bucket", label: "2026 Bucket List", icon: Star },
         { id: "calendar", label: "Calendar", icon: Calendar },
         { id: "post-bucket", label: "Post Bucket", icon: Inbox },
+        { id: "canvas", label: "Canvas", icon: LayoutGrid },
       ]
     },
     {
@@ -2155,7 +2159,6 @@ export default function Dashboard() {
                     <span className="bg-primary/20 text-primary p-2 rounded-xl"><Plus size={20} /></span>
                     Quick Capture
                   </h3>
-                  <span className="text-xs font-mono text-gray-500 bg-black/20 px-2 py-1 rounded">Ctrl + K</span>
                 </div>
                 <textarea
                   autoFocus
@@ -2685,6 +2688,7 @@ export default function Dashboard() {
           {activeTab === "food" && <FoodTrackerView />}
           {activeTab === "post-bucket" && <PostBucketView />}
           {activeTab === "prompts" && <PromptLibraryView />}
+          {activeTab === "canvas" && <ZCanvas />}
           </motion.div>
         </main>
 

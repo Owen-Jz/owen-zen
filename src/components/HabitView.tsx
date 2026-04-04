@@ -92,22 +92,57 @@ export const HabitView = () => {
     };
 
     // --- Toggle Weekly Habit ---
-    const toggleWeeklyHabit = async (id: string) => {
-        const weekKey = getCurrentWeekKey();
-        setWeeklyHabits(weeklyHabits.map(h => {
-            const hasDone = h.completedWeeks?.includes(weekKey);
-            return {
-                ...h,
-                completedWeeks: hasDone
-                    ? h.completedWeeks.filter((w: string) => w !== weekKey)
-                    : [...(h.completedWeeks || []), weekKey]
-            };
-        }));
+    const toggleWeeklyHabit = async (id: string, weekKey?: string) => {
+        const targetWeek = weekKey || getCurrentWeekKey();
+        const isPastWeek = targetWeek !== getCurrentWeekKey();
+
+        // Optimistic update (skip for past weeks to avoid double-updating the chart)
+        if (!isPastWeek) {
+            setWeeklyHabits(weeklyHabits.map(h => {
+                const hasDone = h.completedWeeks?.includes(targetWeek);
+                return {
+                    ...h,
+                    completedWeeks: hasDone
+                        ? h.completedWeeks.filter((w: string) => w !== targetWeek)
+                        : [...(h.completedWeeks || []), targetWeek]
+                };
+            }));
+        }
+
         await fetch(`/api/weekly-habits/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ action: "toggle" }),
+            body: JSON.stringify({ action: "toggle", date: targetWeek }),
         });
+        fetchWeeklyHabits();
+    };
+
+    // --- Toggle All Weekly Habits for a Specific Week (from bar chart) ---
+    const toggleAllWeeklyHabitsForWeek = async (weekKey: string) => {
+        const isCurrentWeek = weekKey === getCurrentWeekKey();
+        const allCompleted = weeklyHabits.every(h => h.completedWeeks?.includes(weekKey));
+        const newState = !allCompleted;
+
+        // Optimistic update (skip for past weeks to avoid confusion)
+        if (isCurrentWeek) {
+            setWeeklyHabits(weeklyHabits.map(h => ({
+                ...h,
+                completedWeeks: newState
+                    ? [...(h.completedWeeks || []), weekKey]
+                    : (h.completedWeeks || []).filter((w: string) => w !== weekKey)
+            })));
+        }
+
+        // Toggle each habit individually via API
+        await Promise.all(weeklyHabits.map(h => {
+            const hasDone = h.completedWeeks?.includes(weekKey);
+            if (hasDone === newState) return Promise.resolve();
+            return fetch(`/api/weekly-habits/${h._id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "toggle", date: weekKey }),
+            });
+        }));
         fetchWeeklyHabits();
     };
 
@@ -280,6 +315,42 @@ export const HabitView = () => {
         });
 
         fetchHabits(); // Refresh for accurate streaks
+    };
+
+    // --- Toggle All Daily Habits for a Specific Day (from heatmap) ---
+    const toggleAllHabitsForDay = async (date: Date) => {
+        const dateStr = date.toISOString();
+        const allDone = habits.every(h =>
+            h.completedDates.some(d => toLocalString(d) === toLocalString(date))
+        );
+        const newState = !allDone;
+
+        // Optimistic update (current day only to avoid confusion)
+        if (toLocalString(date) === toLocalString(new Date())) {
+            setHabits(habits.map(h => {
+                const dayStr = toLocalString(date);
+                const hasDone = h.completedDates.some(d => toLocalString(d) === dayStr);
+                return {
+                    ...h,
+                    completedDates: newState
+                        ? [...h.completedDates, dateStr]
+                        : h.completedDates.filter(d => toLocalString(d) !== dayStr)
+                };
+            }));
+        }
+
+        // Toggle each habit individually via API
+        await Promise.all(habits.map(h => {
+            const dayStr = toLocalString(date);
+            const hasDone = h.completedDates.some(d => toLocalString(d) === dayStr);
+            if (hasDone === newState) return Promise.resolve();
+            return fetch(`/api/habits/${h._id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ action: "toggle", date: dateStr }),
+            });
+        }));
+        fetchHabits();
     };
 
     // Complete habit via dropdown (explicit intention)
@@ -1025,9 +1096,21 @@ export const HabitView = () => {
                                 const isComplete = rate === 1;
                                 const isPartial = rate > 0 && rate < 1;
 
+                                const isCurrentWeek = weekKey === getCurrentWeekKey();
                                 return (
-                                    <div key={weekKey} className="flex items-center gap-3">
-                                        <div className="text-[10px] font-mono text-gray-500 w-16 shrink-0">
+                                    <div
+                                        key={weekKey}
+                                        onClick={() => toggleAllWeeklyHabitsForWeek(weekKey)}
+                                        className={cn(
+                                            "flex items-center gap-3 cursor-pointer group",
+                                            isCurrentWeek ? "" : "opacity-80 hover:opacity-100"
+                                        )}
+                                        title={isCurrentWeek ? "Click to toggle all habits for this week" : `Click to edit ${weekKey}`}
+                                    >
+                                        <div className={cn(
+                                            "text-[10px] font-mono w-16 shrink-0",
+                                            isCurrentWeek ? "text-gray-400" : "text-gray-500 group-hover:text-gray-300"
+                                        )}>
                                             {weekKey.split('-')[1]}
                                         </div>
                                         <div className="flex-1 h-5 bg-black/40 rounded overflow-hidden">
@@ -1085,10 +1168,12 @@ export const HabitView = () => {
                                     return (
                                         <div
                                             key={dayIndex}
-                                            title={`${data.date.toDateString()}: ${data.count} completions`}
+                                            onClick={() => !isFuture && toggleAllHabitsForDay(data.date)}
+                                            title={`${data.date.toDateString()}: ${data.count} completions${isFuture ? '' : ' (click to toggle)'}`}
                                             className={cn(
                                                 "w-2.5 h-2.5 rounded-[2px] transition-all duration-300",
-                                                isFuture ? "bg-white/5 opacity-50" : isPerfectDay ? "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" : intensityColors[getIntensity(data.count)]
+                                                isFuture ? "bg-white/5 opacity-50 cursor-default" : "cursor-pointer hover:ring-1 hover:ring-white/40",
+                                                isPerfectDay ? "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" : intensityColors[getIntensity(data.count)]
                                             )}
                                         />
                                     );

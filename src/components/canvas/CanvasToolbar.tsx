@@ -11,7 +11,6 @@ interface CanvasToolbarProps {
 
 export function CanvasToolbar({ saveStatus }: CanvasToolbarProps) {
   const [visible, setVisible] = useState(true);
-  const [isDark, setIsDark] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const { fitView, getViewport } = useReactFlow();
 
@@ -29,13 +28,6 @@ export function CanvasToolbar({ saveStatus }: CanvasToolbarProps) {
     };
   }, [isHovered]);
 
-  const toggleDark = useCallback(() => {
-    setIsDark(prev => {
-      document.documentElement.classList.toggle('dark', !prev);
-      return !prev;
-    });
-  }, []);
-
   return (
     <>
       <AnimatePresence>
@@ -45,31 +37,28 @@ export function CanvasToolbar({ saveStatus }: CanvasToolbarProps) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
-            className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full border border-slate-200/50"
+            className="fixed bottom-12 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-full"
             style={{
-              background: isDark ? 'rgba(30,41,59,0.9)' : 'rgba(255,255,255,0.9)',
+              background: 'rgba(10, 10, 10, 0.9)',
               backdropFilter: 'blur(12px)',
+              border: '1px solid var(--border)',
             }}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
           >
             <button
               onClick={() => addNode(getViewport())}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-white text-sm font-medium transition-colors"
+              style={{ background: 'var(--primary)' }}
             >
               <span>+</span> Add Node
             </button>
             <button
               onClick={() => fitView({ padding: 0.2 })}
-              className="px-3 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm transition-colors"
+              className="px-3 py-1.5 rounded-full text-sm transition-colors"
+              style={{ color: 'var(--gray-400)' }}
             >
               Fit View
-            </button>
-            <button
-              onClick={toggleDark}
-              className="px-3 py-1.5 rounded-full hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 text-sm transition-colors"
-            >
-              {isDark ? '☀️' : '🌙'}
             </button>
           </motion.div>
         )}

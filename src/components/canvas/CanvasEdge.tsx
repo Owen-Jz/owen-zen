@@ -29,7 +29,7 @@ export function CanvasEdge({
         id={id}
         className="react-flow__edge-path"
         d={edgePath}
-        stroke={selected ? '#64748b' : '#94a3b8'}
+        stroke={selected ? 'var(--gray-500)' : 'var(--gray-600)'}
         strokeWidth={2}
         strokeDasharray={animated ? '5 5' : undefined}
         fill="none"
@@ -46,14 +46,17 @@ export function CanvasEdge({
           markerHeight="6"
           orient="auto-start-reverse"
         >
-          <path d="M 2 0 L 12 6 L 2 12 z" fill="#94a3b8" />
+          <path d="M 2 0 L 12 6 L 2 12 z" fill="var(--gray-500)" />
         </marker>
       </defs>
       {label && (
         <EdgeLabelRenderer>
           <div
-            className="absolute px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded text-xs text-slate-600 dark:text-slate-300 font-medium pointer-events-all"
+            className="absolute px-2 py-1 rounded text-xs font-medium pointer-events-all"
             style={{
+              background: 'var(--surface)',
+              color: 'var(--foreground)',
+              border: '1px solid var(--border)',
               transform: `translate(-50%, -50%) translate(${labelX}px,${labelY}px)`,
             }}
           >

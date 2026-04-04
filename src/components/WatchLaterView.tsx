@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Plus, Trash2, ExternalLink, Play, Film, Link2, ChevronDown } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -11,6 +12,17 @@ interface Video {
   title?: string;
   thumbnail?: string;
   category: VideoCategory;
+  topics?: string[];
+}
+
+// API response video type (uses _id from MongoDB)
+interface ApiVideo {
+  _id: string;
+  url: string;
+  title?: string;
+  thumbnail?: string;
+  format: VideoCategory;
+  topics?: string[];
 }
 
 type VideoCategory = "tutorial" | "entertainment" | "documentary" | "music" | "podcast" | "other";
@@ -22,6 +34,12 @@ const VIDEO_CATEGORY_CONFIG: Record<VideoCategory, { label: string; color: strin
   music: { label: "Music", color: "bg-pink-500/15 text-pink-400 border-pink-500/30" },
   podcast: { label: "Podcast", color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
   other: { label: "Other", color: "bg-gray-500/15 text-gray-400 border-gray-500/30" },
+};
+
+const TOPIC_CONFIG: Record<string, { label: string; color: string }> = {
+  technology: { label: "Technology", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
+  business: { label: "Business", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  communication: { label: "Communication", color: "bg-violet-500/15 text-violet-400 border-violet-500/30" },
 };
 
 type MovieStatus = "want" | "watching" | "watched";
@@ -330,10 +348,14 @@ const VideoCard = ({
   video,
   onDelete,
   onCategoryChange,
+  onTopicsChange: _onTopicsChange,
+  topicConfig,
 }: {
   video: Video;
   onDelete: (id: string) => void;
   onCategoryChange: (id: string, category: VideoCategory) => void;
+  onTopicsChange: (id: string, topics: string[]) => void;
+  topicConfig: Record<string, { label: string; color: string }>;
 }) => {
   const [showCategoryMenu, setShowCategoryMenu] = useState(false);
   const videoId = extractVideoId(video.url);
@@ -419,69 +441,118 @@ const VideoCard = ({
             </div>
           )}
         </div>
+
+        {/* Topic pills */}
+        {(video.topics?.length ?? 0) > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {video.topics?.map((topic: string) => {
+              const cfg = topicConfig[topic] ?? { label: topic, color: "bg-gray-500/15 text-gray-400 border-gray-500/30" };
+              return (
+                <span key={topic} className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border ${cfg.color}`}>
+                  {cfg.label}
+                </span>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
 const VideosSection = () => {
-  const [videos, setVideos] = useState<Video[]>([
-    {
-      id: "1",
-      url: "https://www.youtube.com/watch?v=KmXfxcGhJDE",
-      title: "Added Video",
-      thumbnail: "https://img.youtube.com/vi/KmXfxcGhJDE/maxresdefault.jpg",
-      category: "tutorial",
+  const queryClient = useQueryClient();
+
+  const { data: videos = [], isLoading } = useQuery({
+    queryKey: ['watch-later-videos'],
+    queryFn: async () => {
+      const res = await fetch('/api/watch-later');
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
     },
-    {
-      id: "2",
-      url: "https://youtu.be/MeDzw7FKfZk?si=rZQBIlyqTOXAPzJi",
-      title: "Watch: High-Value Video",
-      thumbnail: "https://img.youtube.com/vi/MeDzw7FKfZk/maxresdefault.jpg",
-      category: "entertainment",
+  });
+
+  const addVideoMutation = useMutation({
+    mutationFn: async (data: { url: string; title?: string; format: VideoCategory; topics?: string[] }) => {
+      const res = await fetch('/api/watch-later', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
     },
-  ]);
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['watch-later-videos'] }),
+  });
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/watch-later/${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['watch-later-videos'] }),
+  });
+
+  const updateVideoMutation = useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string; format?: VideoCategory; topics?: string[]; title?: string }) => {
+      const res = await fetch(`/api/watch-later/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error);
+      return json.data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['watch-later-videos'] }),
+  });
+
   const [newVideoUrl, setNewVideoUrl] = useState("");
   const [newVideoTitle, setNewVideoTitle] = useState("");
   const [newVideoCategory, setNewVideoCategory] = useState<VideoCategory>("other");
-  const [filter, setFilter] = useState<VideoCategory | "all">("all");
+  const [newVideoTopics, setNewVideoTopics] = useState<string[]>([]);
+  const [formatFilter, setFormatFilter] = useState<VideoCategory | "all">("all");
+  const [topicFilter, setTopicFilter] = useState<string[]>([]);
 
   const addVideo = () => {
     if (!newVideoUrl.trim()) return;
     const videoId = extractVideoId(newVideoUrl);
-    if (!videoId) {
-      alert("Invalid YouTube URL");
-      return;
-    }
-    const newVideo: Video = {
-      id: Date.now().toString(),
+    if (!videoId) { alert("Invalid YouTube URL"); return; }
+    addVideoMutation.mutate({
       url: `https://www.youtube.com/watch?v=${videoId}`,
       title: newVideoTitle.trim() || undefined,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
-      category: newVideoCategory,
-    };
-    setVideos([newVideo, ...videos]);
+      format: newVideoCategory,
+      topics: newVideoTopics,
+    });
     setNewVideoUrl("");
     setNewVideoTitle("");
     setNewVideoCategory("other");
+    setNewVideoTopics([]);
   };
 
-  const deleteVideo = (id: string) => setVideos(videos.filter((v) => v.id !== id));
+  const deleteVideo = (id: string) => deleteVideoMutation.mutate(id);
+  const updateFormat = (id: string, format: VideoCategory) => updateVideoMutation.mutate({ id, format });
+  const updateTopics = (id: string, topics: string[]) => updateVideoMutation.mutate({ id, topics });
 
-  const updateCategory = (id: string, category: VideoCategory) =>
-    setVideos(videos.map((v) => (v.id === id ? { ...v, category } : v)));
-
-  const filtered = filter === "all" ? videos : videos.filter((v) => v.category === filter);
-
-  const counts: Record<VideoCategory | "all", number> = {
-    all: videos.length,
-    tutorial: videos.filter((v) => v.category === "tutorial").length,
-    entertainment: videos.filter((v) => v.category === "entertainment").length,
-    documentary: videos.filter((v) => v.category === "documentary").length,
-    music: videos.filter((v) => v.category === "music").length,
-    podcast: videos.filter((v) => v.category === "podcast").length,
-    other: videos.filter((v) => v.category === "other").length,
+  const toggleTopicFilter = (topic: string) => {
+    setTopicFilter((prev) => prev.includes(topic) ? prev.filter((t) => t !== topic) : [...prev, topic]);
   };
+
+  // AND filter: format + topic
+  const filtered = videos.filter((v: ApiVideo) => {
+    const formatMatch = formatFilter === "all" || v.format === formatFilter;
+    const topicMatch = topicFilter.length === 0 || topicFilter.every((t) => v.topics?.includes(t));
+    return formatMatch && topicMatch;
+  });
+
+  const counts = { all: videos.length, tutorial: 0, entertainment: 0, documentary: 0, music: 0, podcast: 0, other: 0 };
+  videos.forEach((v: ApiVideo) => { if (v.format in counts) counts[v.format as keyof typeof counts]++; });
+
+  const topicCounts = { technology: 0, business: 0, communication: 0 };
+  videos.forEach((v: ApiVideo) => { v.topics?.forEach((t: string) => { if (t in topicCounts) topicCounts[t as keyof typeof topicCounts]++; }); });
 
   return (
     <div>
@@ -526,17 +597,34 @@ const VideosSection = () => {
               ))}
             </select>
           </div>
+          {/* Topic selector */}
+          <div className="flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-gray-500 mr-1">Topics:</span>
+            {Object.entries(TOPIC_CONFIG).map(([key, val]) => (
+              <button
+                key={key}
+                onClick={() => setNewVideoTopics((prev) =>
+                  prev.includes(key) ? prev.filter((t) => t !== key) : [...prev, key]
+                )}
+                className={`inline-flex items-center text-xs px-3 py-1.5 rounded-full border transition-all ${
+                  newVideoTopics.includes(key) ? val.color : "bg-transparent border-border text-gray-500"
+                }`}
+              >
+                {newVideoTopics.includes(key) ? "✓ " : ""}{val.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {/* Format filter tabs */}
       <div className="flex flex-wrap gap-2 mb-6">
         {(["all", "tutorial", "entertainment", "documentary", "music", "podcast", "other"] as const).map((f) => (
           <button
             key={f}
-            onClick={() => setFilter(f)}
+            onClick={() => setFormatFilter(f)}
             className={`px-4 py-2 rounded-xl text-xs font-medium transition-all border ${
-              filter === f
+              formatFilter === f
                 ? "bg-primary text-white border-primary"
                 : "border-border text-gray-400 hover:text-white hover:border-primary/40 bg-surface"
             }`}
@@ -547,15 +635,46 @@ const VideosSection = () => {
         ))}
       </div>
 
+      {/* Topic filter */}
+      <div className="flex flex-wrap gap-2 mb-6 items-center">
+        <span className="text-xs text-gray-500 mr-1">Topic:</span>
+        {Object.entries(TOPIC_CONFIG).map(([key, val]) => (
+          <button
+            key={key}
+            onClick={() => toggleTopicFilter(key)}
+            className={`inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all ${
+              topicFilter.includes(key) ? val.color : "border-border text-gray-500 hover:border-primary/40"
+            }`}
+          >
+            {topicFilter.includes(key) ? "✓ " : ""}{val.label}
+            <span className="opacity-60">({topicCounts[key as keyof typeof topicCounts]})</span>
+          </button>
+        ))}
+        {topicFilter.length > 0 && (
+          <button onClick={() => setTopicFilter([])} className="text-xs text-gray-500 hover:text-white px-2 py-1 transition-colors">
+            Clear
+          </button>
+        )}
+      </div>
+
       {/* Grid */}
-      {filtered.length > 0 ? (
+      {isLoading ? (
+        <div className="text-center py-20">
+          <div className="w-16 h-16 bg-surface rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+            <Play size={24} className="text-gray-500" />
+          </div>
+          <p className="text-gray-400">Loading videos...</p>
+        </div>
+      ) : filtered.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filtered.map((video) => (
+          {filtered.map((video: ApiVideo) => (
             <VideoCard
-              key={video.id}
-              video={video}
+              key={video._id}
+              video={{ ...video, id: video._id, category: video.format }}
               onDelete={deleteVideo}
-              onCategoryChange={updateCategory}
+              onCategoryChange={updateFormat}
+              onTopicsChange={updateTopics}
+              topicConfig={TOPIC_CONFIG}
             />
           ))}
         </div>
