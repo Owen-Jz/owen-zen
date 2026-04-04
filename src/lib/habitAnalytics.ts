@@ -157,6 +157,164 @@ export const calculateStreaks = (habits: Habit[]): StreakMetrics => {
   };
 };
 
+// Get completion rate for a single habit over a period
+export const getHabitCompletionRate = (
+  habit: Habit,
+  daysBack: number
+): number => {
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setDate(now.getDate() - daysBack);
+
+  const completionsInPeriod = habit.completedDates.filter(d => {
+    const date = new Date(d);
+    return date >= cutoff && date <= now;
+  }).length;
+
+  const rate = Math.round((completionsInPeriod / daysBack) * 100);
+  return Math.min(100, rate);
+};
+
+// Get per-habit trend data for line chart
+export const getHabitTrendData = (
+  habit: Habit,
+  period: '7d' | '30d' | '90d' | '1y'
+): { date: string; rate: number }[] => {
+  const daysMap: Record<typeof period, number> = {
+    '7d': 7,
+    '30d': 30,
+    '90d': 90,
+    '1y': 365
+  };
+  const daysBack = daysMap[period];
+  const data: { date: string; rate: number }[] = [];
+  const now = new Date();
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(now.getDate() - i);
+    const dateStr = toLocalString(date);
+
+    const completed = habit.completedDates.some(d => toLocalString(new Date(d)) === dateStr);
+    data.push({
+      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      rate: completed ? 100 : 0
+    });
+  }
+
+  return data;
+};
+
+// Get day-of-week breakdown for a single habit
+export const getHabitDayOfWeekData = (
+  habit: Habit,
+  daysBack: number
+): { dayName: string; count: number }[] => {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const counts = new Array(7).fill(0);
+  const now = new Date();
+  const cutoff = new Date(now);
+  cutoff.setDate(now.getDate() - daysBack);
+
+  habit.completedDates.forEach(dateStr => {
+    const date = new Date(dateStr);
+    if (date >= cutoff && date <= now) {
+      counts[date.getDay()]++;
+    }
+  });
+
+  return dayNames.map((name, i) => ({ dayName: name, count: counts[i] }));
+};
+
+// Get streak timeline for a single habit
+export const getHabitStreakTimeline = (
+  habit: Habit
+): { start: string; end: string; length: number }[] => {
+  if (habit.completedDates.length === 0) return [];
+
+  const sorted = [...habit.completedDates]
+    .map(d => new Date(d))
+    .sort((a, b) => a.getTime() - b.getTime());
+
+  const streaks: { start: string; end: string; length: number }[] = [];
+  let streakStart = sorted[0];
+  let streakEnd = sorted[0];
+  let streakLength = 1;
+
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const curr = sorted[i];
+    const diffDays = Math.floor((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) {
+      streakEnd = curr;
+      streakLength++;
+    } else {
+      streaks.push({
+        start: toLocalString(streakStart),
+        end: toLocalString(streakEnd),
+        length: streakLength
+      });
+      streakStart = curr;
+      streakEnd = curr;
+      streakLength = 1;
+    }
+  }
+
+  // Push final streak
+  streaks.push({
+    start: toLocalString(streakStart),
+    end: toLocalString(streakEnd),
+    length: streakLength
+  });
+
+  return streaks;
+};
+
+// Get best and worst periods for a single habit
+export const getHabitBestWorstPeriods = (
+  habit: Habit,
+  daysBack: number
+): {
+  best: { start: string; end: string; rate: number };
+  worst: { start: string; end: string; rate: number };
+} => {
+  const now = new Date();
+  const data: { date: string; completed: boolean }[] = [];
+
+  for (let i = daysBack - 1; i >= 0; i--) {
+    const date = new Date(now);
+    date.setDate(now.getDate() - i);
+    const dateStr = toLocalString(date);
+    const completed = habit.completedDates.some(d => toLocalString(new Date(d)) === dateStr);
+    data.push({ date: dateStr, completed });
+  }
+
+  // Sliding window of 7 days for period analysis
+  let best = { start: data[0].date, end: data[6].date, rate: 0 };
+  let worst = { start: data[0].date, end: data[6].date, rate: 100 };
+
+  for (let i = 0; i <= data.length - 7; i++) {
+    const window = data.slice(i, i + 7);
+    const completed = window.filter(d => d.completed).length;
+    const rate = Math.round((completed / 7) * 100);
+    const start = window[0].date;
+    const end = window[window.length - 1].date;
+
+    if (rate > best.rate) best = { start, end, rate };
+    if (rate < worst.rate) worst = { start, end, rate };
+  }
+
+  return { best, worst };
+};
+
+// Get the longest streak for a single habit
+export const getHabitLongestStreak = (habit: Habit): number => {
+  const timeline = getHabitStreakTimeline(habit);
+  if (timeline.length === 0) return 0;
+  return Math.max(...timeline.map(s => s.length));
+};
+
 // Analyze completion patterns by day of week
 export const analyzeCompletionPatterns = (habits: Habit[], daysBack: number = 30): CompletionPattern[] => {
   const patterns: CompletionPattern[] = [];
