@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
+import { HabitDetailModal } from "./habit/HabitDetailModal";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -42,6 +43,7 @@ export const HabitView = () => {
     const [newHabit, setNewHabit] = useState("");
     const [loading, setLoading] = useState(true);
     const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+    const [selectedHabit, setSelectedHabit] = useState<Habit | null>(null);
 
     // Weekly habits state
     const [weeklyHabits, setWeeklyHabits] = useState<any[]>([]);
@@ -73,7 +75,7 @@ export const HabitView = () => {
 
     // --- Weekly Defaults ---
     const weeklyDefaults = [
-        { title: "Full Body Gym Session", category: "health", description: "Train hard, track reps and sets" },
+        { title: "Full Body Work Out", category: "health", description: "Train hard, track reps and sets" },
         { title: "Weekly Review", category: "work", description: "Review the week's wins, losses, and next actions" },
         { title: "Clear Inbox to Zero", category: "work", description: "Process all outstanding emails and messages" },
     ];
@@ -708,9 +710,15 @@ export const HabitView = () => {
                                         "group flex items-center gap-4 p-4 hover:bg-white/5 transition-all relative",
                                         isDoneToday ? "bg-primary/5" : ""
                                     )}
+                                    onClick={(e) => {
+                                        const target = e.target as HTMLElement;
+                                        if (target.closest('button') || target.closest('[data-no-modal]')) return;
+                                        setSelectedHabit(habit);
+                                    }}
                                 >
                                     {/* Major Checkbox */}
                                     <button
+                                        data-no-modal="true"
                                         onClick={() => toggleHabit(habit._id)}
                                         className={cn(
                                             "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-10",
@@ -726,6 +734,7 @@ export const HabitView = () => {
                                     {/* Dropdown for Intention */}
                                     <div className="relative">
                                         <button
+                                            data-no-modal="true"
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 setOpenDropdownId(openDropdownId === habit._id ? null : habit._id);
@@ -856,6 +865,7 @@ export const HabitView = () => {
 
                                         {/* Delete Action */}
                                         <button
+                                            data-no-modal="true"
                                             onClick={() => deleteHabit(habit._id)}
                                             className="text-gray-600 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 px-2"
                                             title="Delete protocol"
@@ -1088,6 +1098,15 @@ export const HabitView = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Habit Detail Modal */}
+            {selectedHabit && (
+                <HabitDetailModal
+                    habit={selectedHabit}
+                    open={!!selectedHabit}
+                    onClose={() => setSelectedHabit(null)}
+                />
+            )}
 
         </div>
     );
