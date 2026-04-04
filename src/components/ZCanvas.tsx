@@ -2,13 +2,13 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ReactFlow, Background, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange } from '@xyflow/react';
+import { ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, OnConnect } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CanvasNode } from './canvas/CanvasNode';
 import { CanvasEdge } from './canvas/CanvasEdge';
-import { CommandPalette } from './canvas/CommandPalette';
 import { CanvasToolbar } from './canvas/CanvasToolbar';
+import { NodeModal } from './canvas/NodeModal';
 
 const nodeTypes = { idea: CanvasNode };
 const edgeTypes = { default: CanvasEdge };
@@ -22,11 +22,13 @@ interface CanvasData {
 function CanvasInner() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
-  const [isDark, setIsDark] = useState(false);
-  const [showPalette, setShowPalette] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [showNodeModal, setShowNodeModal] = useState(false);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
-  const { screenToFlowPosition, fitView } = useReactFlow();
+  const { screenToFlowPosition, fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
@@ -48,7 +50,6 @@ function CanvasInner() {
       setTimeout(() => setSaveStatus('idle'), 2000);
     },
     onError: () => setSaveStatus('idle'),
-    onSettled: () => queryClient.invalidateQueries({ queryKey: ['canvas'] }),
   });
 
   // Restore canvas on load
@@ -72,64 +73,138 @@ function CanvasInner() {
   }, [debouncedSave, nodes, edges]);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
-    setNodes(nds => applyNodeChanges(changes, nds));
-  }, []);
+    setNodes(nds => {
+      const updated = applyNodeChanges(changes, nds);
+      debouncedSave(getViewport(), updated, edges);
+      return updated;
+    });
+  }, [debouncedSave, getViewport, edges]);
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
-    setEdges(eds => applyEdgeChanges(changes, eds));
-  }, []);
+    setEdges(eds => {
+      const updated = applyEdgeChanges(changes, eds);
+      debouncedSave(getViewport(), nodes, updated);
+      return updated;
+    });
+  }, [debouncedSave, getViewport, nodes]);
 
-  // Ctrl+K to open command palette
-  useEffect(() => {
-    const handleKey = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-        e.preventDefault();
-        setShowPalette(true);
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, []);
-
-  // Keyboard shortcuts: Delete, F, Escape
+  // Delete selected edges with Delete/Backspace
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
         const selectedNodes = nodes.filter(n => n.selected);
+        const selectedEdges = edges.filter(ed => ed.selected);
         if (selectedNodes.length > 0) {
           setNodes(nds => nds.filter(n => !n.selected));
           setEdges(eds => eds.filter(ed =>
             !selectedNodes.some(n => n.id === ed.source || n.id === ed.target)
           ));
+        } else if (selectedEdges.length > 0) {
+          setEdges(eds => eds.filter(ed => !ed.selected));
         }
       }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [nodes, edges]);
+
+  const onConnect: OnConnect = useCallback((connection: Connection) => {
+    setEdges(eds => {
+      const updated = eds.concat({
+        ...connection,
+        id: crypto.randomUUID(),
+        type: 'default',
+        animated: false,
+      } as Edge);
+      debouncedSave(getViewport(), nodes, updated);
+      return updated;
+    });
+  }, [debouncedSave, getViewport, nodes]);
+
+  // Handle drop to stack node inside another
+  const onDrop = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    const draggedId = event.dataTransfer.getData('application/canvas-node');
+    const targetId = event.dataTransfer.getData('application/canvas-target');
+    if (!draggedId || !targetId || draggedId === targetId) {
+      setDragNodeId(null);
+      return;
+    }
+    setNodes(nds => {
+      let updated = nds.map(n => {
+        if ((n.data as { childIds?: string[] }).childIds?.includes(draggedId)) {
+          return { ...n, data: { ...n.data, childIds: (n.data as { childIds: string[] }).childIds.filter((c: string) => c !== draggedId) } };
+        }
+        return n;
+      });
+      updated = updated.map(n => {
+        if (n.id === targetId) {
+          const children = (n.data as { childIds?: string[] }).childIds || [];
+          return { ...n, data: { ...n.data, childIds: [...children, draggedId] } };
+        }
+        if (n.id === draggedId) {
+          return { ...n, data: { ...n.data, parentId: targetId } };
+        }
+        return n;
+      });
+      return updated;
+    });
+    setDragNodeId(null);
+  }, []);
+
+  const onDragOver = useCallback((event: React.DragEvent) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+  }, []);
+
+  const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
+    setDragNodeId(node.id);
+  }, []);
+  // F and Escape shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'f' || e.key === 'F') {
         fitView({ padding: 0.2 });
       }
       if (e.key === 'Escape') {
         setNodes(nds => nds.map(n => ({ ...n, selected: false })));
+        setEdges(eds => eds.map(ed => ({ ...ed, selected: false })));
         setCreatingNode(null);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nodes, fitView]);
-
-  const onCreateFromPalette = useCallback((content: string) => {
-    const viewport = { x: 0, y: 0, zoom: 1 };
-    const centerX = (-viewport.x + window.innerWidth / 2) / viewport.zoom;
-    const centerY = (-viewport.y + window.innerHeight / 2) / viewport.zoom;
-    const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: centerX - 80, y: centerY - 40 }, data: { content, color: '#f97316', labels: [] as string[] } };
-    setNodes(nds => [...nds, newNode]);
-  }, []);
+  }, [fitView]);
 
   const onPaneDoubleClick = useCallback((event: React.MouseEvent) => {
     const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
     setCreatingNode({ x: position.x, y: position.y, text: '' });
   }, [screenToFlowPosition]);
 
-  const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string }) => {
+  const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string; subNodes?: { id: string; content: string; color: string }[] }) => {
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
+  }, []);
+
+  const handleDeleteSubNode = useCallback((parentId: string, subNodeId: string) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== parentId) return n;
+      const subNodes = (n.data as { subNodes?: { id: string; content: string; color: string }[] }).subNodes || [];
+      return {
+        ...n,
+        data: { ...n.data, subNodes: subNodes.filter(s => s.id !== subNodeId) },
+      };
+    }));
+  }, []);
+
+  const handleUpdateSubNode = useCallback((parentId: string, subNodeId: string, content: string) => {
+    setNodes(nds => nds.map(n => {
+      if (n.id !== parentId) return n;
+      const subNodes = (n.data as { subNodes?: { id: string; content: string; color: string }[] }).subNodes || [];
+      return {
+        ...n,
+        data: { ...n.data, subNodes: subNodes.map(s => s.id === subNodeId ? { ...s, content } : s) },
+      };
+    }));
   }, []);
 
   // Listen for delete custom event
@@ -153,6 +228,66 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:addNode', handleAddNode);
   }, []);
 
+  // Listen for stack node event
+  useEffect(() => {
+    const handleStack = (e: Event) => {
+      const { draggedId, targetId } = (e as CustomEvent).detail;
+      if (!draggedId || !targetId || draggedId === targetId) return;
+      setNodes(nds => {
+        let updated = nds.map(n => {
+          if ((n.data as { childIds?: string[] }).childIds?.includes(draggedId)) {
+            return { ...n, data: { ...n.data, childIds: (n.data as { childIds: string[] }).childIds.filter((c: string) => c !== draggedId) } };
+          }
+          return n;
+        });
+        updated = updated.map(n => {
+          if (n.id === targetId) {
+            const children = (n.data as { childIds?: string[] }).childIds || [];
+            return { ...n, data: { ...n.data, childIds: [...children, draggedId] } };
+          }
+          if (n.id === draggedId) {
+            return { ...n, data: { ...n.data, parentId: targetId } };
+          }
+          return n;
+        });
+        return updated;
+      });
+    };
+    window.addEventListener('canvas:stackNode', handleStack);
+    return () => window.removeEventListener('canvas:stackNode', handleStack);
+  }, []);
+
+  // Listen for add sub node event — adds to parent's subNodes array (virtual, not a canvas node)
+  useEffect(() => {
+    const handleAddSubNode = (e: Event) => {
+      const { parentId, color, content } = (e as CustomEvent).detail;
+      setNodes(nds => nds.map(n => {
+        if (n.id !== parentId) return n;
+        const subNodes = (n.data as { subNodes?: { id: string; content: string; color: string }[] }).subNodes || [];
+        return {
+          ...n,
+          data: {
+            ...n.data,
+            subNodes: [...subNodes, { id: crypto.randomUUID(), content: content || '', color: color || '#f97316' }],
+          },
+        };
+      }));
+    };
+    window.addEventListener('canvas:addSubNode', handleAddSubNode);
+    return () => window.removeEventListener('canvas:addSubNode', handleAddSubNode);
+  }, []);
+
+  // Listen for open node modal event
+  useEffect(() => {
+    const handleOpenModal = (e: Event) => {
+      const { nodeId } = (e as CustomEvent).detail;
+      setSelectedNodeId(nodeId);
+      setShowNodeModal(true);
+    };
+    window.addEventListener('canvas:openNodeModal', handleOpenModal);
+    return () => window.removeEventListener('canvas:openNodeModal', handleOpenModal);
+  }, []);
+
   // Pass onUpdate to all nodes so CanvasNode can call it
   const nodesWithCallbacks = nodes.map(n => ({
     ...n,
@@ -162,53 +297,61 @@ function CanvasInner() {
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
-    <div className={isDark ? 'dark' : ''} style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh' }}>
       <ReactFlow
         nodes={nodesWithCallbacks}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
+        onConnect={onConnect}
         onMoveEnd={onMoveEnd}
         onDoubleClick={onPaneDoubleClick}
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onNodeDragStart={onNodeDragStart}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         defaultViewport={canvasData?.data?.viewport || { x: 0, y: 0, zoom: 1 }}
         fitView
-        style={{ background: isDark ? '#0f172a' : '#ffffff' }}
+        style={{ background: 'var(--background)' }}
       >
         <Background
-          color={isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}
-          gap={24}
+          variant={BackgroundVariant.Lines}
+          color="rgba(255,255,255,0.06)"
+          gap={32}
           size={1}
+          style={{ opacity: 0.6 }}
         />
-        <Controls showInteractive={false} />
+        <Controls style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }} showInteractive={false} />
         <MiniMap
           nodeColor={(n) => (n.data?.color as string) || '#f97316'}
-          maskColor={isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.1)'}
+          maskColor="rgba(0,0,0,0.5)"
+          style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px' }}
         />
       </ReactFlow>
       {saveStatus !== 'idle' && (
-        <div className="fixed bottom-4 right-4 text-xs text-slate-500 bg-white dark:bg-slate-800 px-3 py-1.5 rounded-full shadow">
+        <div className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full shadow" style={{ background: 'var(--surface)', color: 'var(--gray-500)', border: '1px solid var(--border)' }}>
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
         </div>
       )}
       <CanvasToolbar saveStatus={saveStatus} />
       {creatingNode && (
         <div
-          className="absolute bg-white dark:bg-slate-800 rounded-xl shadow-xl p-4 min-w-[200px] z-50"
-          style={{ left: creatingNode.x, top: creatingNode.y, transform: 'translate(-50%, -50%)' }}
+          className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"
+          style={{ left: creatingNode.x, top: creatingNode.y, transform: 'translate(-50%, -50%)', background: 'var(--surface)', border: '1px solid var(--border)' }}
         >
           <textarea
             autoFocus
             placeholder="Type your idea..."
-            className="bg-transparent outline-none text-slate-900 dark:text-slate-100 w-full resize-none text-sm"
+            className="bg-transparent outline-none w-full resize-none text-sm"
+            style={{ color: 'var(--foreground)' }}
             value={creatingNode.text}
             onChange={(e) => setCreatingNode(prev => prev ? { ...prev, text: e.target.value } : null)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (creatingNode.text.trim()) {
-                  const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: creatingNode.x, y: creatingNode.y }, data: { content: creatingNode.text.trim(), color: '#f97316', labels: [] as string[] } };
+                  const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: creatingNode.x, y: creatingNode.y }, data: { content: creatingNode.text.trim(), color: '#f97316', labels: [] as string[], subNodes: [] as { id: string; content: string; color: string }[] } };
                   setNodes(nds => [...nds, newNode]);
                 }
                 setCreatingNode(null);
@@ -219,13 +362,96 @@ function CanvasInner() {
           />
         </div>
       )}
-      {showPalette && (
-        <CommandPalette
-          nodes={nodes}
-          onCreateNode={onCreateFromPalette}
-          onClose={() => setShowPalette(false)}
-        />
+      {showHelp && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }} onClick={() => setShowHelp(false)}>
+          <div className="rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Canvas Controls</h2>
+              <button onClick={() => setShowHelp(false)} className="text-xl leading-none" style={{ color: 'var(--gray-500)' }}>&times;</button>
+            </div>
+            <div className="space-y-4 text-sm" style={{ color: 'var(--gray-400)' }}>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Double-click</span>
+                <span>Create a new idea node anywhere on the canvas</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Drag</span>
+                <span>Pan around the canvas freely</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Scroll</span>
+                <span>Zoom in and out</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>F</span>
+                <span>Fit all nodes into view</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Del</span>
+                <span>Delete selected node(s)</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Esc</span>
+                <span>Deselect all / cancel node creation</span>
+              </div>
+              <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
+                <p className="font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Node interactions:</p>
+                <div className="space-y-2">
+                  <div className="flex gap-3 items-start">
+                    <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Double-click node</span>
+                    <span>Edit node text inline</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Right-click node</span>
+                    <span>Change node color (8 colors) or delete</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Drag handles</span>
+                    <span>Drag from node edge to another node to connect them</span>
+                  </div>
+                  <div className="flex gap-3 items-start">
+                    <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Drag node</span>
+                    <span>Drag a node onto another to stack it inside (one level deep)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="mt-6 w-full font-semibold py-2.5 rounded-xl transition-colors"
+              style={{ background: '#dc2626', color: 'white' }}
+            >
+              Got it, let's start
+            </button>
+          </div>
+        </div>
       )}
+      {showNodeModal && selectedNodeId && (() => {
+        const node = nodes.find(n => n.id === selectedNodeId);
+        if (!node) return null;
+        const nodeData = node.data as { content: string; color: string; labels: string[]; subNodes?: { id: string; content: string; color: string }[] };
+        const childNodes = (nodeData.subNodes || [])
+          .map(s => ({ id: s.id, content: s.content, color: s.color }));
+        return (
+          <NodeModal
+            nodeId={selectedNodeId}
+            data={nodeData as { content: string; color: string; labels: string[]; subNodes?: { id: string; content: string; color: string }[] }}
+            childNodes={childNodes}
+            onClose={() => { setShowNodeModal(false); setSelectedNodeId(null); }}
+            onUpdate={onNodeUpdate}
+            onDelete={(id) => {
+              window.dispatchEvent(new CustomEvent('canvas:deleteNode', { detail: id }));
+              setShowNodeModal(false);
+              setSelectedNodeId(null);
+            }}
+            onAddSubNode={(parentId, color, content) => {
+              window.dispatchEvent(new CustomEvent('canvas:addSubNode', { detail: { parentId, color, content } }));
+            }}
+            onDeleteSubNode={handleDeleteSubNode}
+            onUpdateSubNode={handleUpdateSubNode}
+          />
+        );
+      })()}
     </div>
   );
 }

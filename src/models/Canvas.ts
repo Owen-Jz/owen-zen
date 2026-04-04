@@ -9,8 +9,16 @@ const CanvasNodeSchema = new mongoose.Schema({
   },
   data: {
     content: { type: String, default: '' },
+    description: { type: String, default: '' },
     color: { type: String, default: '#f97316' },
     labels: [{ type: String }],
+    childIds: [{ type: String }],
+    parentId: { type: String },
+    subNodes: [{
+      id: { type: String },
+      content: { type: String, default: '' },
+      color: { type: String, default: '#f97316' },
+    }],
   },
 }, { _id: false });
 
@@ -32,4 +40,6 @@ const CanvasSchema = new mongoose.Schema({
   edges: [CanvasEdgeSchema],
 }, { timestamps: true });
 
-export default mongoose.models.Canvas || mongoose.model('Canvas', CanvasSchema);
+// Force re-registration on hot reload so schema changes take effect
+delete mongoose.models['Canvas'];
+export default mongoose.model('Canvas', CanvasSchema);

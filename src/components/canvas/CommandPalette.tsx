@@ -50,13 +50,14 @@ export function CommandPalette({ nodes, onCreateNode, onClose }: CommandPaletteP
         className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]"
         onClick={onClose}
       >
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-700">
-          <div className="p-3 border-b border-slate-100 dark:border-slate-700">
+        <div className="rounded-xl shadow-2xl w-full max-w-md overflow-hidden" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
+          <div className="p-3" style={{ borderBottom: '1px solid var(--border)' }}>
             <input
               ref={inputRef}
               type="text"
               placeholder="Search ideas or create new..."
-              className="w-full bg-transparent outline-none text-slate-900 dark:text-slate-100 placeholder-slate-400"
+              className="w-full bg-transparent outline-none text-sm placeholder:text-gray-500"
+              style={{ color: 'var(--foreground)' }}
               value={query}
               onChange={(e) => { setQuery(e.target.value); setSelectedIndex(0); }}
               onKeyDown={handleKeyDown}
@@ -66,7 +67,11 @@ export function CommandPalette({ nodes, onCreateNode, onClose }: CommandPaletteP
             {filtered.slice(0, 5).map((node, i) => (
               <li
                 key={node.id}
-                className={`px-3 py-2 rounded-lg cursor-pointer text-sm ${i === selectedIndex ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}
+                className="px-3 py-2 rounded-lg cursor-pointer text-sm"
+                style={{
+                  background: i === selectedIndex ? 'var(--primary)' : 'transparent',
+                  color: i === selectedIndex ? 'white' : 'var(--gray-400)',
+                }}
                 onClick={() => onClose()}
               >
                 {(node.data.content as string) || '(empty)'}
@@ -74,7 +79,11 @@ export function CommandPalette({ nodes, onCreateNode, onClose }: CommandPaletteP
             ))}
             {query.trim() && (
               <li
-                className={`px-3 py-2 rounded-lg cursor-pointer text-sm mt-1 ${selectedIndex === filtered.length ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600' : 'text-slate-700 dark:text-slate-300'}`}
+                className="px-3 py-2 rounded-lg cursor-pointer text-sm mt-1"
+                style={{
+                  background: selectedIndex === filtered.length ? 'var(--primary)' : 'transparent',
+                  color: selectedIndex === filtered.length ? 'white' : 'var(--gray-400)',
+                }}
                 onClick={() => { onCreateNode(query.trim()); onClose(); }}
               >
                 + Create "{query}"

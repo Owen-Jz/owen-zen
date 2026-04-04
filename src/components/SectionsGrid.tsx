@@ -8,7 +8,7 @@ import {
   Target, Palette, Eye, Star, Calendar, Inbox,
   Crosshair, Wallet, Users, MessageSquare,
   Circle, FileText, Archive, Settings,
-  BookOpen,
+  BookOpen, Search,
 } from "lucide-react";
 interface ViewItem {
   id: string;
@@ -28,6 +28,7 @@ interface SectionsGridProps {
 }
 
 export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
+  const [search, setSearch] = useState("");
   const [focusedRow, setFocusedRow] = useState(0);
   const [focusedCol, setFocusedCol] = useState(0);
 
@@ -85,16 +86,29 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
     }
   ], []);
 
-  const maxRows = useMemo(() => Math.max(...sections.map(s => s.links.length)), [sections]);
-  const numCols = sections.length;
+  const filteredSections = useMemo(() => {
+    if (!search.trim()) return sections;
+    const searchLower = search.toLowerCase();
+    return sections
+      .map(section => ({
+        ...section,
+        links: section.links.filter(
+          link => link.label.toLowerCase().includes(searchLower)
+        )
+      }))
+      .filter(section => section.links.length > 0);
+  }, [sections, search]);
+
+  const maxRows = useMemo(() => Math.max(...filteredSections.map(s => s.links.length)), [filteredSections]);
+  const numCols = filteredSections.length;
 
   const clampRow = useCallback((row: number) => Math.max(0, Math.min(row, maxRows - 1)), [maxRows]);
 
   const getItem = useCallback((row: number, col: number) => {
-    const section = sections[col];
+    const section = filteredSections[col];
     if (!section) return null;
     return section.links[row] || null;
-  }, [sections]);
+  }, [filteredSections]);
 
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;
@@ -148,6 +162,14 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handleKeyDown]);
 
+  useEffect(() => {
+    if (isOpen) {
+      setSearch("");
+      setFocusedRow(0);
+      setFocusedCol(0);
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   return (
@@ -169,39 +191,59 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
           className="relative w-full max-w-4xl max-h-[85vh] bg-surface border border-white/10 rounded-2xl shadow-2xl p-6 overflow-y-auto"
           onClick={e => e.stopPropagation()}
         >
+          <div className="flex items-center gap-3 mb-6 px-2">
+            <Search size={18} className="text-gray-500 shrink-0" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Filter sections..."
+              className="flex-1 bg-transparent text-white placeholder-gray-500 outline-none text-sm"
+              autoFocus
+            />
+            <kbd className="hidden sm:flex items-center gap-1 px-2 py-1 bg-white/5 rounded text-xs text-gray-500">
+              <span>ESC</span>
+            </kbd>
+          </div>
           <div className="flex gap-6">
-            {sections.map((section, colIndex) => (
-              <div key={section.title} className="flex-1 min-w-0">
-                <div className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
-                  {section.title}
-                </div>
-                <div className="flex flex-col gap-2">
-                  {Array.from({ length: maxRows }).map((_, rowIndex) => {
-                    const item = section.links[rowIndex];
-                    const isFocused = focusedRow === rowIndex && focusedCol === colIndex;
-                    if (!item) {
-                      return <div key={rowIndex} className="h-[72px]" />;
-                    }
-                    const Icon = item.icon;
-                    return (
-                      <button
-                        key={item.id}
-                        onClick={() => {
-                          onSelect(item.id);
-                          onClose();
-                        }}
-                        className={`w-full flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all duration-150 bg-white/5 hover:bg-white/10 focus:outline-none ${
-                          isFocused ? "ring-2 ring-primary scale-105 bg-white/10" : ""
-                        }`}
-                      >
-                        <Icon size={20} className={isFocused ? "text-primary" : "text-gray-400"} />
-                        <span className="text-xs text-gray-300 truncate w-full">{item.label}</span>
-                      </button>
-                    );
-                  })}
-                </div>
+            {filteredSections.length === 0 ? (
+              <div className="flex-1 text-center py-8 text-gray-500">
+                No sections match
               </div>
-            ))}
+            ) : (
+              filteredSections.map((section, colIndex) => (
+                <div key={section.title} className="flex-1 min-w-0">
+                  <div className="text-xs font-bold uppercase tracking-wider text-gray-500 mb-3">
+                    {section.title}
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {Array.from({ length: maxRows }).map((_, rowIndex) => {
+                      const item = section.links[rowIndex];
+                      const isFocused = focusedRow === rowIndex && focusedCol === colIndex;
+                      if (!item) {
+                        return <div key={rowIndex} className="h-[72px]" />;
+                      }
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            onSelect(item.id);
+                            onClose();
+                          }}
+                          className={`w-full flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all duration-150 bg-white/5 hover:bg-white/10 focus:outline-none ${
+                            isFocused ? "ring-2 ring-primary scale-105 bg-white/10" : ""
+                          }`}
+                        >
+                          <Icon size={20} className={isFocused ? "text-primary" : "text-gray-400"} />
+                          <span className="text-xs text-gray-300 truncate w-full">{item.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))
+            )}
           </div>
 
           <div className="flex items-center justify-between mt-6 pt-4 border-t border-white/5 text-xs text-gray-500">

@@ -1,0 +1,31 @@
+<h2>3 Approaches for Building Your ZUI Canvas</h2>
+<p class="subtitle">React Flow as the foundation, with different scopes</p>
+
+<div class="options">
+  <div class="option" data-choice="minimal" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Minimal MVP</h3>
+      <p>Pan, zoom, basic text nodes, simple connections. Core canvas works, nothing fancy.</p>
+      <p style="margin-top:8px;font-size:12px;color:#888">Fastest to build. Gets the infinite canvas working first.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="balanced" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Balanced Feature Set</h3>
+      <p>Everything in A + color tags, connection labels, rich text, dark mode, multiple creation methods.</p>
+      <p style="margin-top:8px;font-size:12px;color:#888">Recommended — full feature set without over-engineering</p>
+    </div>
+  </div>
+  <div class="option" data-choice="maximal" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Full Power User</h3>
+      <p>Everything in B + images in nodes, embedded links, theme switcher (all 4 aesthetics), keyboard shortcuts, undo/redo.</p>
+      <p style="margin-top:8px;font-size:12px;color:#888">Most complete. Longer build time but every feature you asked for.</p>
+    </div>
+  </div>
+</div>
+
+<p style="margin-top:24px;font-size:13px;color:#666">Recommendation: <strong>B - Balanced</strong>. Get the full feature set working without over-building on day one. A and C are extremes.</p>
