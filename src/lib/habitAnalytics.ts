@@ -279,6 +279,16 @@ export const getHabitBestWorstPeriods = (
   best: { start: string; end: string; rate: number };
   worst: { start: string; end: string; rate: number };
 } => {
+  // Handle period shorter than 7 days
+  if (daysBack < 7) {
+    const completed = habit.completedDates.length;
+    const rate = daysBack > 0 ? Math.round((completed / daysBack) * 100) : 0;
+    return {
+      best: { start: '', end: '', rate },
+      worst: { start: '', end: '', rate }
+    };
+  }
+
   const now = new Date();
   const data: { date: string; completed: boolean }[] = [];
 
