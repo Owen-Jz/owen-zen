@@ -462,6 +462,22 @@ function CanvasInner() {
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
         </div>
       )}
+      {selectionRect && (
+        <div
+          style={{
+            position: 'fixed',
+            left: selectionRect.x,
+            top: selectionRect.y,
+            width: selectionRect.width,
+            height: selectionRect.height,
+            background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
+            border: '1.5px dashed var(--primary)',
+            pointerEvents: 'none',
+            zIndex: 9999,
+            borderRadius: 0,
+          }}
+        />
+      )}
       <CanvasToolbar saveStatus={saveStatus} />
       {creatingNode && (
         <div
