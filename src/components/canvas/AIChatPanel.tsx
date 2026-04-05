@@ -1,5 +1,129 @@
 // src/components/canvas/AIChatPanel.tsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+
+// Simple markdown → React elements renderer
+function renderMarkdown(text: string): ReactNode {
+  if (!text) return null;
+
+  const lines = text.split('\n');
+  const elements: ReactNode[] = [];
+  let i = 0;
+  let listBuffer: string[] = [];
+  let lastWasList = false;
+
+  const flushList = () => {
+    if (listBuffer.length > 0) {
+      elements.push(
+        <ul key={`ul-${i}`} className="pl-4 my-1 space-y-0.5">
+          {listBuffer.map((item, idx) => (
+            <li key={idx} className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
+              {renderInline(item)}
+            </li>
+          ))}
+        </ul>
+      );
+      listBuffer = [];
+    }
+  };
+
+  const renderInline = (inline: string): ReactNode => {
+    // Process inline markdown: **bold**, __bold__, ## header within a line
+    const parts: ReactNode[] = [];
+    const regex = /\*\*([^*]+)\*\*|__([^_]+)__|## ([^\n]+)/g;
+    let lastIdx = 0;
+    let match;
+
+    while ((match = regex.exec(inline)) !== null) {
+      if (match.index > lastIdx) {
+        parts.push(inline.slice(lastIdx, match.index));
+      }
+      if (match[1] !== undefined) {
+        parts.push(<strong key={match.index}>{match[1]}</strong>);
+      } else if (match[2] !== undefined) {
+        parts.push(<strong key={match.index}>{match[2]}</strong>);
+      } else if (match[3] !== undefined) {
+        parts.push(<strong key={match.index} className="text-base font-semibold">{match[3]}</strong>);
+      }
+      lastIdx = match.index + match[0].length;
+    }
+    if (lastIdx < inline.length) {
+      parts.push(inline.slice(lastIdx));
+    }
+    return parts.length > 0 ? parts : inline;
+  };
+
+  while (i < lines.length) {
+    const line = lines[i];
+
+    // Blank line — paragraph break
+    if (line.trim() === '') {
+      flushList();
+      lastWasList = false;
+      i++;
+      continue;
+    }
+
+    // H2 header (## Header)
+    if (line.startsWith('## ')) {
+      flushList();
+      elements.push(
+        <h3 key={i} className="text-sm font-semibold mt-2 mb-0.5" style={{ color: 'var(--foreground)' }}>
+          {renderInline(line.replace(/^##\s*/, ''))}
+        </h3>
+      );
+      lastWasList = false;
+      i++;
+      continue;
+    }
+
+    // H3 header (### Header)
+    if (line.startsWith('### ')) {
+      flushList();
+      elements.push(
+        <h4 key={i} className="text-sm font-medium mt-2 mb-0.5" style={{ color: 'var(--gray-300)' }}>
+          {renderInline(line.replace(/^###\s*/, ''))}
+        </h4>
+      );
+      lastWasList = false;
+      i++;
+      continue;
+    }
+
+    // Bullet list item (- item)
+    if (line.match(/^[-*]\s+/)) {
+      if (!lastWasList) { flushList(); lastWasList = true; }
+      listBuffer.push(line.replace(/^[-*]\s+/, ''));
+      i++;
+      continue;
+    }
+
+    // Ordered list item (1. item)
+    if (line.match(/^\d+\.\s+/)) {
+      flushList();
+      elements.push(
+        <p key={i} className="text-sm leading-relaxed my-0.5" style={{ color: 'var(--foreground)' }}>
+          {renderInline(line.replace(/^\d+\.\s+/, ''))}
+        </p>
+      );
+      lastWasList = false;
+      i++;
+      continue;
+    }
+
+    // Paragraph
+    flushList();
+    elements.push(
+      <p key={i} className="text-sm leading-relaxed my-0.5" style={{ color: 'var(--foreground)' }}>
+        {renderInline(line)}
+      </p>
+    );
+    lastWasList = false;
+    i++;
+  }
+
+  flushList();
+  return elements;
+}
 
 interface Message { role: 'user' | 'assistant'; content: string }
 interface Suggestion { type: string; content: string }
@@ -175,7 +299,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div
-              className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+              className="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
               style={{
                 background: msg.role === 'user' ? 'var(--primary)' : 'var(--gray-800)',
                 color: msg.role === 'user' ? 'white' : 'var(--foreground)',
@@ -183,7 +307,9 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
                 borderBottomRightRadius: msg.role === 'user' ? '4px' : '12px',
               }}
             >
-              {msg.content}
+              <div className="space-y-1">
+                {renderMarkdown(msg.content)}
+              </div>
             </div>
           </div>
         ))}
@@ -192,10 +318,12 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         {streamedContent && (
           <div className="flex justify-start">
             <div
-              className="max-w-[85%] rounded-2xl px-4 py-2.5 text-sm"
+              className="max-w-[85%] rounded-2xl px-4 py-3 text-sm"
               style={{ background: 'var(--gray-800)', color: 'var(--foreground)', borderBottomLeftRadius: '4px', borderBottomRightRadius: '12px' }}
             >
-              {streamedContent}
+              <div className="space-y-1">
+                {renderMarkdown(streamedContent)}
+              </div>
               <span className="opacity-50 animate-pulse">▍</span>
             </div>
           </div>
@@ -256,15 +384,13 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
               background: 'var(--gray-800)',
               color: 'var(--foreground)',
               border: '1px solid var(--border)',
-              maxHeight: '120px',
+              height: '44px',
+              minHeight: '44px',
+              maxHeight: '88px',
+              overflowY: 'auto',
             }}
             value={input}
-            onChange={e => {
-              setInput(e.target.value);
-              // Auto-resize textarea
-              e.target.style.height = 'auto';
-              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
-            }}
+            onChange={e => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Ask about this node..."
             rows={1}
