@@ -546,6 +546,10 @@ function CanvasInner() {
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Esc</span>
                 <span>Deselect all / cancel node creation</span>
               </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Click + Drag</span>
+                <span>Draw rectangle to select multiple nodes and edges</span>
+              </div>
               <div className="pt-4 mt-4" style={{ borderTop: '1px solid var(--border)' }}>
                 <p className="font-semibold mb-2" style={{ color: 'var(--foreground)' }}>Node interactions:</p>
                 <div className="space-y-2">
