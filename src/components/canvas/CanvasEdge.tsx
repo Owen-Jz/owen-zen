@@ -1,5 +1,5 @@
 // src/components/canvas/CanvasEdge.tsx
-import { memo } from 'react';
+import { memo, useCallback } from 'react';
 import { getBezierPath, EdgeProps, EdgeLabelRenderer } from '@xyflow/react';
 
 export function CanvasEdge({
@@ -23,6 +23,10 @@ export function CanvasEdge({
     targetPosition,
   });
 
+  const onDoubleClick = useCallback(() => {
+    window.dispatchEvent(new CustomEvent('canvas:deleteEdge', { detail: id }));
+  }, [id]);
+
   return (
     <>
       <path
@@ -35,6 +39,7 @@ export function CanvasEdge({
         fill="none"
         markerEnd="url(#arrowclosed)"
         style={animated ? { animation: 'dash 0.5s linear infinite' } : undefined}
+        onDoubleClick={onDoubleClick}
       />
       <defs>
         <marker
