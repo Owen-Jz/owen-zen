@@ -208,7 +208,7 @@ export function ExpenseTable({
                     <div className="flex items-center gap-2">
                       <span
                         className="w-2 h-2 rounded-full"
-                        style={{ backgroundColor: expense.categoryId?.color || "#6b7280" }}
+                        style={{ backgroundColor: expense.categoryId?.color || 'var(--gray-500)' }}
                       />
                       <span className="text-sm text-gray-300">
                         {expense.categoryId?.icon} {expense.categoryId?.name || "Uncategorized"}
