@@ -52,7 +52,7 @@ For all other responses (questions, analysis, discussion), respond with plain te
         "Authorization": `Bearer ${apiKey}`,
       },
       body: JSON.stringify({
-        model: "MiniMax-M2.1",
+        model: "MiniMax-M2.7",
         messages: minimaxMessages,
         stream: true,
       }),
@@ -125,7 +125,8 @@ For all other responses (questions, analysis, discussion), respond with plain te
       },
     });
   } catch (error: unknown) {
-    console.error("[Canvas AI] Error:", error instanceof Error ? error.message : error);
-    return NextResponse.json({ error: error.message || "Failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : String(error);
+    console.error("[Canvas AI] Error:", message);
+    return NextResponse.json({ error: message || "Failed" }, { status: 500 });
   }
 }
