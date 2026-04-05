@@ -328,7 +328,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       {/* Header */}
       <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="flex items-center gap-2">
-          <div className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} />
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-success)' }} />
           <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>AI Agent</span>
           <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--gray-800)', color: 'var(--gray-400)' }}>
             MiniMax-M2.7
@@ -338,7 +338,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
           <button
             onClick={onClearChat}
             className="text-xs px-2.5 py-1 rounded-lg transition-colors hover:bg-red-500/20"
-            style={{ color: '#ef4444' }}
+            style={{ color: 'var(--color-error)' }}
           >
             Clear chat
           </button>
@@ -417,14 +417,14 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
               <button
                 onClick={() => applySuggestion(s)}
                 className="px-2 py-1.5 text-xs rounded-r-full transition-colors hover:bg-green-500/20"
-                style={{ color: '#22c55e' }}
+                style={{ color: 'var(--color-success)' }}
               >
                 ✓
               </button>
               <button
                 onClick={() => dismissSuggestion(s)}
                 className="px-2 py-1.5 text-xs rounded-r-full transition-colors hover:bg-red-500/20 pr-3"
-                style={{ color: '#ef4444' }}
+                style={{ color: 'var(--color-error)' }}
               >
                 ✕
               </button>
