@@ -1016,7 +1016,7 @@ export function FinanceView() {
                             animate={{ scale: 1, opacity: 1, y: 0 }}
                             exit={{ scale: 0.95, opacity: 0, y: 20 }}
                             transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                            className="bg-[#111] border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
+                            style={{ background: 'var(--surface)' }} className="border border-white/10 rounded-2xl p-6 w-full max-w-md shadow-2xl"
                         >
                             {/* ── Add Expense ── */}
                             {modal === "expense" && (
