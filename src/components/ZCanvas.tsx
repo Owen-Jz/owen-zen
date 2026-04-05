@@ -25,6 +25,7 @@ function CanvasInner() {
   const [showHelp, setShowHelp] = useState(false);
   const [showNodeModal, setShowNodeModal] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [chatMessagesMap, setChatMessagesMap] = useState<Record<string, { role: 'user' | 'assistant'; content: string }[]>>({});
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
@@ -593,6 +594,9 @@ function CanvasInner() {
             nodeId={selectedNodeId}
             data={nodeData as { content: string; color: string; labels: string[]; subNodes?: { id: string; content: string; color: string }[] }}
             childNodes={childNodes}
+            messages={chatMessagesMap[selectedNodeId] || []}
+            onMessagesChange={(msgs) => setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: msgs }))}
+            onClearChat={() => setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: [] }))}
             onClose={() => { setShowNodeModal(false); setSelectedNodeId(null); }}
             onUpdate={onNodeUpdate}
             onDelete={(id) => {

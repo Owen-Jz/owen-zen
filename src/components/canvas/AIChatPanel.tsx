@@ -135,12 +135,14 @@ interface AIChatPanelProps {
     description?: string;
     subNodes?: { id: string; content: string; color: string }[];
   };
+  messages: Message[];
+  onMessagesChange: (msgs: Message[]) => void;
+  onClearChat: () => void;
   onUpdate: (id: string, data: any) => void;
   onAddSubNode: (parentId: string, color: string, content?: string) => void;
 }
 
-export function AIChatPanel({ nodeId, nodeData, onUpdate, onAddSubNode }: AIChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([]);
+export function AIChatPanel({ nodeId, nodeData, messages, onMessagesChange, onClearChat, onUpdate, onAddSubNode }: AIChatPanelProps) {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
@@ -150,13 +152,15 @@ export function AIChatPanel({ nodeId, nodeData, onUpdate, onAddSubNode }: AIChat
 
   // Use refs to avoid stale closures in async handlers
   const inputRef = useRef('');
-  const messagesRef = useRef<Message[]>([]);
   const nodeDataRef = useRef(nodeData);
+  const onMessagesChangeRef = useRef(onMessagesChange);
+  const messagesRef = useRef<Message[]>(messages);
 
   // Keep refs in sync with state
   useEffect(() => { inputRef.current = input; }, [input]);
-  useEffect(() => { messagesRef.current = messages; }, [messages]);
   useEffect(() => { nodeDataRef.current = nodeData; }, [nodeData]);
+  useEffect(() => { onMessagesChangeRef.current = onMessagesChange; }, [onMessagesChange]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
 
   // Auto-scroll on new messages
   useEffect(() => {
@@ -174,7 +178,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
     if (!text || isStreaming) return;
 
     const userMessage: Message = { role: 'user', content: text };
-    setMessages(prev => [...prev, userMessage]);
+    onMessagesChangeRef.current([...messagesRef.current, userMessage]);
     setInput('');
     inputRef.current = '';
     setIsStreaming(true);
@@ -237,7 +241,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         }
       }
 
-      setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
+      onMessagesChangeRef.current([...messagesRef.current, { role: 'assistant', content: assistantMessage }]);
     } catch (err) {
       console.error('[AIChatPanel] Error:', err);
     } finally {
@@ -278,12 +282,23 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--surface)' }}>
       {/* Header */}
-      <div className="px-4 py-3 flex items-center gap-2 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
-        <div className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} />
-        <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>AI Agent</span>
-        <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--gray-800)', color: 'var(--gray-400)' }}>
-          MiniMax-M2.7
-        </span>
+      <div className="px-4 py-3 flex items-center justify-between shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} />
+          <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>AI Agent</span>
+          <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--gray-800)', color: 'var(--gray-400)' }}>
+            MiniMax-M2.7
+          </span>
+        </div>
+        {messages.length > 0 && (
+          <button
+            onClick={onClearChat}
+            className="text-xs px-2.5 py-1 rounded-lg transition-colors hover:bg-red-500/20"
+            style={{ color: '#ef4444' }}
+          >
+            Clear chat
+          </button>
+        )}
       </div>
 
       {/* Messages */}
