@@ -1208,6 +1208,29 @@ export default function Dashboard() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
+    const themeColors: Record<string, string> = {
+      '': '#030303',
+      'cyberpunk': '#050508',
+      'matrix': '#000000',
+      'sapphire': '#020617',
+      'emerald': '#022c22',
+      'sunset': '#1c1917',
+      'light': '#ffffff',
+      'arctic': '#f6f8fa',
+      'lavender': '#1a1625',
+      'rose': '#1a1518',
+      'ocean': '#0c1929',
+      'midnight': '#0a0a1a',
+      'cherry': '#1a0a14',
+      'forest': '#051a0d',
+      'nord': '#2e3440',
+      'dracula': '#282a36',
+      'chocolate': '#1e1b18',
+      'neon': '#050505',
+    };
+    const color = themeColors[savedTheme || ''] || '#030303';
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
+
     // Set Greeting (Lagos time: GMT+1)
     const lagosTime = new Date(new Date().toLocaleString('en-US', { timeZone: 'Africa/Lagos' }));
     const hour = lagosTime.getHours();
