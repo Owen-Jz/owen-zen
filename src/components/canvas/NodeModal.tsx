@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CanvasNodeData } from './CanvasNode';
+import { AIChatPanel } from './AIChatPanel';
 
 const COLOR_MAP = [
   { name: 'Orange', hex: '#f97316' },
@@ -66,7 +67,7 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="rounded-2xl shadow-2xl w-full max-w-lg mx-4 overflow-hidden"
+          className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           onClick={e => e.stopPropagation()}
         >
@@ -92,148 +93,164 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
           </div>
 
           {/* Body */}
-          <div className="px-6 py-5 space-y-5">
-            {/* Title */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Title</label>
-              <textarea
-                className="w-full rounded-lg p-3 text-sm resize-none outline-none"
-                style={{
-                  background: 'var(--gray-800)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                }}
-                value={content}
-                onChange={e => setContent(e.target.value)}
-                onBlur={handleSave}
-                rows={2}
-                placeholder="Node title..."
-                autoFocus
-              />
-            </div>
-
-            {/* Description */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Description</label>
-              <textarea
-                className="w-full rounded-lg p-3 text-sm resize-none outline-none"
-                style={{
-                  background: 'var(--gray-800)',
-                  color: 'var(--foreground)',
-                  border: '1px solid var(--border)',
-                }}
-                value={description}
-                onChange={e => setDescription(e.target.value)}
-                onBlur={handleSave}
-                rows={6}
-                placeholder="Add more details..."
-              />
-            </div>
-
-            {/* Color */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Color</label>
-              <div className="flex gap-2">
-                {COLOR_MAP.map(({ hex, name }) => (
-                  <button
-                    key={hex}
-                    title={name}
-                    className="w-7 h-7 rounded-full transition-all"
-                    style={{
-                      backgroundColor: hex,
-                      outline: data.color === hex ? `2px solid ${hex}` : 'none',
-                      outlineOffset: '2px',
-                      transform: data.color === hex ? 'scale(1.15)' : 'scale(1)',
-                    }}
-                    onClick={() => onUpdate(nodeId, { color: hex })}
-                  />
-                ))}
-              </div>
-            </div>
-
-            {/* Sub nodes */}
-            <div>
-              <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>
-                Sub nodes ({childNodes.length})
-              </label>
-              <div className="space-y-2 mb-3">
-                {childNodes.length === 0 && (
-                  <p className="text-xs py-2" style={{ color: 'var(--gray-600)' }}>No sub nodes yet</p>
-                )}
-                {childNodes.map(child => (
-                  <div key={child.id} className="space-y-1">
-                    {editingSubNodeId === child.id ? (
-                      <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--gray-800)', borderLeft: `3px solid ${child.color}` }}>
-                        <input
-                          type="text"
-                          className="flex-1 bg-transparent outline-none text-sm px-1"
-                          style={{ color: 'var(--foreground)' }}
-                          value={editingSubNodeText}
-                          onChange={e => setEditingSubNodeText(e.target.value)}
-                          onKeyDown={e => {
-                            if (e.key === 'Enter') { e.preventDefault(); onUpdateSubNode(nodeId, child.id, editingSubNodeText); setEditingSubNodeId(null); }
-                            if (e.key === 'Escape') { setEditingSubNodeId(null); }
-                          }}
-                          autoFocus
-                        />
-                        <button
-                          onClick={() => { onUpdateSubNode(nodeId, child.id, editingSubNodeText); setEditingSubNodeId(null); }}
-                          className="text-xs px-1.5 py-0.5 rounded"
-                          style={{ color: '#22c55e' }}
-                        >
-                          Save
-                        </button>
-                        <button
-                          onClick={() => setEditingSubNodeId(null)}
-                          className="text-xs px-1.5 py-0.5 rounded"
-                          style={{ color: '#ef4444' }}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <div
-                        className="flex items-center justify-between px-3 py-2 rounded-lg text-sm group cursor-pointer"
-                        style={{ background: 'var(--gray-800)', borderLeft: `3px solid ${child.color}` }}
-                        onClick={() => { setEditingSubNodeId(child.id); setEditingSubNodeText(child.content); }}
-                      >
-                        <span style={{ color: 'var(--foreground)' }}>{child.content || '(empty)'}</span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); onDeleteSubNode(nodeId, child.id); }}
-                          className="text-xs px-1.5 py-0.5 rounded transition-colors hover:bg-red-500/20 opacity-0 group-hover:opacity-100"
-                          style={{ color: '#ef4444' }}
-                        >
-                          ×
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
+          <div className="flex flex-1 min-h-0 overflow-hidden">
+            {/* Left column — existing editor */}
+            <div className="flex-1 px-6 py-5 space-y-5 overflow-y-auto min-h-0">
+              {/* Title */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Title</label>
+                <textarea
+                  className="w-full rounded-lg p-3 text-sm resize-none outline-none"
                   style={{
                     background: 'var(--gray-800)',
                     color: 'var(--foreground)',
                     border: '1px solid var(--border)',
                   }}
-                  value={subContent}
-                  onChange={e => setSubContent(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') { e.preventDefault(); addSubNode(); }
-                  }}
-                  placeholder="Add a sub node..."
+                  value={content}
+                  onChange={e => setContent(e.target.value)}
+                  onBlur={handleSave}
+                  rows={2}
+                  placeholder="Node title..."
+                  autoFocus
                 />
-                <button
-                  onClick={addSubNode}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
-                  style={{ background: data.color }}
-                >
-                  + Add
-                </button>
               </div>
+
+              {/* Description */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Description</label>
+                <textarea
+                  className="w-full rounded-lg p-3 text-sm resize-none outline-none"
+                  style={{
+                    background: 'var(--gray-800)',
+                    color: 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  onBlur={handleSave}
+                  rows={6}
+                  placeholder="Add more details..."
+                />
+              </div>
+
+              {/* Color */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Color</label>
+                <div className="flex gap-2">
+                  {COLOR_MAP.map(({ hex, name }) => (
+                    <button
+                      key={hex}
+                      title={name}
+                      className="w-7 h-7 rounded-full transition-all"
+                      style={{
+                        backgroundColor: hex,
+                        outline: data.color === hex ? `2px solid ${hex}` : 'none',
+                        outlineOffset: '2px',
+                        transform: data.color === hex ? 'scale(1.15)' : 'scale(1)',
+                      }}
+                      onClick={() => onUpdate(nodeId, { color: hex })}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* Sub nodes */}
+              <div>
+                <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>
+                  Sub nodes ({childNodes.length})
+                </label>
+                <div className="space-y-2 mb-3">
+                  {childNodes.length === 0 && (
+                    <p className="text-xs py-2" style={{ color: 'var(--gray-600)' }}>No sub nodes yet</p>
+                  )}
+                  {childNodes.map(child => (
+                    <div key={child.id} className="space-y-1">
+                      {editingSubNodeId === child.id ? (
+                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg" style={{ background: 'var(--gray-800)', borderLeft: `3px solid ${child.color}` }}>
+                          <input
+                            type="text"
+                            className="flex-1 bg-transparent outline-none text-sm px-1"
+                            style={{ color: 'var(--foreground)' }}
+                            value={editingSubNodeText}
+                            onChange={e => setEditingSubNodeText(e.target.value)}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') { e.preventDefault(); onUpdateSubNode(nodeId, child.id, editingSubNodeText); setEditingSubNodeId(null); }
+                              if (e.key === 'Escape') { setEditingSubNodeId(null); }
+                            }}
+                            autoFocus
+                          />
+                          <button
+                            onClick={() => { onUpdateSubNode(nodeId, child.id, editingSubNodeText); setEditingSubNodeId(null); }}
+                            className="text-xs px-1.5 py-0.5 rounded"
+                            style={{ color: '#22c55e' }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={() => setEditingSubNodeId(null)}
+                            className="text-xs px-1.5 py-0.5 rounded"
+                            style={{ color: '#ef4444' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="flex items-center justify-between px-3 py-2 rounded-lg text-sm group cursor-pointer"
+                          style={{ background: 'var(--gray-800)', borderLeft: `3px solid ${child.color}` }}
+                          onClick={() => { setEditingSubNodeId(child.id); setEditingSubNodeText(child.content); }}
+                        >
+                          <span style={{ color: 'var(--foreground)' }}>{child.content || '(empty)'}</span>
+                          <button
+                            onClick={(e) => { e.stopPropagation(); onDeleteSubNode(nodeId, child.id); }}
+                            className="text-xs px-1.5 py-0.5 rounded transition-colors hover:bg-red-500/20 opacity-0 group-hover:opacity-100"
+                            style={{ color: '#ef4444' }}
+                          >
+                            ×
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    className="flex-1 rounded-lg px-3 py-2 text-sm outline-none"
+                    style={{
+                      background: 'var(--gray-800)',
+                      color: 'var(--foreground)',
+                      border: '1px solid var(--border)',
+                    }}
+                    value={subContent}
+                    onChange={e => setSubContent(e.target.value)}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter') { e.preventDefault(); addSubNode(); }
+                    }}
+                    placeholder="Add a sub node..."
+                  />
+                  <button
+                    onClick={addSubNode}
+                    className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-colors"
+                    style={{ background: data.color }}
+                  >
+                    + Add
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div className="w-px" style={{ background: 'var(--border)' }} />
+
+            {/* Right column — AI Chat */}
+            <div className="flex-1 min-h-0 flex flex-col">
+              <AIChatPanel
+                nodeId={nodeId}
+                nodeData={data}
+                onUpdate={onUpdate}
+                onAddSubNode={onAddSubNode}
+              />
             </div>
           </div>
 

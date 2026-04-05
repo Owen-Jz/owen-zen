@@ -88,6 +88,25 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
     setIsDragOver(false);
   }, []);
 
+  const onClick = useCallback((e: React.MouseEvent) => {
+    if (e.altKey) {
+      e.stopPropagation();
+      window.dispatchEvent(new CustomEvent('canvas:duplicateNode', {
+        detail: {
+          id,
+          offset: { x: 20, y: 20 },
+          data: {
+            content: nodeData.content,
+            description: nodeData.description,
+            color: nodeData.color,
+            labels: nodeData.labels,
+            subNodes: nodeData.subNodes,
+          },
+        },
+      }));
+    }
+  }, [id, nodeData]);
+
   return (
     <div
       className="relative rounded-xl shadow-md min-w-[160px] cursor-grab"
@@ -125,6 +144,7 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
       }}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
+      onClick={onClick}
     >
       <Handle type="target" position={Position.Top} className="!w-2 !h-2 !border-0" style={{ background: 'var(--gray-500)' }} />
       <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !border-0" style={{ background: 'var(--gray-500)' }} />
