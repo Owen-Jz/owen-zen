@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 
 interface Message { role: 'user' | 'assistant'; content: string }
 interface Suggestion { type: string; content: string }
@@ -29,15 +29,18 @@ export function AIChatPanel({ nodeId, nodeData, onUpdate, onAddSubNode }: AIChat
   }, [messages, streamedContent]);
 
   // Build system context from node data (NOT shown in UI)
-  const systemContext = `The node you're discussing:
+  // Memoize system context to avoid recreating on every render
+  const systemContext = useMemo(() => `The node you're discussing:
 Title: ${nodeData.content || '(empty)'}
 Description: ${nodeData.description || '(none)'}
-Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.content).join(' | ') : 'none'}`;
+Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.content).join(' | ') : 'none'}`, [nodeData.content, nodeData.description, nodeData.subNodes?.length, nodeData.subNodes]);
 
   const sendMessage = useCallback(async () => {
-    if (!input.trim() || isStreaming) return;
+    // Capture input value immediately — don't rely on closure over dep array
+    const text = input.trim();
+    if (!text || isStreaming) return;
 
-    const userMessage: Message = { role: 'user', content: input.trim() };
+    const userMessage: Message = { role: 'user', content: text };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsStreaming(true);
@@ -105,7 +108,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       setIsStreaming(false);
       setStreamedContent('');
     }
-  }, [input, isStreaming, messages, nodeData, systemContext]);
+  }, [isStreaming, messages, nodeData, systemContext]);
 
   const applySuggestion = (suggestion: Suggestion) => {
     if (suggestion.type === 'apply_description') {
@@ -244,7 +247,12 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
               maxHeight: '120px',
             }}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => {
+              setInput(e.target.value);
+              // Auto-resize textarea
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.min(e.target.scrollHeight, 120)}px`;
+            }}
             onKeyDown={handleKeyDown}
             placeholder="Ask about this node..."
             rows={1}
