@@ -413,7 +413,7 @@ export function AlertsCard({
       title: "Over Budget",
       message: "You've exceeded your monthly budget",
       icon: AlertTriangle,
-      color: "#ef4444",
+      color: "var(--gray-500)",
     });
   } else if (budgetWarning) {
     alerts.push({
@@ -421,7 +421,7 @@ export function AlertsCard({
       title: "Budget Warning",
       message: "You've used over 80% of your budget",
       icon: AlertTriangle,
-      color: "#f59e0b",
+      color: "var(--gray-500)",
     });
   }
 
@@ -431,7 +431,7 @@ export function AlertsCard({
       title: "Unusual Spending",
       message: `${unusualSpikes} unusual spending spike${unusualSpikes > 1 ? "s" : ""} detected`,
       icon: TrendingUp,
-      color: "#3b82f6",
+      color: "var(--gray-500)",
     });
   }
 
@@ -441,7 +441,7 @@ export function AlertsCard({
       title: "Spending Up",
       message: `Spending increased by ${increasePercentage.toFixed(0)}% vs last month`,
       icon: TrendingUp,
-      color: "#6b7280",
+      color: "var(--gray-500)",
     });
   }
 
