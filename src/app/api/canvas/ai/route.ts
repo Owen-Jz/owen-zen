@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
 
   const { messages, nodeData } = body;
 
+  // Build system prompt with node context — merged into one
   const systemPrompt = `You are a Socratic + Structured AI assistant helping the user explore and refine a canvas node.
 
 ## NODE CONTEXT
@@ -54,9 +55,14 @@ When you want to apply changes to the node, respond with a JSON block on its own
 
 For all other responses (questions, analysis, discussion), respond with plain text.`;
 
+  // Only include user and assistant messages — the node context is already in systemPrompt above
+  const conversationMessages = messages
+    .filter((m: any) => m.role !== 'system')
+    .map((m: any) => ({ role: m.role, content: m.content }));
+
   const minimaxMessages = [
     { role: "system", content: systemPrompt },
-    ...messages,
+    ...conversationMessages,
   ];
 
   // Use fetch with streaming
