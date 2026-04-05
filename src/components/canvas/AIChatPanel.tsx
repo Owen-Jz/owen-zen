@@ -192,7 +192,10 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
     ];
 
     try {
-      const response = await fetch('/api/canvas/ai', {
+      // TEST: use simple test endpoint instead of AI endpoint
+      const testUrl = '/api/canvas/ai';
+      console.log('[AIChatPanel] fetching:', testUrl);
+      const response = await fetch(testUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: apiMessages, nodeData: nodeDataRef.current }),
@@ -203,10 +206,11 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         return;
       }
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = '';
+      const text = await response.text();
+      console.log('[AIChatPanel] received text length:', text.length, 'first 100 chars:', text.slice(0, 100));
+
       let assistantMessage = '';
+      const newSuggestions: Suggestion[] = [];
 
       // Extract inline JSON directive blocks from accumulated text and add to suggestions
       // Uses a fresh non-global regex each time to avoid lastIndex state issues
@@ -229,6 +233,9 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
           } catch { /* skip malformed */ }
         }
       };
+
+      const decoder = new TextDecoder();
+      let buffer = '';
 
       const processBuffer = () => {
         const lines = buffer.split('\n');
@@ -260,6 +267,8 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
           } catch { /* skip */ }
         }
       };
+
+      const reader = response.body!.getReader();
 
       while (true) {
         const { done, value } = await reader.read();

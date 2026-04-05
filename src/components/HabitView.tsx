@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown } from "lucide-react";
+import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
 import { HabitDetailModal } from "./habit/HabitDetailModal";
@@ -48,6 +48,9 @@ export const HabitView = () => {
     // Weekly habits state
     const [weeklyHabits, setWeeklyHabits] = useState<any[]>([]);
     const [newWeeklyHabit, setNewWeeklyHabit] = useState("");
+
+    // Daily habits week navigation (0 = current week, -1 = previous week)
+    const [dailyWeekOffset, setDailyWeekOffset] = useState(0);
 
     // --- getCurrentWeekKey Helper ---
     const getCurrentWeekKey = (): string => {
@@ -471,7 +474,7 @@ export const HabitView = () => {
         "bg-primary"        // 4
     ];
 
-    // --- Current Week (Mon-Sun) ---
+    // --- Current Week (Mon-Sun) — derived from dailyWeekOffset ---
     const weekDays = useMemo(() => {
         const now = new Date();
         const parts = formatter.formatToParts(now);
@@ -485,6 +488,9 @@ export const HabitView = () => {
         const monday = new Date(today);
         monday.setDate(diff);
 
+        // Apply week offset (negative = past weeks)
+        monday.setDate(monday.getDate() + (dailyWeekOffset * 7));
+
         const week = [];
         for (let i = 0; i < 7; i++) {
             const d = new Date(monday);
@@ -492,7 +498,7 @@ export const HabitView = () => {
             week.push(d);
         }
         return week;
-    }, []);
+    }, [dailyWeekOffset]);
 
     // --- Advanced Stats Compute ---
     const totalHabits = habits.length;
@@ -728,8 +734,39 @@ export const HabitView = () => {
                 <div className="p-4 md:p-6 border-b border-white/5 flex flex-col md:flex-row items-center justify-between bg-black/20 gap-4">
                     <div className="flex items-center gap-3 w-full md:w-auto">
                         <Target className="text-primary shrink-0" size={24} />
+                        {/* Week Navigation */}
+                        <div className="flex items-center gap-2">
+                            {dailyWeekOffset !== 0 && (
+                                <button
+                                    onClick={() => setDailyWeekOffset(0)}
+                                    className="text-xs text-gray-500 hover:text-gray-300 underline"
+                                    title="Back to current week"
+                                >
+                                    {dailyWeekOffset > 0 ? "Today" : `Week of ${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                                </button>
+                            )}
+                            {dailyWeekOffset === 0 && (
+                                <span className="text-xs text-gray-600 hidden sm:inline">
+                                    Week of {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                </span>
+                            )}
+                            <button
+                                onClick={() => setDailyWeekOffset(dailyWeekOffset - 1)}
+                                className="p-1 text-gray-500 hover:text-white transition-colors"
+                                title="Previous week"
+                            >
+                                <ChevronLeft size={18} />
+                            </button>
+                            <button
+                                onClick={() => setDailyWeekOffset(dailyWeekOffset + 1)}
+                                className="p-1 text-gray-500 hover:text-white transition-colors"
+                                title="Next week"
+                            >
+                                <ChevronRight size={18} />
+                            </button>
+                        </div>
                         <h2 className="text-xl font-bold text-white whitespace-nowrap">Daily Non-Negotiables</h2>
-                        {totalHabits > 0 && completedToday === totalHabits && (
+                        {totalHabits > 0 && completedToday === totalHabits && dailyWeekOffset === 0 && (
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -769,7 +806,7 @@ export const HabitView = () => {
                 <div className="divide-y divide-white/5">
                     <AnimatePresence mode="popLayout">
                         {habits.map(habit => {
-                            const isDoneToday = isCompleted(habit, new Date());
+                            const isDoneToday = dailyWeekOffset === 0 && isCompleted(habit, new Date());
                             return (
                                 <motion.div
                                     layout
@@ -913,7 +950,7 @@ export const HabitView = () => {
                                         <div className="hidden md:flex gap-1">
                                             {weekDays.map((date: Date, i: number) => {
                                                 const completed = isCompleted(habit, date);
-                                                const isToday = toLocalString(date) === toLocalString(new Date());
+                                                const isToday = dailyWeekOffset === 0 && toLocalString(date) === toLocalString(new Date());
 
                                                 return (
                                                     <button

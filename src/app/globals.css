@@ -125,6 +125,139 @@
   --border: #57534e;
 }
 
+/* Midnight Theme */
+[data-theme="midnight"] {
+  /* Midnight - Deep Indigo */
+  --background: #0a0a1a;
+  --foreground: #e0e7ff;
+  --primary: #6366f1;
+  /* Indigo-500 */
+  --primary-light: #818cf8;
+  /* Indigo-400 */
+  --surface: #0f0f2a;
+  --surface-hover: #1a1a3d;
+  --border: #2d2d5a;
+}
+
+/* Cherry Theme */
+[data-theme="cherry"] {
+  /* Cherry - Soft Red-Pink */
+  --background: #1a0a14;
+  --foreground: #fce7f3;
+  --primary: #ec4899;
+  /* Pink-500 */
+  --primary-light: #f472b6;
+  /* Pink-400 */
+  --surface: #2d1020;
+  --surface-hover: #3d1530;
+  --border: #4a2040;
+}
+
+/* Forest Theme */
+[data-theme="forest"] {
+  /* Forest - Deep Green */
+  --background: #051a0d;
+  --foreground: #dcfce7;
+  --primary: #22c55e;
+  /* Green-500 */
+  --primary-light: #4ade80;
+  /* Green-400 */
+  --surface: #0a2d18;
+  --surface-hover: #123d22;
+  --border: #145230;
+}
+
+/* Nord Theme */
+[data-theme="nord"] {
+  /* Nord - Arctic Cool */
+  --background: #2e3440;
+  /* Polar Night 0 */
+  --foreground: #e5e9f0;
+  /* Snow Storm 0 */
+  --primary: #88c0d0;
+  /* Frost 0 */
+  --primary-light: #81a1c1;
+  /* Aurora 1 */
+  --surface: #3b4252;
+  /* Polar Night 1 */
+  --surface-hover: #434c5e;
+  /* Polar Night 2 */
+  --border: #4c566a;
+  /* Polar Night 3 */
+}
+
+/* Dracula Theme */
+[data-theme="dracula"] {
+  /* Dracula - Purple Night */
+  --background: #282a36;
+  --foreground: #f8f8f2;
+  --primary: #bd93f9;
+  /* Purple */
+  --primary-light: #d6acff;
+  /* Light Purple */
+  --surface: #1e1f29;
+  --surface-hover: #242442;
+  --border: #44475a;
+  /* Selection */
+}
+
+/* Chocolate Theme */
+[data-theme="chocolate"] {
+  /* Chocolate - Coffee Brown */
+  --background: #1e1b18;
+  --foreground: #f5f0e8;
+  --primary: #cd853f;
+  /* Peru / terracotta */
+  --primary-light: #daa520;
+  /* Goldenrod */
+  --surface: #2a2622;
+  --surface-hover: #3a2e24;
+  --border: #4a4038;
+}
+
+/* Arctic Theme - LIGHT */
+[data-theme="arctic"] {
+  /* Arctic - Icy White (light theme) */
+  --background: #f6f8fa;
+  --foreground: #24292f;
+  --primary: #0969da;
+  /* GitHub blue */
+  --primary-light: #58a6ff;
+  --surface: #ffffff;
+  --surface-hover: #f0f0f0;
+  --border: #d0d7de;
+
+  /* Invert white/black for light mode */
+  --white: #18181b;
+  --black: #ffffff;
+
+  /* Invert grays for light mode */
+  --gray-50: #18181b;
+  --gray-100: #27272a;
+  --gray-200: #3f3f46;
+  --gray-300: #52525b;
+  --gray-400: #71717a;
+  --gray-500: #a1a1aa;
+  --gray-600: #d4d4d8;
+  --gray-700: #e4e4e7;
+  --gray-800: #f4f4f5;
+  --gray-900: #fafafa;
+}
+
+/* Neon Theme */
+[data-theme="neon"] {
+  /* Neon - Tokyo Night style */
+  --background: #050505;
+  --foreground: #c0caf5;
+  --primary: #7aa2f7;
+  /* Soft blue */
+  --primary-light: #9ece6a;
+  /* Lime accent */
+  --surface: #16161e;
+  --surface-hover: #1f2335;
+  --border: #292e42;
+}
+
 [data-theme="light"] {
   /* Light - Clean & Bright */
   --background: #ffffff;
