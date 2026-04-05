@@ -70,7 +70,9 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         body: JSON.stringify({ messages: apiMessages, nodeData: nodeDataRef.current }),
       });
 
+      console.log('[AIChatPanel] response status:', response.status, 'body:', response.body ? 'exists' : 'null');
       if (!response.ok || !response.body) {
+        console.log('[AIChatPanel] response not ok or no body');
         setIsStreaming(false);
         return;
       }
@@ -104,12 +106,21 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         }
       };
 
+      console.log('[AIChatPanel] SSE stream started, reading...');
+      let bytesReceived = 0;
+
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
+        if (value) {
+          bytesReceived += value.length;
+          console.log('[AIChatPanel] received chunk, bytes:', bytesReceived, 'value length:', value.length);
+        }
         buffer += decoder.decode(value, { stream: true });
         processBuffer();
       }
+
+      console.log('[AIChatPanel] stream done, total bytes:', bytesReceived);
 
       setMessages(prev => [...prev, { role: 'assistant', content: assistantMessage }]);
     } catch (err) {
