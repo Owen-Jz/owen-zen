@@ -170,7 +170,7 @@ export const ShoppingListModal: React.FC<{ isOpen: boolean, onClose: () => void 
                                         className="w-full h-full bg-black/20 border border-white/10 rounded-xl pl-3 pr-8 py-3.5 text-sm focus:border-primary/50 outline-none text-gray-300 appearance-none cursor-pointer"
                                     >
                                         {CATEGORIES.map(cat => (
-                                            <option key={cat} value={cat} className="bg-[#1a1a1a] text-gray-200">{cat}</option>
+                                            <option key={cat} value={cat} style={{ background: 'var(--surface)' }} className="text-gray-200">{cat}</option>
                                         ))}
                                     </select>
                                     <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

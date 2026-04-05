@@ -125,7 +125,8 @@ function ConfirmDialog({
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-[#0f0f0f] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+            className="border border-white/10 rounded-2xl w-full max-w-md shadow-2xl overflow-hidden"
+          style={{ background: 'var(--surface)' }}
           >
             <div className="p-6">
               <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
@@ -337,7 +338,8 @@ function NoteCard({
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="absolute right-0 top-full mt-1 bg-[#1a1a1a] border border-white/10 rounded-lg shadow-xl overflow-hidden z-10"
+                className="absolute right-0 top-full mt-1 border border-white/10 rounded-lg shadow-xl overflow-hidden z-10"
+                style={{ background: 'var(--surface)' }}
                 onClick={(e) => e.stopPropagation()}
               >
                 <button
