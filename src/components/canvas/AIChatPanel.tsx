@@ -208,6 +208,28 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       let buffer = '';
       let assistantMessage = '';
 
+      // Extract inline JSON directive blocks from accumulated text and add to suggestions
+      // Uses a fresh non-global regex each time to avoid lastIndex state issues
+      const extractInlineDirectives = (text: string) => {
+        const matches = text.matchAll(/\{"type"\s*:\s*"(apply_description|apply_title|apply_subnode)",[^{}]*\}/g);
+        for (const match of matches) {
+          try {
+            const parsed = JSON.parse(match[0]);
+            if (parsed.type === 'apply_description' || parsed.type === 'apply_title') {
+              setSuggestions(prev => {
+                if (prev.some(s => s.content === parsed.content)) return prev;
+                return [...prev, { type: parsed.type, content: parsed.content }];
+              });
+            } else if (parsed.type === 'apply_subnode') {
+              setSuggestions(prev => {
+                if (prev.some(s => s.content === parsed.content)) return prev;
+                return [...prev, { type: 'apply_subnode', content: parsed.content }];
+              });
+            }
+          } catch { /* skip malformed */ }
+        }
+      };
+
       const processBuffer = () => {
         const lines = buffer.split('\n');
         buffer = lines.pop() || '';
@@ -219,11 +241,18 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
             const parsed = JSON.parse(data);
             if (parsed.type === 'text') {
               assistantMessage += parsed.content;
+              extractInlineDirectives(assistantMessage);
               setStreamedContent(assistantMessage);
             } else if (parsed.type === 'apply_description' || parsed.type === 'apply_title') {
-              setSuggestions(prev => [...prev, { type: parsed.type, content: parsed.content }]);
+              setSuggestions(prev => {
+                if (prev.some(s => s.content === parsed.content)) return prev;
+                return [...prev, { type: parsed.type, content: parsed.content }];
+              });
             } else if (parsed.type === 'apply_subnode') {
-              setSuggestions(prev => [...prev, { type: 'apply_subnode', content: parsed.content }]);
+              setSuggestions(prev => {
+                if (prev.some(s => s.content === parsed.content)) return prev;
+                return [...prev, { type: 'apply_subnode', content: parsed.content }];
+              });
             } else if (parsed.type === 'ask_user') {
               assistantMessage += parsed.question + ' ';
               setStreamedContent(assistantMessage);
@@ -241,7 +270,13 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         }
       }
 
-      onMessagesChangeRef.current([...messagesRef.current, { role: 'assistant', content: assistantMessage }]);
+      // Strip inline JSON directive blocks from saved message
+      const cleanedMessage = assistantMessage.replace(
+        /\{"type"\s*:\s*"(apply_description|apply_title|apply_subnode|ask_user)",[^{}]*\}\n?/g,
+        ''
+      ).trim();
+
+      onMessagesChangeRef.current([...messagesRef.current, { role: 'assistant', content: cleanedMessage }]);
     } catch (err) {
       console.error('[AIChatPanel] Error:', err);
     } finally {
