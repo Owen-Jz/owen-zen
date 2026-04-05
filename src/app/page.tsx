@@ -120,6 +120,9 @@ const PostBucketView = dynamic(() => import("@/components/PostBucketView").then(
 const PromptLibraryView = dynamic(() => import("@/components/PromptLibraryView").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
+const JournalView = dynamic(() => import("@/components/JournalView").then(mod => ({ default: mod.default })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -213,6 +216,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "stats", label: "Stats", icon: TrendingUp },
         { id: "habits", label: "Habits", icon: Trophy },
         { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
+        { id: "journal", label: "Journal", icon: BookOpen },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
       ]
     },
@@ -2680,6 +2684,7 @@ export default function Dashboard() {
           {activeTab === "stats" && <AnalyticsView />}
           {activeTab === "habits" && <HabitView />}
           {activeTab === "habit-analytics" && <HabitAnalyticsView />}
+          {activeTab === "journal" && <JournalView />}
           {activeTab === "discipline" && <DisciplineChallenge />}
           {activeTab === "daily-word" && (
             <motion.div
