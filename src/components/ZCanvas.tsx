@@ -218,6 +218,48 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:deleteNode', handleDelete);
   }, []);
 
+  const handleDeleteEdge = useCallback((e: Event) => {
+    const id = (e as CustomEvent).detail;
+    setEdges(eds => eds.filter(ed => ed.id !== id));
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => handleDeleteEdge(e);
+    window.addEventListener('canvas:deleteEdge', handler);
+    return () => window.removeEventListener('canvas:deleteEdge', handler);
+  }, [handleDeleteEdge]);
+
+  const handleDuplicateNode = useCallback((e: Event) => {
+    const { id, offset, data } = (e as CustomEvent).detail;
+    setNodes(nds => {
+      const sourceNode = nds.find(n => n.id === id);
+      if (!sourceNode) return nds;
+      const newNode: Node = {
+        id: crypto.randomUUID(),
+        type: 'idea',
+        position: {
+          x: sourceNode.position.x + offset.x,
+          y: sourceNode.position.y + offset.y,
+        },
+        data: {
+          ...data,
+          isNew: true,
+          subNodes: data.subNodes ? [...data.subNodes] : [],
+          labels: [...(data.labels || [])],
+          childIds: [],
+          parentId: undefined,
+        },
+      };
+      return [...nds, newNode];
+    });
+  }, []);
+
+  useEffect(() => {
+    const handler = (e: Event) => handleDuplicateNode(e);
+    window.addEventListener('canvas:duplicateNode', handler);
+    return () => window.removeEventListener('canvas:duplicateNode', handler);
+  }, [handleDuplicateNode]);
+
   // Listen for add node custom event (from toolbar)
   useEffect(() => {
     const handleAddNode = (e: Event) => {
@@ -389,6 +431,14 @@ function CanvasInner() {
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Del</span>
                 <span>Delete selected node(s)</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Alt + Click</span>
+                <span>Duplicate this node</span>
+              </div>
+              <div className="flex gap-3 items-start">
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Dbl Click edge</span>
+                <span>Delete the connection</span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Esc</span>
