@@ -67,7 +67,7 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="rounded-2xl shadow-2xl w-full max-w-2xl mx-4"
+          className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           onClick={e => e.stopPropagation()}
         >
@@ -93,9 +93,9 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
           </div>
 
           {/* Body */}
-          <div className="flex max-h-[80vh]">
+          <div className="flex flex-1 min-h-0 overflow-hidden">
             {/* Left column — existing editor */}
-            <div className="flex-1 px-6 py-5 space-y-5 overflow-y-auto">
+            <div className="flex-1 px-6 py-5 space-y-5 overflow-y-auto min-h-0">
               {/* Title */}
               <div>
                 <label className="block text-xs font-medium mb-2" style={{ color: 'var(--gray-400)' }}>Title</label>

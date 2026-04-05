@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+// src/components/canvas/AIChatPanel.tsx
+import { useState, useEffect, useRef } from 'react';
 
 interface Message { role: 'user' | 'assistant'; content: string }
 interface Suggestion { type: string; content: string }
@@ -23,33 +24,42 @@ export function AIChatPanel({ nodeId, nodeData, onUpdate, onAddSubNode }: AIChat
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
+  // Use refs to avoid stale closures in async handlers
+  const inputRef = useRef('');
+  const messagesRef = useRef<Message[]>([]);
+  const nodeDataRef = useRef(nodeData);
+
+  // Keep refs in sync with state
+  useEffect(() => { inputRef.current = input; }, [input]);
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+  useEffect(() => { nodeDataRef.current = nodeData; }, [nodeData]);
+
   // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, streamedContent]);
 
-  // Build system context from node data (NOT shown in UI)
-  // Memoize system context to avoid recreating on every render
-  const systemContext = useMemo(() => `The node you're discussing:
+  // Build system context
+  const systemContext = `The node you're discussing:
 Title: ${nodeData.content || '(empty)'}
 Description: ${nodeData.description || '(none)'}
-Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.content).join(' | ') : 'none'}`, [nodeData.content, nodeData.description, nodeData.subNodes?.length, nodeData.subNodes]);
+Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.content).join(' | ') : 'none'}`;
 
-  const sendMessage = useCallback(async () => {
-    // Capture input value immediately — don't rely on closure over dep array
-    const text = input.trim();
+  async function sendMessage() {
+    const text = inputRef.current.trim();
     if (!text || isStreaming) return;
 
     const userMessage: Message = { role: 'user', content: text };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
+    inputRef.current = '';
     setIsStreaming(true);
     setStreamedContent('');
     setSuggestions([]);
 
     const apiMessages = [
       { role: 'system', content: systemContext },
-      ...messages.map(m => ({ role: m.role, content: m.content })),
+      ...messagesRef.current.map(m => ({ role: m.role, content: m.content })),
       userMessage,
     ];
 
@@ -57,7 +67,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       const response = await fetch('/api/canvas/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: apiMessages, nodeData }),
+        body: JSON.stringify({ messages: apiMessages, nodeData: nodeDataRef.current }),
       });
 
       if (!response.ok || !response.body) {
@@ -108,9 +118,16 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       setIsStreaming(false);
       setStreamedContent('');
     }
-  }, [isStreaming, messages, nodeData, systemContext]);
+  }
 
-  const applySuggestion = (suggestion: Suggestion) => {
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage();
+    }
+  }
+
+  function applySuggestion(suggestion: Suggestion) {
     if (suggestion.type === 'apply_description') {
       onUpdate(nodeId, { description: suggestion.content });
     } else if (suggestion.type === 'apply_title') {
@@ -119,34 +136,27 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       onAddSubNode(nodeId, '#f97316', suggestion.content);
     }
     setSuggestions(prev => prev.filter(s => s !== suggestion));
-  };
+  }
 
-  const dismissSuggestion = (suggestion: Suggestion) => {
+  function dismissSuggestion(suggestion: Suggestion) {
     setSuggestions(prev => prev.filter(s => s !== suggestion));
-  };
+  }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      sendMessage();
-    }
-  };
-
-  const getSuggestionLabel = (type: string) => {
+  function getSuggestionLabel(type: string) {
     if (type === 'apply_description') return 'Update description';
     if (type === 'apply_title') return 'Update title';
     if (type === 'apply_subnode') return 'Add sub-node';
     return type;
-  };
+  }
 
   return (
     <div className="flex flex-col h-full" style={{ background: 'var(--surface)' }}>
       {/* Header */}
-      <div className="px-4 py-3 flex items-center gap-2" style={{ borderBottom: '1px solid var(--border)' }}>
+      <div className="px-4 py-3 flex items-center gap-2 shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
         <div className="w-2 h-2 rounded-full" style={{ background: '#22c55e' }} />
         <span className="text-sm font-semibold" style={{ color: 'var(--foreground)' }}>AI Agent</span>
         <span className="text-xs px-2 py-0.5 rounded" style={{ background: 'var(--gray-800)', color: 'var(--gray-400)' }}>
-          MiniMax-M2.1
+          MiniMax-M2.7
         </span>
       </div>
 
@@ -209,7 +219,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
 
       {/* SuggestionBar */}
       {suggestions.length > 0 && (
-        <div className="px-4 py-2 flex flex-wrap gap-2" style={{ borderTop: '1px solid var(--border)' }}>
+        <div className="px-4 py-2 flex flex-wrap gap-2 shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
           {suggestions.map((s, i) => (
             <div key={i} className="flex items-center gap-1 rounded-full" style={{ background: 'var(--gray-800)' }}>
               <span className="text-xs px-3 py-1.5" style={{ color: 'var(--foreground)' }}>
@@ -235,7 +245,7 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
       )}
 
       {/* Input */}
-      <div className="px-4 py-3" style={{ borderTop: '1px solid var(--border)' }}>
+      <div className="px-4 py-3 shrink-0" style={{ borderTop: '1px solid var(--border)' }}>
         <div className="flex gap-2 items-end">
           <textarea
             ref={textareaRef}
@@ -256,7 +266,6 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
             onKeyDown={handleKeyDown}
             placeholder="Ask about this node..."
             rows={1}
-            disabled={isStreaming}
           />
           <button
             onClick={sendMessage}
