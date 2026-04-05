@@ -198,7 +198,7 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
           <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
             <button
               className="text-xs px-2 py-1 rounded transition-colors"
-              style={{ color: '#f97316' }}
+              style={{ color: 'var(--primary)' }}
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('canvas:addSubNode', { detail: { parentId: id, color: nodeData.color } }));
                 setShowColors(false);
@@ -208,7 +208,7 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
             </button>
             <button
               className="text-xs px-2 py-1 rounded transition-colors"
-              style={{ color: '#ef4444' }}
+              style={{ color: 'var(--color-error)' }}
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('canvas:deleteNode', { detail: id }));
                 setShowColors(false);

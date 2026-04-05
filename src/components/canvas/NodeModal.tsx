@@ -81,7 +81,7 @@ export function NodeModal({ nodeId, data, childNodes, messages, onMessagesChange
               <button
                 onClick={() => { onDelete(nodeId); onClose(); }}
                 className="text-xs px-3 py-1.5 rounded-lg transition-colors"
-                style={{ color: '#ef4444', background: '#ef444420' }}
+                style={{ color: 'var(--color-error)', background: 'color-mix(in srgb, var(--color-error) 12%, transparent)' }}
               >
                 Delete node
               </button>
@@ -185,14 +185,14 @@ export function NodeModal({ nodeId, data, childNodes, messages, onMessagesChange
                           <button
                             onClick={() => { onUpdateSubNode(nodeId, child.id, editingSubNodeText); setEditingSubNodeId(null); }}
                             className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ color: '#22c55e' }}
+                            style={{ color: 'var(--color-success)' }}
                           >
                             Save
                           </button>
                           <button
                             onClick={() => setEditingSubNodeId(null)}
                             className="text-xs px-1.5 py-0.5 rounded"
-                            style={{ color: '#ef4444' }}
+                            style={{ color: 'var(--color-error)' }}
                           >
                             Cancel
                           </button>
@@ -207,7 +207,7 @@ export function NodeModal({ nodeId, data, childNodes, messages, onMessagesChange
                           <button
                             onClick={(e) => { e.stopPropagation(); onDeleteSubNode(nodeId, child.id); }}
                             className="text-xs px-1.5 py-0.5 rounded transition-colors hover:bg-red-500/20 opacity-0 group-hover:opacity-100"
-                            style={{ color: '#ef4444' }}
+                            style={{ color: 'var(--color-error)' }}
                           >
                             ×
                           </button>
