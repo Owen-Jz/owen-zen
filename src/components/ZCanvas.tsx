@@ -576,7 +576,7 @@ function CanvasInner() {
             <button
               onClick={() => setShowHelp(false)}
               className="mt-6 w-full font-semibold py-2.5 rounded-xl transition-colors"
-              style={{ background: '#dc2626', color: 'white' }}
+              style={{ background: 'var(--primary)', color: 'white' }}
             >
               Got it, let's start
             </button>
