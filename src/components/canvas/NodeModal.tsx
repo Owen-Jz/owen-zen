@@ -19,6 +19,9 @@ interface NodeModalProps {
   nodeId: string;
   data: CanvasNodeData;
   childNodes: { id: string; content: string; color: string }[];
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  onMessagesChange: (msgs: { role: 'user' | 'assistant'; content: string }[]) => void;
+  onClearChat: () => void;
   onClose: () => void;
   onUpdate: (id: string, data: Partial<CanvasNodeData>) => void;
   onDelete: (id: string) => void;
@@ -27,7 +30,7 @@ interface NodeModalProps {
   onUpdateSubNode: (parentId: string, subNodeId: string, content: string) => void;
 }
 
-export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelete, onAddSubNode, onDeleteSubNode, onUpdateSubNode }: NodeModalProps) {
+export function NodeModal({ nodeId, data, childNodes, messages, onMessagesChange, onClearChat, onClose, onUpdate, onDelete, onAddSubNode, onDeleteSubNode, onUpdateSubNode }: NodeModalProps) {
   const [content, setContent] = useState(data.content);
   const [description, setDescription] = useState(data.description || '');
   const [subContent, setSubContent] = useState('');
@@ -67,7 +70,7 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
           transition={{ duration: 0.2 }}
-          className="rounded-2xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col overflow-hidden"
+          className="rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col overflow-hidden"
           style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}
           onClick={e => e.stopPropagation()}
         >
@@ -248,6 +251,9 @@ export function NodeModal({ nodeId, data, childNodes, onClose, onUpdate, onDelet
               <AIChatPanel
                 nodeId={nodeId}
                 nodeData={data}
+                messages={messages}
+                onMessagesChange={onMessagesChange}
+                onClearChat={onClearChat}
                 onUpdate={onUpdate}
                 onAddSubNode={onAddSubNode}
               />
