@@ -96,7 +96,8 @@ function AddModal({
         initial={{ opacity: 0, scale: 0.95, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
-        className="bg-[#0f0f0f] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+        className="border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden"
+        style={{ background: 'var(--surface)' }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
@@ -145,7 +146,7 @@ function AddModal({
                   onChange={e => set("entryType", e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition appearance-none cursor-pointer"
                 >
-                  {ENTRY_TYPES.map(t => <option key={t} value={t} className="bg-[#1a1a1a]">{t}</option>)}
+                  {ENTRY_TYPES.map(t => <option key={t} value={t} style={{ background: 'var(--surface)' }}>{t}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
@@ -158,7 +159,7 @@ function AddModal({
                   onChange={e => set("status", e.target.value)}
                   className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-primary/50 transition appearance-none cursor-pointer"
                 >
-                  {STATUSES.map(s => <option key={s} value={s} className="bg-[#1a1a1a]">{STATUS_META[s as Status].label}</option>)}
+                  {STATUSES.map(s => <option key={s} value={s} style={{ background: 'var(--surface)' }}>{STATUS_META[s as Status].label}</option>)}
                 </select>
                 <ChevronDown size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
               </div>
