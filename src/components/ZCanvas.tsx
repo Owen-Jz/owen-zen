@@ -511,17 +511,17 @@ function CanvasInner() {
         <div className="absolute inset-0 z-50 flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)' }} onClick={() => setShowHelp(false)}>
           <div className="rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }} onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Canvas Controls</h2>
+              <h2 className="text-lg font-bold" style={{ color: 'var(--foreground)' }}>Mind Map Controls</h2>
               <button onClick={() => setShowHelp(false)} className="text-xl leading-none" style={{ color: 'var(--gray-500)' }}>&times;</button>
             </div>
             <div className="space-y-4 text-sm" style={{ color: 'var(--gray-400)' }}>
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Double-click</span>
-                <span>Create a new idea node anywhere on the canvas</span>
+                <span>Create a new idea node anywhere on the mind map</span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Drag</span>
-                <span>Pan around the canvas freely</span>
+                <span>Pan around the mind map freely</span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Scroll</span>

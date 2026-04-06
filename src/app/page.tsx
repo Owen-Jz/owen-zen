@@ -238,7 +238,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "bucket", label: "2026 Bucket List", icon: Star },
         { id: "calendar", label: "Calendar", icon: Calendar },
         { id: "post-bucket", label: "Post Bucket", icon: Inbox },
-        { id: "canvas", label: "Canvas", icon: LayoutGrid },
+        { id: "canvas", label: "Mind Map", icon: LayoutGrid },
       ]
     },
     {
