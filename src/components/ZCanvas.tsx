@@ -335,13 +335,9 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:openNodeModal', handleOpenModal);
   }, []);
 
-  // Listen for marquee toggle event (from toolbar)
-  useEffect(() => {
-    const handleToggleMarquee = () => {
-      setIsMarqueeActive(prev => !prev);
-    };
-    window.addEventListener('canvas:toggleMarquee', handleToggleMarquee);
-    return () => window.removeEventListener('canvas:toggleMarquee', handleToggleMarquee);
+  // Toggle marquee selection mode
+  const toggleMarquee = useCallback(() => {
+    setIsMarqueeActive(prev => !prev);
   }, []);
 
   // Pass onUpdate to all nodes so CanvasNode can call it
@@ -392,7 +388,7 @@ function CanvasInner() {
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
         </div>
       )}
-      <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} />
+      <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} />
       {creatingNode && (
         <div
           className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"
