@@ -63,7 +63,7 @@ export function CanvasToolbar({ saveStatus, marqueeActive, onToggleMarquee }: Ca
               Fit View
             </button>
             <button
-              onClick={() => { console.log('[DEBUG] Marquee button clicked, onToggleMarquee:', typeof onToggleMarquee); onToggleMarquee?.(); }}
+              onClick={onToggleMarquee}
               className="px-3 py-1.5 rounded-full text-sm transition-colors"
               style={{
                 background: marqueeActive ? 'var(--primary)' : 'transparent',
