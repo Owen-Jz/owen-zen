@@ -2,7 +2,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, OnConnect } from '@xyflow/react';
+import { ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, OnConnect, SelectionMode } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CanvasNode } from './canvas/CanvasNode';
@@ -447,6 +447,7 @@ function CanvasInner() {
         onNodeDragStart={onNodeDragStart}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
+        panOnDrag={!isMarqueeActive}
         defaultViewport={canvasData?.data?.viewport || { x: 0, y: 0, zoom: 1 }}
         fitView
         style={{ background: 'var(--background)' }}
