@@ -364,6 +364,7 @@ function CanvasInner() {
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         panOnDrag={!isMarqueeActive}
+        selectionOnDrag={isMarqueeActive}
         selectionMode={isMarqueeActive ? SelectionMode.Partial : undefined}
         defaultViewport={canvasData?.data?.viewport || { x: 0, y: 0, zoom: 1 }}
         fitView
