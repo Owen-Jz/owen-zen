@@ -32,7 +32,7 @@ function CanvasInner() {
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
-  const { screenToFlowPosition, fitView, getViewport } = useReactFlow();
+  const { fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
 
@@ -179,11 +179,6 @@ function CanvasInner() {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fitView]);
-
-  const onPaneDoubleClick = useCallback((event: React.MouseEvent) => {
-    const position = screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    setCreatingNode({ x: position.x, y: position.y, text: '' });
-  }, [screenToFlowPosition]);
 
   const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start marquee if clicking directly on the pane background
@@ -431,7 +426,6 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onMoveEnd={onMoveEnd}
-        onDoubleClick={onPaneDoubleClick}
         onMouseDown={onPaneMouseDown}
         onMouseMove={onPaneMouseMove}
         onMouseUp={onPaneMouseUp}
@@ -516,8 +510,8 @@ function CanvasInner() {
             </div>
             <div className="space-y-4 text-sm" style={{ color: 'var(--gray-400)' }}>
               <div className="flex gap-3 items-start">
-                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Double-click</span>
-                <span>Create a new idea node anywhere on the mind map</span>
+                <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Toolbar</span>
+                <span>Click the + button to add a new node</span>
               </div>
               <div className="flex gap-3 items-start">
                 <span className="px-2 py-1 rounded text-xs font-mono min-w-[60px] text-center" style={{ background: 'var(--gray-800)', color: '#f97316' }}>Drag</span>
