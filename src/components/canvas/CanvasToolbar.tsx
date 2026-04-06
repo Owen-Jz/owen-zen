@@ -8,9 +8,10 @@ import { addNode } from '@/lib/canvasUtils';
 interface CanvasToolbarProps {
   saveStatus?: 'idle' | 'saving' | 'saved';
   marqueeActive?: boolean;
+  onToggleMarquee?: () => void;
 }
 
-export function CanvasToolbar({ saveStatus, marqueeActive }: CanvasToolbarProps) {
+export function CanvasToolbar({ saveStatus, marqueeActive, onToggleMarquee }: CanvasToolbarProps) {
   const [visible, setVisible] = useState(true);
   const [isHovered, setIsHovered] = useState(false);
   const { fitView, getViewport } = useReactFlow();
@@ -62,7 +63,7 @@ export function CanvasToolbar({ saveStatus, marqueeActive }: CanvasToolbarProps)
               Fit View
             </button>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent('canvas:toggleMarquee'))}
+              onClick={onToggleMarquee}
               className="px-3 py-1.5 rounded-full text-sm transition-colors"
               style={{
                 background: marqueeActive ? 'var(--primary)' : 'transparent',
