@@ -26,6 +26,8 @@ const CanvasEdgeSchema = new mongoose.Schema({
   id: { type: String, required: true },
   source: { type: String, required: true },
   target: { type: String, required: true },
+  sourceHandle: { type: String, default: null },
+  targetHandle: { type: String, default: null },
   label: { type: String, default: '' },
   animated: { type: Boolean, default: false },
 }, { _id: false });
