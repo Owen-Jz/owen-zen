@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, BookOpen, Plus } from "lucide-react";
+import { Search, BookOpen, Plus, Calendar } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { JournalHeatmap } from "./journal/JournalHeatmap";
@@ -82,6 +82,20 @@ export default function JournalView() {
   };
 
   const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
+
+  const sortedEntries = useMemo(() => {
+    return [...(data?.data ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+  }, [data?.data]);
+
+  const MOOD_COLORS: Record<number, string> = {
+    1: '#c0392b', 2: '#e74c3c', 3: '#f39c12', 4: '#2ecc71', 5: '#27ae60',
+  };
+  const MOOD_LABELS = ['', 'Terrible', 'Bad', 'Okay', 'Good', 'Great'];
+
+  function formatCardDate(dateStr: string) {
+    const d = new Date(dateStr + 'T12:00:00');
+    return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+  }
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 animate-in fade-in duration-200">
@@ -171,6 +185,61 @@ export default function JournalView() {
             entries={entriesMap}
             onDateClick={setSelectedDate}
           />
+        </div>
+      )}
+
+      {/* Entry List */}
+      {sortedEntries.length > 0 && (
+        <div>
+          <div className="flex items-center gap-2 mb-3">
+            <Calendar size={16} className="text-gray-500" />
+            <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider">Entries</h2>
+            <span className="text-xs text-gray-600">({sortedEntries.length})</span>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {sortedEntries.map(entry => (
+              <button
+                key={entry._id}
+                onClick={() => setSelectedDate(entry.date)}
+                className="text-left bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all group"
+              >
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <span className="text-sm font-bold text-white">{formatCardDate(entry.date)}</span>
+                  <div
+                    className="w-4 h-4 rounded-full shrink-0"
+                    style={{ backgroundColor: MOOD_COLORS[entry.mood] ?? '#666' }}
+                    title={MOOD_LABELS[entry.mood]}
+                  />
+                </div>
+                {entry.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mb-2">
+                    {entry.tags.slice(0, 3).map(tag => (
+                      <span key={tag} className="px-1.5 py-0.5 bg-primary/15 text-primary text-xs rounded">
+                        {tag}
+                      </span>
+                    ))}
+                    {entry.tags.length > 3 && (
+                      <span className="text-xs text-gray-500">+{entry.tags.length - 3}</span>
+                    )}
+                  </div>
+                )}
+                {entry.text && (
+                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                    {entry.text}
+                  </p>
+                )}
+                {!entry.text && (
+                  <p className="text-xs text-gray-600 italic">No entry text</p>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data?.data && data.data.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-500 text-sm">No entries yet. Click "Today's Entry" to start journaling!</p>
         </div>
       )}
 
