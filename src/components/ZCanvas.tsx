@@ -337,8 +337,9 @@ function CanvasInner() {
 
   // Toggle marquee selection mode
   const toggleMarquee = useCallback(() => {
+    console.log('[DEBUG] toggleMarquee called, current isMarqueeActive:', isMarqueeActive);
     setIsMarqueeActive(prev => !prev);
-  }, []);
+  }, [isMarqueeActive]);
 
   // Pass onUpdate to all nodes so CanvasNode can call it
   const nodesWithCallbacks = nodes.map(n => ({
@@ -347,6 +348,9 @@ function CanvasInner() {
   }));
 
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+
+  // Debug: log when marquee state changes
+  console.log('[DEBUG] ZCanvas render, isMarqueeActive:', isMarqueeActive, 'selectionMode:', isMarqueeActive ? 'Partial' : 'undefined');
 
   return (
     <div style={{ width: '100vw', height: '100vh', cursor: isMarqueeActive ? 'crosshair' : 'default' }}>
