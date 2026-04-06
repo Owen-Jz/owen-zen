@@ -29,9 +29,6 @@ function CanvasInner() {
   const [dragNodeId, setDragNodeId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
-  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
-  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
-  const [isSelecting, setIsSelecting] = useState(false);
   const [isMarqueeActive, setIsMarqueeActive] = useState(false);
   const { fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -181,88 +178,13 @@ function CanvasInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fitView]);
 
-  const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
-    // When marquee tool is active, always start selection
-    // Otherwise only start on pane background
-    if (!isMarqueeActive) {
-      const target = e.target as HTMLElement;
-      if (!target.classList.contains('react-flow__pane') && !target.classList.contains('react-flow__background')) return;
-    }
-
-    // Don't start if clicking with modifier keys (allow browser gestures)
-    if (e.altKey || e.ctrlKey || e.metaKey) return;
-
-    setIsSelecting(true);
-    setSelectionStart({ x: e.clientX, y: e.clientY });
-    setSelectionRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
-  }, [isMarqueeActive]);
-
-  const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!isSelecting || !selectionStart) return;
-
-    const dx = e.clientX - selectionStart.x;
-    const dy = e.clientY - selectionStart.y;
-
-    setSelectionRect({
-      x: dx >= 0 ? selectionStart.x : e.clientX,
-      y: dy >= 0 ? selectionStart.y : e.clientY,
-      width: Math.abs(dx),
-      height: Math.abs(dy),
-    });
-  }, [isSelecting, selectionStart]);
-
-  const onPaneMouseUp = useCallback((e: React.MouseEvent) => {
-    if (!isSelecting || !selectionRect) {
-      setIsSelecting(false);
-      setSelectionStart(null);
-      setSelectionRect(null);
-      return;
-    }
-
-    // Only apply if the rect has meaningful size (not just a click)
-    if (selectionRect.width > 5 || selectionRect.height > 5) {
-      const { x, y, width, height } = selectionRect;
-
-      // Get current viewport for coordinate conversion
-      const viewport = getViewport();
-
-      // Helper: convert flow position to screen position
-      const toScreen = (fx: number, fy: number) => ({
-        x: fx * viewport.zoom + viewport.x,
-        y: fy * viewport.zoom + viewport.y,
-      });
-
-      // Select nodes whose center falls inside the rect
-      setNodes(nds => nds.map(n => {
-        const center = toScreen(n.position.x + (n.width || 160) / 2, n.position.y + (n.height || 80) / 2);
-        const inside = center.x >= x && center.x <= x + width && center.y >= y && center.y <= y + height;
-        return { ...n, selected: inside };
-      }));
-
-      // Select edges whose midpoint falls inside the rect
-      setEdges(eds => eds.map(ed => {
-        const { sourceX, sourceY, targetX, targetY, sourcePosition, targetPosition } = ed;
-        // Approximate bezier midpoint in screen space
-        const hDist = Math.abs(targetX - sourceX) * 0.5;
-        const cp1x = sourceX + (sourcePosition === 'left' ? -hDist : sourcePosition === 'right' ? hDist : 0);
-        const cp1y = sourceY;
-        const cp2x = targetX + (targetPosition === 'left' ? -hDist : targetPosition === 'right' ? hDist : 0);
-        const cp2y = targetY;
-        const screenSource = toScreen(sourceX, sourceY);
-        const screenTarget = toScreen(targetX, targetY);
-        const screenCp1 = toScreen(cp1x, cp1y);
-        const screenCp2 = toScreen(cp2x, cp2y);
-        const midX = 0.125 * screenSource.x + 0.375 * screenCp1.x + 0.375 * screenCp2.x + 0.125 * screenTarget.x;
-        const midY = 0.125 * screenSource.y + 0.375 * screenCp1.y + 0.375 * screenCp2.y + 0.125 * screenTarget.y;
-        const inside = midX >= x && midX <= x + width && midY >= y && midY <= y + height;
-        return { ...ed, selected: inside };
-      }));
-    }
-
-    setIsSelecting(false);
-    setSelectionStart(null);
-    setSelectionRect(null);
-  }, [isSelecting, selectionRect, getViewport]);
+  // ReactFlow built-in selection change handler (used when marquee mode is active)
+  const onSelectionChange = useCallback(({ nodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    const selectedNodeIds = new Set(nodes.map(n => n.id));
+    const selectedEdgeIds = new Set(selectedEdges.map(e => e.id));
+    setNodes(nds => nds.map(n => ({ ...n, selected: selectedNodeIds.has(n.id) })));
+    setEdges(eds => eds.map(ed => ({ ...ed, selected: selectedEdgeIds.has(ed.id) })));
+  }, []);
 
   const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string; subNodes?: { id: string; content: string; color: string }[] }) => {
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
@@ -439,15 +361,14 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onMoveEnd={onMoveEnd}
-        onMouseDown={onPaneMouseDown}
-        onMouseMove={onPaneMouseMove}
-        onMouseUp={onPaneMouseUp}
+        onSelectionChange={onSelectionChange}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDragStart={onNodeDragStart}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         panOnDrag={!isMarqueeActive}
+        selectionMode={isMarqueeActive ? SelectionMode.Partial : undefined}
         defaultViewport={canvasData?.data?.viewport || { x: 0, y: 0, zoom: 1 }}
         fitView
         style={{ background: 'var(--background)' }}
@@ -470,22 +391,6 @@ function CanvasInner() {
         <div className="fixed bottom-4 right-4 text-xs px-3 py-1.5 rounded-full shadow" style={{ background: 'var(--surface)', color: 'var(--gray-500)', border: '1px solid var(--border)' }}>
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
         </div>
-      )}
-      {selectionRect && (
-        <div
-          style={{
-            position: 'fixed',
-            left: selectionRect.x,
-            top: selectionRect.y,
-            width: selectionRect.width,
-            height: selectionRect.height,
-            background: 'color-mix(in srgb, var(--primary) 15%, transparent)',
-            border: '1.5px dashed var(--primary)',
-            pointerEvents: 'none',
-            zIndex: 9999,
-            borderRadius: 0,
-          }}
-        />
       )}
       <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} />
       {creatingNode && (
