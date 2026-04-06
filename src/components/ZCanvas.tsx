@@ -32,6 +32,7 @@ function CanvasInner() {
   const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
   const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
   const [isSelecting, setIsSelecting] = useState(false);
+  const [isMarqueeActive, setIsMarqueeActive] = useState(false);
   const { fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
@@ -181,9 +182,12 @@ function CanvasInner() {
   }, [fitView]);
 
   const onPaneMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only start marquee if clicking directly on the pane background
-    const target = e.target as HTMLElement;
-    if (!target.classList.contains('react-flow__pane') && !target.classList.contains('react-flow__background')) return;
+    // When marquee tool is active, always start selection
+    // Otherwise only start on pane background
+    if (!isMarqueeActive) {
+      const target = e.target as HTMLElement;
+      if (!target.classList.contains('react-flow__pane') && !target.classList.contains('react-flow__background')) return;
+    }
 
     // Don't start if clicking with modifier keys (allow browser gestures)
     if (e.altKey || e.ctrlKey || e.metaKey) return;
@@ -191,7 +195,7 @@ function CanvasInner() {
     setIsSelecting(true);
     setSelectionStart({ x: e.clientX, y: e.clientY });
     setSelectionRect({ x: e.clientX, y: e.clientY, width: 0, height: 0 });
-  }, []);
+  }, [isMarqueeActive]);
 
   const onPaneMouseMove = useCallback((e: React.MouseEvent) => {
     if (!isSelecting || !selectionStart) return;
@@ -409,6 +413,15 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:openNodeModal', handleOpenModal);
   }, []);
 
+  // Listen for marquee toggle event (from toolbar)
+  useEffect(() => {
+    const handleToggleMarquee = () => {
+      setIsMarqueeActive(prev => !prev);
+    };
+    window.addEventListener('canvas:toggleMarquee', handleToggleMarquee);
+    return () => window.removeEventListener('canvas:toggleMarquee', handleToggleMarquee);
+  }, []);
+
   // Pass onUpdate to all nodes so CanvasNode can call it
   const nodesWithCallbacks = nodes.map(n => ({
     ...n,
@@ -418,7 +431,7 @@ function CanvasInner() {
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
-    <div style={{ width: '100vw', height: '100vh' }}>
+    <div style={{ width: '100vw', height: '100vh', cursor: isMarqueeActive ? 'crosshair' : 'default' }}>
       <ReactFlow
         nodes={nodesWithCallbacks}
         edges={edges}
@@ -473,7 +486,7 @@ function CanvasInner() {
           }}
         />
       )}
-      <CanvasToolbar saveStatus={saveStatus} />
+      <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} />
       {creatingNode && (
         <div
           className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"
