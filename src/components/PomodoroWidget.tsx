@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Play, Pause, RotateCcw, Coffee, Brain, Clock, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useSound } from "@/components/SoundEffects";
 
 type TimerMode = "focus" | "shortBreak" | "longBreak";
 type WidgetMode = "pomodoro" | "dailyTrack";
@@ -62,7 +63,7 @@ export const PomodoroWidget = () => {
   const [currentSeconds, setCurrentSeconds] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const audioContextRef = useRef<AudioContext | null>(null);
+  const { playAlarm } = useSound();
 
   const getTimeForMode = (m: TimerMode) => {
     switch (m) {
@@ -146,33 +147,6 @@ export const PomodoroWidget = () => {
   const persistStateRef = useRef(persistState);
   useEffect(() => { persistStateRef.current = persistState; }, [persistState]);
 
-  const playNotificationSound = () => {
-    try {
-      const audioCtx = audioContextRef.current || new AudioContext();
-      audioContextRef.current = audioCtx;
-
-      const playTone = (freq: number, startTime: number, duration: number) => {
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        oscillator.frequency.value = freq;
-        oscillator.type = 'sine';
-        gainNode.gain.setValueAtTime(0.3, startTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.01, startTime + duration);
-        oscillator.start(startTime);
-        oscillator.stop(startTime + duration);
-      };
-
-      const now = audioCtx.currentTime;
-      playTone(880, now, 0.15);
-      playTone(1100, now + 0.15, 0.15);
-      playTone(880, now + 0.3, 0.3);
-    } catch {
-      // Audio not supported
-    }
-  };
-
   // Pomodoro timer tick
   useEffect(() => {
     if (widgetMode !== "pomodoro" || !isRunning || timeLeft <= 0) return;
@@ -195,7 +169,7 @@ export const PomodoroWidget = () => {
     if (widgetMode !== "pomodoro" || timeLeft !== 0 || !isLoaded) return;
 
     setIsRunning(false);
-    playNotificationSound();
+    playAlarm();
     if (mode === "focus") {
       setSessions((prev) => prev + 1);
     }

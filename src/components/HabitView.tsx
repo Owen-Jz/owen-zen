@@ -7,6 +7,7 @@ import { Loading } from "@/components/Loading";
 import { HabitDetailModal } from "./habit/HabitDetailModal";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { useSound } from "@/components/SoundEffects";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -51,6 +52,9 @@ export const HabitView = () => {
 
     // Daily habits week navigation (0 = current week, -1 = previous week)
     const [dailyWeekOffset, setDailyWeekOffset] = useState(0);
+
+    // Sound effects
+    const { playComplete } = useSound();
 
     // --- getCurrentWeekKey Helper ---
     const getCurrentWeekKey = (): string => {
@@ -300,6 +304,12 @@ export const HabitView = () => {
         // For optimistic update, we also use YYYY-MM-DD comparison
         const targetDayStr = toLocalString(targetDate);
 
+        // Determine if this is a completion (not un-checking) before state changes
+        const habit = habits.find(h => h._id === id);
+        const isCompleting = habit
+            ? !habit.completedDates.some(d => toLocalString(d) === targetDayStr)
+            : false;
+
         setHabits(habits.map(h => {
             if (h._id === id) {
                 const hasDone = h.completedDates.some(d => toLocalString(d) === targetDayStr);
@@ -310,6 +320,11 @@ export const HabitView = () => {
             }
             return h;
         }));
+
+        // Play sound when marking a habit as complete
+        if (isCompleting) {
+            playComplete();
+        }
 
         await fetch(`/api/habits/${id}`, {
             method: "PUT",
