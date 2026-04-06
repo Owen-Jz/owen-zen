@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Search, BookOpen } from "lucide-react";
+import { Search, BookOpen, Plus } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { JournalHeatmap } from "./journal/JournalHeatmap";
@@ -97,15 +97,27 @@ export default function JournalView() {
             </p>
           )}
         </div>
-        <select
-          value={year}
-          onChange={e => setYear(Number(e.target.value))}
-          className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-primary"
-        >
-          {years.map(y => (
-            <option key={y} value={y} className="bg-gray-900">{y}</option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => {
+              setYear(new Date().getFullYear());
+              setSelectedDate(new Date().toISOString().split('T')[0]);
+            }}
+            className="flex items-center gap-2 px-4 py-2 bg-primary hover:bg-primary/80 rounded-lg text-sm font-bold text-white transition-colors"
+          >
+            <Plus size={16} />
+            Today's Entry
+          </button>
+          <select
+            value={year}
+            onChange={e => setYear(Number(e.target.value))}
+            className="bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-primary"
+          >
+            {years.map(y => (
+              <option key={y} value={y} className="bg-gray-900">{y}</option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Search and tags */}
