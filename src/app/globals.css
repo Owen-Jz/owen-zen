@@ -360,6 +360,8 @@ body {
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
   overflow-x: hidden;
   position: relative;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Base Texture - Subtle Grain */
@@ -424,6 +426,15 @@ body::before {
   background: var(--primary);
 }
 
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -438,6 +449,16 @@ body::before {
   html {
     scroll-behavior: auto !important;
   }
+}
+
+/* Z-index token scale */
+:root {
+  --z-base: 0;
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-modal: 200;
+  --z-overlay: 300;
+  --z-toast: 400;
 }
 
 /* Animation timing tokens */
@@ -477,6 +498,12 @@ body::before {
   outline: none;
 }
 
+/* Touch target utilities - ensures 44x44px minimum */
+@utility touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* Ensure buttons have visible focus states */
 button:focus-visible,
 [role="button"]:focus-visible,
@@ -502,4 +529,24 @@ select:focus-visible {
 
 .skip-link:focus {
   top: 0;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  nav,
+  .sidebar,
+  header {
+    display: none !important;
+  }
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+  @page {
+    margin: 1cm;
+  }
 }
