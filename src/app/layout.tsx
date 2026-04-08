@@ -3,6 +3,7 @@ import { Manrope } from "next/font/google";
 import "./globals.css";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
+import { Toaster } from "sonner";
 
 const manrope = Manrope({
   variable: "--font-manrope",
@@ -62,6 +63,16 @@ export default function RootLayout({
           <SpotlightEffect />
           <ServiceWorkerRegistration />
           {children}
+          <Toaster
+            position="bottom-right"
+            toastOptions={{
+              style: {
+                background: 'var(--surface)',
+                color: 'var(--foreground)',
+                border: '1px solid var(--border)',
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>
