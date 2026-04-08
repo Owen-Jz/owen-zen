@@ -132,7 +132,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
                             setIsOpen(false);
                         }}
                         className={cn(
-                            "p-1.5 flex justify-center items-center rounded-xl text-xs font-medium transition-all w-8 h-8",
+                            "p-2 flex justify-center items-center rounded-xl text-sm font-medium transition-all w-11 h-11 touch-target",
                             !isCurrentMonth ? "text-gray-600 hover:text-gray-400" : "text-gray-300",
                             isCurrentMonth && !isSelected && "hover:bg-white/10 hover:text-white",
                             isSelected && "bg-primary text-white font-bold shadow-[0_0_10px_rgba(var(--primary),0.5)]",
