@@ -141,8 +141,17 @@ export const VisionBoardView = () => {
               {/* Using regular img for external URLs to avoid Next.js Config hassle for now */}
               <img
                 src={src}
-                alt="Vision"
+                alt={i === 0 ? "Physique Goal" :
+                  i === 1 ? "The Reward" :
+                    i === 2 ? "The Environment" :
+                      i === 3 ? "The Team" :
+                        i === 4 ? "The Foundation" :
+                          i === 5 ? "The Giveback" :
+                            i === 6 ? "Drive & Discipline" :
+                              i === 7 ? "Elite Professional" :
+                                "The Peak Athlete"}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
+                loading="lazy"
               />
               {/* Glass overlay */}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
