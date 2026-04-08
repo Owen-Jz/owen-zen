@@ -58,6 +58,27 @@
   --color-error: #ef4444;
   --color-warning: #f59e0b;
   --color-info: #3b82f6;
+
+  /* Semantic status colors */
+  --status-income: #22c55e;
+  --status-expense: #ef4444;
+  --status-positive: #22c55e;
+  --status-negative: #ef4444;
+  --status-warning: #f59e0b;
+
+  /* Priority colors */
+  --priority-high: #ef4444;
+  --priority-medium: #f59e0b;
+  --priority-low: #3b82f6;
+
+  /* Confetti colors - vivid celebration colors */
+  --confetti-red: #ef4444;
+  --confetti-orange: #f97316;
+  --confetti-yellow: #eab308;
+  --confetti-green: #22c55e;
+  --confetti-blue: #3b82f6;
+  --confetti-purple: #8b5cf6;
+  --confetti-pink: #ec4899;
 }
 
 [data-theme="cyberpunk"] {

@@ -1,12 +1,12 @@
 .landing-page {
-  --bg-primary: #faf8f5;
-  --bg-card: #ffffff;
-  --text-primary: #1a1a1a;
-  --text-secondary: #5a5a5a;
-  --accent-primary: #2d5a4a;
-  --accent-secondary: #c4a77d;
-  --accent-coral: #e07a5f;
-  --border-subtle: #e8e4df;
+  --bg-primary: #030303;
+  --bg-card: #0a0a0a;
+  --text-primary: #f5f5f5;
+  --text-secondary: #9ca3af;
+  --accent-primary: #dc2626;
+  --accent-secondary: #ef4444;
+  --accent-coral: #dc2626;
+  --border-subtle: #262626;
 
   min-height: 100vh;
   background: var(--bg-primary);
