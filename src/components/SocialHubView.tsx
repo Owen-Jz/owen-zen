@@ -407,7 +407,7 @@ export const SocialHubView = () => {
                   {/* Image Preview */}
                   {post.imageUrl && (
                     <div className="mb-4 relative w-full h-40 bg-black/50 rounded-lg overflow-hidden border border-border/50">
-                      <img src={post.imageUrl} alt="Post visual" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                      <img src={post.imageUrl} alt={`Social post image${post.imageIdea ? `: ${post.imageIdea}` : ''}`} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" loading="lazy" />
                     </div>
                   )}
 
@@ -570,7 +570,7 @@ export const SocialHubView = () => {
                     </CldUploadWidget>
                   ) : (
                     <div className="relative w-full h-48 bg-black/50 rounded-lg overflow-hidden border border-border/50 group">
-                      <img src={imageUrl} alt="Preview" className="w-full h-full object-contain" />
+                      <img src={imageUrl} alt="Uploaded image preview" className="w-full h-full object-contain" loading="lazy" />
                       <button
                         onClick={() => setImageUrl("")}
                         className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"

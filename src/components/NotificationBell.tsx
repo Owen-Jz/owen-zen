@@ -101,10 +101,13 @@ export const NotificationBell = () => {
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 10, scale: 0.95 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 10, scale: 0.95 }}
+            role="region"
+            aria-label="Notifications"
+            aria-live="polite"
             className="absolute right-0 mt-3 w-80 md:w-96 bg-surface border border-border rounded-2xl shadow-2xl z-[100] overflow-hidden"
           >
             <div className="p-4 border-b border-border flex justify-between items-center bg-surface-hover/50">
