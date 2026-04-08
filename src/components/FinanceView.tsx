@@ -213,7 +213,7 @@ const StatCard = ({
             {sub && <div className="text-xs text-gray-500 mt-1">{sub}</div>}
         </div>
         {trend && (
-            <div className={`flex items-center gap-1 text-xs font-medium ${trend === "up" ? "text-green-400" : trend === "down" ? "text-red-400" : "text-gray-400"}`}>
+            <div className={`flex items-center gap-1 text-xs font-medium ${trend === "up" ? "text-[var(--status-positive)]" : trend === "down" ? "text-[var(--status-negative)]" : "text-gray-400"}`}>
                 {trend === "up" ? <TrendingUp size={12} /> : trend === "down" ? <TrendingDown size={12} /> : null}
             </div>
         )}
@@ -231,7 +231,7 @@ const BudgetBar = ({ cat, totalBudget }: { cat: CategoryBreakdown; totalBudget: 
                 <div className="flex items-center gap-2">
                     <span>{cat.icon}</span>
                     <span className="text-gray-300 font-medium">{cat.name}</span>
-                    {overBudget && <span className="text-red-400 text-xs font-bold">OVER</span>}
+                    {overBudget && <span className="text-[var(--status-negative)] text-xs font-bold">OVER</span>}
                 </div>
                 <div className="text-right">
                     <span className="text-white font-semibold">{fmt(cat.amount)}</span>
@@ -484,7 +484,7 @@ export function FinanceView() {
                     </div>
 
                     <button onClick={() => setModal("income")}
-                        className="flex items-center gap-1.5 bg-green-500/20 border border-green-500/30 text-green-400 hover:bg-green-500/30 px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+                        className="flex items-center gap-1.5 bg-[var(--status-income)]/20 border border-[var(--status-income)]/30 text-[var(--status-income)] hover:bg-[var(--status-income)]/30 px-4 py-2 rounded-xl text-sm font-semibold transition-all">
                         <ArrowUpCircle size={15} /> Add Income
                     </button>
                     <button onClick={() => setModal("expense")}
@@ -638,11 +638,11 @@ export function FinanceView() {
                                         )}
                                         <div className="flex items-center gap-4 mt-3">
                                             <div className="flex items-center gap-1.5">
-                                                <div className="w-3 h-3 rounded-sm bg-green-500/50" />
+                                                <div className="w-3 h-3 rounded-sm bg-[var(--status-income)]/50" />
                                                 <span className="text-xs text-gray-400">Income</span>
                                             </div>
                                             <div className="flex items-center gap-1.5">
-                                                <div className="w-3 h-3 rounded-sm bg-red-500/50" />
+                                                <div className="w-3 h-3 rounded-sm bg-[var(--status-expense)]/50" />
                                                 <span className="text-xs text-gray-400">Expenses</span>
                                             </div>
                                         </div>
@@ -699,7 +699,7 @@ export function FinanceView() {
                                             <span className="text-xs">
                                                 Query time: {searchResults.performance.queryTimeMs}ms
                                                 {searchResults.performance.meetsTarget && (
-                                                    <span className="text-green-400 ml-1">✓</span>
+                                                    <span className="text-[var(--status-income)] ml-1">✓</span>
                                                 )}
                                             </span>
                                         </div>
@@ -764,12 +764,12 @@ export function FinanceView() {
                                                                 </div>
                                                             </div>
                                                             <div className="flex items-center gap-3 shrink-0">
-                                                                <span className={`font-bold text-lg ${isExpense ? "text-red-400" : "text-green-400"}`}>
+                                                                <span className={`font-bold text-lg ${isExpense ? "text-[var(--status-expense)]" : "text-[var(--status-income)]"}`}>
                                                                     {isExpense ? "-" : "+"}{fmt(tx.amount)}
                                                                 </span>
                                                                 <button
                                                                     onClick={() => isExpense ? deleteExpense(tx._id) : deleteIncome(tx._id)}
-                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                                    className="opacity-0 group-hover:opacity-100 p-1.5 text-gray-600 hover:text-[var(--status-expense)] hover:bg-[var(--status-expense)]/10 rounded-lg transition-all"
                                                                 >
                                                                     <Trash2 size={14} />
                                                                 </button>
@@ -883,7 +883,7 @@ export function FinanceView() {
                                                 </div>
                                                 <div className="bg-background/50 rounded-xl p-4">
                                                     <div className="text-xs text-gray-500 mb-1">Balance</div>
-                                                    <div className={`text-xl font-bold ${analytics.summary.balance >= 0 ? "text-green-400" : "text-red-400"}`}>
+                                                    <div className={`text-xl font-bold ${analytics.summary.balance >= 0 ? "text-[var(--status-positive)]" : "text-[var(--status-negative)]"}`}>
                                                         {fmt(Math.abs(analytics.summary.balance))}
                                                     </div>
                                                 </div>
@@ -940,7 +940,7 @@ export function FinanceView() {
                                             </div>
                                             <div className="flex justify-between text-xs text-gray-500">
                                                 <span>{((s.totalExpenses / s.budget) * 100).toFixed(0)}% used</span>
-                                                <span className={s.budgetRemaining < 0 ? "text-red-400" : "text-green-400"}>
+                                                <span className={s.budgetRemaining < 0 ? "text-[var(--status-negative)]" : "text-[var(--status-positive)]"}>
                                                     {s.budgetRemaining < 0 ? "Over by " : "Remaining: "}{fmt(Math.abs(s.budgetRemaining))}
                                                 </span>
                                             </div>
@@ -1074,7 +1074,7 @@ export function FinanceView() {
                                 <>
                                     <div className="flex items-center justify-between mb-5">
                                         <h2 className="font-bold text-lg flex items-center gap-2">
-                                            <ArrowUpCircle size={18} className="text-green-400" /> Add Income
+                                            <ArrowUpCircle size={18} className="text-[var(--status-income)]" /> Add Income
                                         </h2>
                                         <button onClick={closeModal} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
                                             <X size={18} />
@@ -1103,7 +1103,7 @@ export function FinanceView() {
                                                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:border-green-500/50 transition-colors" />
                                         </div>
                                         <button type="submit" disabled={saving}
-                                            className="w-full bg-green-600 text-white rounded-xl py-3 font-bold hover:bg-green-700 transition-colors disabled:opacity-50">
+                                            className="w-full bg-[var(--status-income)] text-white rounded-xl py-3 font-bold hover:bg-[var(--status-income)]/90 transition-colors disabled:opacity-50">
                                             {saving ? "Saving…" : "Add Income"}
                                         </button>
                                     </form>
@@ -1115,7 +1115,7 @@ export function FinanceView() {
                                 <>
                                     <div className="flex items-center justify-between mb-5">
                                         <h2 className="font-bold text-lg flex items-center gap-2">
-                                            <Target size={18} className="text-yellow-400" /> Set Budget
+                                            <Target size={18} className="text-[var(--status-warning)]" /> Set Budget
                                         </h2>
                                         <button onClick={closeModal} className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5">
                                             <X size={18} />
@@ -1145,7 +1145,7 @@ export function FinanceView() {
                                         </div>
                                         <p className="text-xs text-gray-500">For month: <strong className="text-gray-300">{getMonthLabel(month)}</strong></p>
                                         <button type="submit" disabled={saving}
-                                            className="w-full bg-yellow-600/80 text-white rounded-xl py-3 font-bold hover:bg-yellow-600 transition-colors disabled:opacity-50">
+                                            className="w-full bg-[var(--status-warning)] text-white rounded-xl py-3 font-bold hover:bg-[var(--status-warning)] transition-colors disabled:opacity-50">
                                             {saving ? "Saving…" : "Save Budget"}
                                         </button>
                                     </form>
@@ -1194,7 +1194,7 @@ export function FinanceView() {
                                                     {(["expense", "income"] as const).map((t) => (
                                                         <button key={t} type="button" onClick={() => setCatType(t)}
                                                             className={`flex-1 py-2.5 rounded-xl text-sm font-semibold capitalize transition-all ${catType === t
-                                                                ? t === "expense" ? "bg-red-500/20 border border-red-500/40 text-red-400" : "bg-green-500/20 border border-green-500/40 text-green-400"
+                                                                ? t === "expense" ? "bg-[var(--status-expense)]/20 border border-[var(--status-expense)]/40 text-[var(--status-expense)]" : "bg-[var(--status-income)]/20 border border-[var(--status-income)]/40 text-[var(--status-income)]"
                                                                 : "bg-white/5 border border-white/10 text-gray-400 hover:text-white"
                                                                 }`}>
                                                             {t}
