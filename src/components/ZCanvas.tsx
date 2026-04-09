@@ -155,7 +155,6 @@ function CanvasInner() {
     if (taskJson) {
       const task = JSON.parse(taskJson);
       const viewport = getViewport();
-      // Position relative to the canvas viewport
       const position = {
         x: viewport.x + event.clientX,
         y: viewport.y + event.clientY,
@@ -179,6 +178,10 @@ function CanvasInner() {
       setNodes(nds => [...nds, newNode]);
       fetch(`/api/tasks/${task._id}`, { method: 'DELETE' }).catch(console.error);
       queryClient.invalidateQueries({ queryKey: ['dock-tasks'] });
+      // Navigate focus to the newly created node
+      setTimeout(() => {
+        fitView({ nodes: [newNode], padding: 0.3, duration: 400 });
+      }, 50);
       return;
     }
 
