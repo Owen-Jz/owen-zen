@@ -39,6 +39,8 @@ import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { DailyWordWidget } from "@/components/DailyWordWidget";
 import { AISummaryWidget } from "@/components/AISummaryWidget";
 import { Confetti, useConfetti } from "@/components/Confetti";
+import { MuteToggle } from "@/components/MuteToggle";
+import { useSoundContext } from "@/components/SoundEffects";
 import { TimeTracker } from "@/components/TimeTracker";
 import { FocusOverlay } from "@/components/FocusOverlay";
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
@@ -300,6 +302,9 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
         <div className="flex-1 overflow-y-auto scrollbar-hide pb-24 mt-2">
           <nav className="px-3 space-y-6">
+            <div className="border-t border-white/5 pt-4 mt-4">
+              <MuteToggle />
+            </div>
             {linkSections.map((section, sectionIndex) => (
               <motion.div
                 key={section.title}
@@ -1206,6 +1211,7 @@ export default function Dashboard() {
   const totalWeeks = 52; // For live timer updates
 
   const { trigger: confettiTrigger, fire: fireConfetti } = useConfetti();
+  const { playSound } = useSoundContext();
 
   // Load Theme
   useEffect(() => {
@@ -1527,6 +1533,7 @@ export default function Dashboard() {
   const updateTaskStatus = async (id: string, status: TaskStatus) => {
     const oldTasks = [...tasks];
     const wasCompleted = tasks.find(t => t._id === id)?.status === "completed";
+    const task = tasks.find(t => t._id === id);
     setTasks(tasks.map(t => t._id === id ? { ...t, status } : t));
     try {
       await fetch(`/api/tasks/${id}`, {
@@ -1534,8 +1541,32 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
+
+      // If moving to mind-map, create a canvas node with task data
+      if (status === "mind-map" && task) {
+        const canvasNode = await fetch('/api/canvas/nodes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: task.title,
+            description: task.description || '',
+            subNodes: (task.subtasks || []).map((st: { title: string; completed: boolean }) => ({
+              id: crypto.randomUUID(),
+              content: st.title,
+              color: '#f97316',
+            })),
+          }),
+        }).then(r => r.json());
+
+        // Dispatch event to add the node to the canvas in real-time
+        if (canvasNode.success) {
+          window.dispatchEvent(new CustomEvent('canvas:addNode', { detail: canvasNode.data }));
+        }
+      }
+
       if (status === "completed" && !wasCompleted) {
         fireConfetti();
+        playSound('TASK_COMPLETED');
       }
     } catch {
       setTasks(oldTasks);
@@ -2348,7 +2379,7 @@ export default function Dashboard() {
                 onClick={() => setIsZenMode(!isZenMode)}
                 className={cn(
                   "hidden md:flex items-center gap-2 px-4 py-2 rounded-xl transition-all border",
-                  isZenMode ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary),0.5)]" : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
+                  isZenMode ? "bg-primary text-white border-primary shadow-[0_0_20px_rgba(var(--primary-rgb),0.5)]" : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
                 )}
                 title="Zen Mode (Hide Distractions)"
               >
@@ -2417,6 +2448,7 @@ export default function Dashboard() {
                               <button
                                 key={t._id}
                                 onClick={() => {
+                                  playSound('TASK_MODAL_OPENED');
                                   setEditingTask(t);
                                   setIsSearchOpen(false);
                                   setSearchQuery("");
@@ -2536,7 +2568,7 @@ export default function Dashboard() {
                   className={cn(
                     "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
                     currentBoardId === null
-                      ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                      ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] backdrop-blur-md"
                       : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
                   )}
                 >
@@ -2550,7 +2582,7 @@ export default function Dashboard() {
                     className={cn(
                       "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
                       currentBoardId === board._id
-                        ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary),0.3)] backdrop-blur-md"
+                        ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] backdrop-blur-md"
                         : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
                     )}
                   >
@@ -2606,7 +2638,7 @@ export default function Dashboard() {
                     <div className="h-full w-full bg-surface/50 backdrop-blur-xl border border-white/5 pl-6 pr-4 py-5 rounded-2xl text-lg transition-all shadow-2xl font-medium tracking-wide text-gray-500 hover:bg-black/60 hover:border-primary/50 flex items-center justify-between">
                       <span>What needs to be done?</span>
                       <button
-                        className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] transition-all"
+                        className="aspect-square bg-primary text-white rounded-xl p-2.5 flex items-center justify-center hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] transition-all"
                       >
                         <Plus size={20} className="stroke-[3px]" />
                       </button>
@@ -2617,7 +2649,7 @@ export default function Dashboard() {
                     onClick={() => setIsShoppingListModalOpen(true)}
                     className="bg-surface/50 backdrop-blur-xl border border-white/5 px-6 py-5 rounded-2xl transition-all shadow-2xl tracking-wide text-gray-400 hover:text-white hover:bg-black/60 hover:border-primary/50 flex flex-col items-center justify-center gap-1.5 group"
                   >
-                    <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary),0.8)]" />
+                    <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
                     <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Cart</span>
                   </button>
                 </div>

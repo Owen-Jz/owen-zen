@@ -6,6 +6,7 @@ import { twMerge } from "tailwind-merge";
 import { TimeTracker } from "./TimeTracker";
 import { Task, TaskPriority, SubTask, Board, TaskStatus } from "@/types";
 import { DatePicker } from "./DatePicker";
+import { useSoundContext } from "./SoundEffects";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -55,6 +56,19 @@ export const EditTaskModal = ({
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
     const [boardId, setBoardId] = useState<string | null>(task?.boardId || null);
     const [category, setCategory] = useState(task?.category || "Other");
+
+    const { playSound } = useSoundContext();
+
+    useEffect(() => {
+        playSound('TASK_MODAL_OPENED');
+    }, [playSound]);
+
+    // Play close sound on unmount (when task becomes null and modal exits)
+    useEffect(() => {
+        return () => {
+            playSound('TASK_MODAL_CLOSED');
+        };
+    }, [playSound]);
 
     if (!task) return null;
 
