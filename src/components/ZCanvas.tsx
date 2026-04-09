@@ -147,14 +147,18 @@ function CanvasInner() {
     event.preventDefault();
 
     // Handle dock task drop onto canvas
-    const taskJson = event.dataTransfer.getData('application/zen-dock-task');
+    // Try dataTransfer first, then localStorage as fallback
+    let taskJson = event.dataTransfer.getData('application/zen-dock-task');
+    if (!taskJson) {
+      taskJson = localStorage.getItem('dock-drag-task') ?? '';
+      localStorage.removeItem('dock-drag-task');
+    }
     if (taskJson) {
       const task = JSON.parse(taskJson);
-      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
       const viewport = getViewport();
       const position = {
-        x: viewport.x + event.clientX - rect.left,
-        y: viewport.y + event.clientY - rect.top,
+        x: viewport.x + event.clientX,
+        y: viewport.y + event.clientY,
       };
       const subNodes = (task.subtasks ?? []).map((st: { title: string; completed: boolean }) => ({
         id: crypto.randomUUID(),
@@ -209,16 +213,7 @@ function CanvasInner() {
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    // Always allow move for canvas internals
-    if (event.dataTransfer.types.includes('application/canvas-node')) {
-      event.dataTransfer.dropEffect = 'move';
-      return;
-    }
-    // Handle dock task drag over canvas
-    if (event.dataTransfer.types.includes('application/zen-dock-task')) {
-      event.preventDefault();
-      event.dataTransfer.dropEffect = 'move';
-    }
+    event.dataTransfer.dropEffect = 'move';
   }, []);
 
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {

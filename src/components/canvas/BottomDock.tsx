@@ -33,21 +33,25 @@ export default function BottomDock({ onCreateNode, onCreateTask }: BottomDockPro
     e.dataTransfer.setData('application/zen-dock-task', JSON.stringify(task));
     e.dataTransfer.effectAllowed = 'move';
     setDraggingTaskId(task._id);
+    // Also store in localStorage as backup transport
+    localStorage.setItem('dock-drag-task', JSON.stringify(task));
   }, []);
 
   const handleTaskDragEnd = useCallback((e: React.DragEvent) => {
     setDraggingTaskId(null);
     const target = e.relatedTarget as HTMLElement | null;
-    if (!target) return;
     const dockEl = e.currentTarget as HTMLElement;
+    // Only create node if dropped OUTSIDE the dock (i.e., on canvas)
     if (!dockEl.contains(target)) {
-      const taskJson = e.dataTransfer.getData('application/zen-dock-task');
-      if (!taskJson) return;
-      const task: DockTask = JSON.parse(taskJson);
-      window.dispatchEvent(new CustomEvent('canvas:addTaskNode', {
-        detail: { task, position: { x: e.clientX, y: e.clientY } },
-      }));
+      const taskJson = localStorage.getItem('dock-drag-task');
+      if (taskJson) {
+        const task: DockTask = JSON.parse(taskJson);
+        window.dispatchEvent(new CustomEvent('canvas:addTaskNode', {
+          detail: { task, position: { x: e.clientX, y: e.clientY } },
+        }));
+      }
     }
+    localStorage.removeItem('dock-drag-task');
   }, []);
 
   const handleNodeDrop = useCallback((e: React.DragEvent) => {
