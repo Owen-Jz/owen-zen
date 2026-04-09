@@ -3,7 +3,7 @@ import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
 import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles } from "lucide-react";
-import { useState, useRef, useEffect, forwardRef } from "react";
+import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -20,7 +20,7 @@ const formatDate = (dateString: string | Date | undefined) => {
 };
 
 // --- Task Card Component ---
-export const TaskCard = forwardRef<HTMLDivElement, {
+export const TaskCard = memo(forwardRef<HTMLDivElement, {
   task: Task;
   onDelete?: (id: string) => void;
   onUpdateStatus?: (id: string, status: TaskStatus) => void;
@@ -130,7 +130,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
         "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1",
-        task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary),0.2)]",
+        task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]",
         isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
         menuOpen && "z-40",
         isDragging && !isOverlay && "opacity-40 grayscale scale-95"
@@ -151,7 +151,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
             ref={setSubtaskDropRef}
             className={cn(
               "absolute right-0 top-0 bottom-0 w-1/3 z-30 rounded-r-2xl flex flex-col items-center justify-center p-2.5 transition-all duration-300 backdrop-blur-md border-l border-white/5",
-              isSubtaskOver ? "bg-primary/50 border-primary shadow-[inset_0_0_30px_rgba(var(--primary),0.6)]" : "bg-black/60 opacity-0 group-hover:opacity-100 cursor-crosshair"
+              isSubtaskOver ? "bg-primary/50 border-primary shadow-[inset_0_0_30px_rgba(var(--primary-rgb),0.6)]" : "bg-black/60 opacity-0 group-hover:opacity-100 cursor-crosshair"
             )}
           >
             <div className={cn(
@@ -215,7 +215,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                         <button onClick={() => onEdit && handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
                           <Edit2 size={14} /> View Details
                         </button>
-                        <button onClick={() => onFocus && handleMenuAction(() => onFocus(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-primary hover:bg-primary/10 hover:text-primary rounded-lg text-left font-bold">
+                        <button onClick={() => onFocus && handleMenuAction(() => onFocus(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-primary/10 hover:text-white rounded-lg text-left font-bold">
                           <Maximize2 size={14} /> Focus Mode
                         </button>
                         <div className="h-px bg-border my-1" />
@@ -243,6 +243,9 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                         <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "pinned"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
                           <Pin size={14} /> Pin for Later
                         </button>
+                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "mind-map"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
+                          <Sparkles size={14} /> Mind Map
+                        </button>
                         <div className="h-px bg-border my-1" />
                         {task.status === "completed" && (
                           <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
@@ -268,7 +271,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
             <div className="flex items-center gap-3">
               <div className="flex-1 h-1 bg-surface-hover rounded-full overflow-hidden relative">
                 <div
-                  className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                  className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
                   style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
                 />
               </div>
@@ -291,7 +294,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     }}
                     className={cn(
                       "w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
-                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
+                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
                     )}>
                     {st.completed && <Check size={10} className="text-white" />}
                   </div>
@@ -391,7 +394,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
                     e.stopPropagation();
                     if (onStartTimer) onStartTimer(task._id);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all text-xs font-bold ml-auto opacity-0 group-hover:opacity-100 shadow-[0_0_10px_rgba(var(--primary),0.1)]"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/20 text-primary rounded-lg hover:bg-primary hover:text-white hover:border-primary transition-all text-xs font-bold ml-auto opacity-0 group-hover:opacity-100 shadow-[0_0_10px_rgba(var(--primary-rgb),0.1)]"
                 >
                   <Play size={12} /> Start
                 </button>
@@ -402,7 +405,7 @@ export const TaskCard = forwardRef<HTMLDivElement, {
       </div>
     </motion.div >
   );
-});
+}));
 
 TaskCard.displayName = "TaskCard";
 
@@ -499,7 +502,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
       ref={setNodeRef}
       className={cn(
         "bg-black/20 backdrop-blur-sm p-4 md:p-5 rounded-3xl border border-white/5 min-h-[600px] flex flex-col transition-all duration-500",
-        isOver && "bg-white/5 border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.1)] scale-[1.02]"
+        isOver && "bg-white/5 border-primary/30 shadow-[0_0_40px_rgba(var(--primary-rgb),0.1)] scale-[1.02]"
       )}
     >
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">

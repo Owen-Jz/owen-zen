@@ -9,6 +9,8 @@ import { CanvasNode } from './canvas/CanvasNode';
 import { CanvasEdge } from './canvas/CanvasEdge';
 import { CanvasToolbar } from './canvas/CanvasToolbar';
 import { NodeModal } from './canvas/NodeModal';
+import BottomDock from './canvas/BottomDock';
+import { Task } from '@/types';
 
 const nodeTypes = { idea: CanvasNode };
 const edgeTypes = { default: CanvasEdge };
@@ -30,9 +32,15 @@ function CanvasInner() {
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [creatingNode, setCreatingNode] = useState<{ x: number; y: number; text: string } | null>(null);
   const [isMarqueeActive, setIsMarqueeActive] = useState(false);
+  const [selectionStart, setSelectionStart] = useState<{ x: number; y: number } | null>(null);
+  const [selectionRect, setSelectionRect] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [isSelecting, setIsSelecting] = useState(false);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
+  const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set());
   const { fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const queryClient = useQueryClient();
+  const isUpdatingSelection = useRef(false);
 
   const { data: canvasData, isLoading } = useQuery<{ success: boolean; data: CanvasData }>({
     queryKey: ['canvas'],
@@ -59,6 +67,16 @@ function CanvasInner() {
     if (canvasData?.data) {
       setNodes(canvasData.data.nodes || []);
       setEdges(canvasData.data.edges || []);
+
+      // Initialize chatMessagesMap from nodes' messages data
+      const messagesMap: Record<string, { role: 'user' | 'assistant'; content: string }[]> = {};
+      (canvasData.data.nodes || []).forEach((node: Node) => {
+        const nodeData = node.data as { messages?: { role: 'user' | 'assistant'; content: string }[] };
+        if (nodeData?.messages && nodeData.messages.length > 0) {
+          messagesMap[node.id] = nodeData.messages;
+        }
+      });
+      setChatMessagesMap(messagesMap);
     }
   }, [canvasData]);
 
@@ -94,21 +112,22 @@ function CanvasInner() {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.key === 'Delete' || e.key === 'Backspace') && e.target === document.body) {
-        const selectedNodes = nodes.filter(n => n.selected);
-        const selectedEdges = edges.filter(ed => ed.selected);
-        if (selectedNodes.length > 0) {
-          setNodes(nds => nds.filter(n => !n.selected));
+        if (selectedNodeIds.size > 0) {
+          setNodes(nds => nds.filter(n => !selectedNodeIds.has(n.id)));
           setEdges(eds => eds.filter(ed =>
-            !selectedNodes.some(n => n.id === ed.source || n.id === ed.target)
+            !selectedNodeIds.has(ed.source) && !selectedNodeIds.has(ed.target)
           ));
-        } else if (selectedEdges.length > 0) {
-          setEdges(eds => eds.filter(ed => !ed.selected));
+          setSelectedNodeIds(new Set());
+          setSelectedEdgeIds(new Set());
+        } else if (selectedEdgeIds.size > 0) {
+          setEdges(eds => eds.filter(ed => !selectedEdgeIds.has(ed.id)));
+          setSelectedEdgeIds(new Set());
         }
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [nodes, edges]);
+  }, [selectedNodeIds, selectedEdgeIds]);
 
   const onConnect: OnConnect = useCallback((connection: Connection) => {
     setEdges(eds => {
@@ -162,6 +181,41 @@ function CanvasInner() {
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
     setDragNodeId(node.id);
   }, []);
+
+  // ReactFlow built-in selection callbacks for marquee
+  const onSelectionStart = useCallback(() => {
+    if (isMarqueeActive) {
+      setIsSelecting(true);
+    }
+  }, [isMarqueeActive]);
+
+  const onSelectionEnd = useCallback(() => {
+    if (isMarqueeActive) {
+      setIsSelecting(false);
+      setSelectionStart(null);
+      setSelectionRect(null);
+    }
+  }, [isMarqueeActive]);
+
+  // Sync ReactFlow's internal selection with our external state
+  const onSelectionChange = useCallback(({ nodes: selectedNodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
+    if (isUpdatingSelection.current) return;
+    isUpdatingSelection.current = true;
+
+    const nodeIds = new Set(selectedNodes.map(n => n.id));
+    const edgeIds = new Set(selectedEdges.map(e => e.id));
+
+    setSelectedNodeIds(nodeIds);
+    setSelectedEdgeIds(edgeIds);
+
+    // Update nodes with selected property for visual highlighting
+    setNodes(nds => nds.map(n => ({ ...n, selected: nodeIds.has(n.id) })));
+
+    setTimeout(() => {
+      isUpdatingSelection.current = false;
+    }, 0);
+  }, []);
+
   // F and Escape shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -169,8 +223,8 @@ function CanvasInner() {
         fitView({ padding: 0.2 });
       }
       if (e.key === 'Escape') {
-        setNodes(nds => nds.map(n => ({ ...n, selected: false })));
-        setEdges(eds => eds.map(ed => ({ ...ed, selected: false })));
+        setSelectedNodeIds(new Set());
+        setSelectedEdgeIds(new Set());
         setCreatingNode(null);
       }
     };
@@ -178,17 +232,17 @@ function CanvasInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fitView]);
 
-  // ReactFlow built-in selection change handler (used when marquee mode is active)
-  const onSelectionChange = useCallback(({ nodes, edges: selectedEdges }: { nodes: Node[]; edges: Edge[] }) => {
-    const selectedNodeIds = new Set(nodes.map(n => n.id));
-    const selectedEdgeIds = new Set(selectedEdges.map(e => e.id));
-    setNodes(nds => nds.map(n => ({ ...n, selected: selectedNodeIds.has(n.id) })));
-    setEdges(eds => eds.map(ed => ({ ...ed, selected: selectedEdgeIds.has(ed.id) })));
-  }, []);
-
   const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string; subNodes?: { id: string; content: string; color: string }[] }) => {
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
   }, []);
+
+  // Update node messages and persist to database
+  const onNodeMessagesUpdate = useCallback((id: string, messages: { role: 'user' | 'assistant'; content: string }[]) => {
+    const updatedNodes = nodes.map(n => n.id === id ? { ...n, data: { ...n.data, messages } } : n);
+    setNodes(updatedNodes);
+    // Immediately save to persist messages
+    saveMutation.mutate({ viewport: getViewport(), nodes: updatedNodes, edges });
+  }, [nodes, edges, getViewport, saveMutation]);
 
   const handleDeleteSubNode = useCallback((parentId: string, subNodeId: string) => {
     setNodes(nds => nds.map(n => {
@@ -275,6 +329,62 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:addNode', handleAddNode);
   }, []);
 
+  // Create a canvas node from a task in the dock
+  const handleCreateNodeFromTask = useCallback((task: Task, position: { x: number; y: number }) => {
+    const subNodes = (task.subtasks ?? []).map((st: { title: string; completed: boolean }) => ({
+      id: crypto.randomUUID(),
+      content: st.title,
+      color: '#f97316',
+    }));
+    const newNode: Node = {
+      id: crypto.randomUUID(),
+      type: 'idea',
+      position,
+      data: {
+        content: task.title,
+        color: '#f97316',
+        labels: [],
+        subNodes,
+      },
+    };
+    setNodes(nds => [...nds, newNode]);
+    // Delete the task from the board
+    fetch(`/api/tasks/${task._id}`, { method: 'DELETE' }).catch(console.error);
+    // Refetch dock tasks
+    queryClient.invalidateQueries({ queryKey: ['dock-tasks'] });
+  }, [queryClient]);
+
+  // Listen for add task node (from dock)
+  useEffect(() => {
+    const handleAddTaskNode = (e: Event) => {
+      const { task, position } = (e as CustomEvent).detail;
+      const viewport = getViewport();
+      const absPosition = { x: viewport.x + position.x, y: viewport.y + position.y };
+      handleCreateNodeFromTask(task, absPosition);
+    };
+    window.addEventListener('canvas:addTaskNode', handleAddTaskNode);
+    return () => window.removeEventListener('canvas:addTaskNode', handleAddTaskNode);
+  }, [handleCreateNodeFromTask, getViewport]);
+
+  // Create a task from a canvas node (dropped on dock)
+  const handleCreateTaskFromNode = useCallback((nodeId: string, _position: { x: number; y: number }) => {
+    const node = nodes.find(n => n.id === nodeId);
+    if (!node) return;
+    const nodeData = node.data as { content: string; subNodes?: { id: string; content: string; color: string }[] };
+    const subtasks = (nodeData.subNodes ?? []).map((sn: { id: string; content: string; color: string }) => ({
+      title: sn.content,
+      completed: false,
+    }));
+    fetch('/api/tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title: nodeData.content, status: 'mind-map', subtasks }),
+    }).then(() => {
+      queryClient.invalidateQueries({ queryKey: ['dock-tasks'] });
+      window.dispatchEvent(new CustomEvent('canvas:deleteNode', { detail: nodeId }));
+    }).catch(console.error);
+  }, [nodes, queryClient]);
+
   // Listen for stack node event
   useEffect(() => {
     const handleStack = (e: Event) => {
@@ -349,7 +459,9 @@ function CanvasInner() {
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
 
   return (
-    <div style={{ width: '100vw', height: '100vh', cursor: isMarqueeActive ? 'crosshair' : 'default' }}>
+    <div
+      style={{ width: '100vw', height: '100vh', cursor: isMarqueeActive ? 'crosshair' : 'default' }}
+    >
       <ReactFlow
         nodes={nodesWithCallbacks}
         edges={edges}
@@ -357,15 +469,18 @@ function CanvasInner() {
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onMoveEnd={onMoveEnd}
-        onSelectionChange={isMarqueeActive ? onSelectionChange : undefined}
         onDrop={onDrop}
         onDragOver={onDragOver}
         onNodeDragStart={onNodeDragStart}
+        onSelectionStart={onSelectionStart}
+        onSelectionEnd={onSelectionEnd}
+        onSelectionChange={onSelectionChange}
         nodeTypes={nodeTypes}
         edgeTypes={edgeTypes}
         panOnDrag={!isMarqueeActive}
         selectionOnDrag={isMarqueeActive}
-        selectionMode={isMarqueeActive ? SelectionMode.Partial : undefined}
+        selectionMode={SelectionMode.Partial}
+        elementsSelectable
         defaultViewport={canvasData?.data?.viewport || { x: 0, y: 0, zoom: 1 }}
         fitView
         style={{ background: 'var(--background)' }}
@@ -390,6 +505,7 @@ function CanvasInner() {
         </div>
       )}
       <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} />
+      <BottomDock onCreateNode={handleCreateNodeFromTask} onCreateTask={handleCreateTaskFromNode} />
       {creatingNode && (
         <div
           className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"
@@ -505,8 +621,14 @@ function CanvasInner() {
             data={nodeData as { content: string; color: string; labels: string[]; subNodes?: { id: string; content: string; color: string }[] }}
             childNodes={childNodes}
             messages={chatMessagesMap[selectedNodeId] || []}
-            onMessagesChange={(msgs) => setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: msgs }))}
-            onClearChat={() => setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: [] }))}
+            onMessagesChange={(msgs) => {
+              setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: msgs }));
+              onNodeMessagesUpdate(selectedNodeId!, msgs);
+            }}
+            onClearChat={() => {
+              setChatMessagesMap(prev => ({ ...prev, [selectedNodeId!]: [] }));
+              onNodeMessagesUpdate(selectedNodeId!, []);
+            }}
             onClose={() => { setShowNodeModal(false); setSelectedNodeId(null); }}
             onUpdate={onNodeUpdate}
             onDelete={(id) => {

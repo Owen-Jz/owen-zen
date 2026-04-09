@@ -6,22 +6,18 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const boardId = searchParams.get('boardId');
+    const status = searchParams.get('status');
     console.log("Attributes: GET /api/tasks called", boardId ? `for board ${boardId}` : "for all tasks (or default)");
     await dbConnect();
 
-    const filter = boardId ? { boardId } : { boardId: null }; // Start with boardId: null for default tasks, or maybe { $or: [{ boardId: null }, { boardId: { $exists: false } }] }
-    // Actually, let's make it so if boardId is provided, we filter by it. If not provided, we show tasks with no boardId.
-
-    // Better strategy:
-    // If boardId is provided, filter: { boardId }
-    // If boardId is NOT provided, filter: { $or: [{ boardId: null }, { boardId: { $exists: false } }] }
-
-    // BUT, the user might want ALL tasks if they are in "All" mode? The prompt implies specific boards.
-    // Let's assume default view (no board selected) shows tasks without a board.
-
-    const query = boardId
-      ? { boardId }
-      : { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
+    let query: Record<string, any>;
+    if (boardId) {
+      query = { boardId };
+    } else if (status) {
+      query = { status };
+    } else {
+      query = { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
+    }
 
     // Sort by createdAt descending — newest tasks appear first
     const tasks = await Task.find(query).sort({ createdAt: -1 });
