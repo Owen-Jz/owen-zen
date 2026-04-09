@@ -147,15 +147,15 @@ function CanvasInner() {
     event.preventDefault();
 
     // Handle dock task drop onto canvas
-    // Try dataTransfer first, then localStorage as fallback
     let taskJson = event.dataTransfer.getData('application/zen-dock-task');
     if (!taskJson) {
-      taskJson = localStorage.getItem('dock-drag-task') ?? '';
-      localStorage.removeItem('dock-drag-task');
+      taskJson = sessionStorage.getItem('dock-drag-task') ?? '';
+      sessionStorage.removeItem('dock-drag-task');
     }
     if (taskJson) {
       const task = JSON.parse(taskJson);
       const viewport = getViewport();
+      // Position relative to the canvas viewport
       const position = {
         x: viewport.x + event.clientX,
         y: viewport.y + event.clientY,
