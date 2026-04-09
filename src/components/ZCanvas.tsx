@@ -145,6 +145,40 @@ function CanvasInner() {
   // Handle drop to stack node inside another
   const onDrop = useCallback((event: React.DragEvent) => {
     event.preventDefault();
+
+    // Handle dock task drop onto canvas
+    const taskJson = event.dataTransfer.getData('application/zen-dock-task');
+    if (taskJson) {
+      const task = JSON.parse(taskJson);
+      const rect = (event.currentTarget as HTMLElement).getBoundingClientRect();
+      const viewport = getViewport();
+      const position = {
+        x: viewport.x + event.clientX - rect.left,
+        y: viewport.y + event.clientY - rect.top,
+      };
+      const subNodes = (task.subtasks ?? []).map((st: { title: string; completed: boolean }) => ({
+        id: crypto.randomUUID(),
+        content: st.title,
+        color: '#f97316',
+      }));
+      const newNode: Node = {
+        id: crypto.randomUUID(),
+        type: 'idea',
+        position,
+        data: {
+          content: task.title,
+          color: '#f97316',
+          labels: [],
+          subNodes,
+        },
+      };
+      setNodes(nds => [...nds, newNode]);
+      fetch(`/api/tasks/${task._id}`, { method: 'DELETE' }).catch(console.error);
+      queryClient.invalidateQueries({ queryKey: ['dock-tasks'] });
+      return;
+    }
+
+    // Handle canvas node stacking
     const draggedId = event.dataTransfer.getData('application/canvas-node');
     const targetId = event.dataTransfer.getData('application/canvas-target');
     if (!draggedId || !targetId || draggedId === targetId) {
@@ -171,11 +205,20 @@ function CanvasInner() {
       return updated;
     });
     setDragNodeId(null);
-  }, []);
+  }, [getViewport, queryClient]);
 
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
-    event.dataTransfer.dropEffect = 'move';
+    // Always allow move for canvas internals
+    if (event.dataTransfer.types.includes('application/canvas-node')) {
+      event.dataTransfer.dropEffect = 'move';
+      return;
+    }
+    // Handle dock task drag over canvas
+    if (event.dataTransfer.types.includes('application/zen-dock-task')) {
+      event.preventDefault();
+      event.dataTransfer.dropEffect = 'move';
+    }
   }, []);
 
   const onNodeDragStart = useCallback((_event: React.MouseEvent, node: Node) => {
