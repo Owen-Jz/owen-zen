@@ -2415,86 +2415,6 @@ export default function Dashboard() {
               {/* Notification Bell */}
               {!isZenMode && <NotificationBell />}
 
-              {/* Global Search */}
-              <div className="relative">
-                <button
-                  onClick={() => setIsSearchOpen(!isSearchOpen)}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-xl border transition-all",
-                    isSearchOpen
-                      ? "bg-primary/20 border-primary text-primary"
-                      : "bg-surface border-border text-gray-400 hover:text-white hover:border-primary/50"
-                  )}
-                  title="Search Tasks"
-                >
-                  <Search size={18} />
-                </button>
-
-                {/* Search Dropdown */}
-                <AnimatePresence>
-                  {isSearchOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -10, scale: 0.95 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
-                      className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-[100]"
-                    >
-                      <div className="p-3 border-b border-border">
-                        <input
-                          type="text"
-                          autoFocus
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search all tasks..."
-                          className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-primary/50"
-                        />
-                      </div>
-                      <div className="max-h-[300px] overflow-y-auto">
-                        {searchQuery.length > 0 ? (
-                          tasks
-                            .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
-                            .slice(0, 8)
-                            .map(t => (
-                              <button
-                                key={t._id}
-                                onClick={() => {
-                                  playSound('TASK_MODAL_OPENED');
-                                  setEditingTask(t);
-                                  setIsSearchOpen(false);
-                                  setSearchQuery("");
-                                }}
-                                className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-border/50 last:border-0"
-                              >
-                                <div className="text-sm font-medium text-white truncate">{t.title}</div>
-                                <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
-                                  <span className={cn(
-                                    "px-1.5 py-0.5 rounded text-[10px] uppercase font-bold",
-                                    t.priority === "high" ? "bg-red-500/20 text-red-500" :
-                                      t.priority === "medium" ? "bg-yellow-500/20 text-yellow-500" :
-                                        "bg-gray-500/20 text-gray-500"
-                                  )}>
-                                    {t.priority}
-                                  </span>
-                                  <span className="capitalize">{t.status}</span>
-                                </div>
-                              </button>
-                            ))
-                        ) : (
-                          <div className="px-4 py-6 text-center text-gray-500 text-sm">
-                            Type to search across all tasks
-                          </div>
-                        )}
-                        {searchQuery.length > 0 && tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
-                          <div className="px-4 py-6 text-center text-gray-500 text-sm">
-                            No tasks found
-                          </div>
-                        )}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
               {/* Lofi Girl Button */}
               <button
                 onClick={() => {
@@ -2662,6 +2582,85 @@ export default function Dashboard() {
                     <ShoppingCart size={22} className="text-primary group-hover:drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
                     <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Cart</span>
                   </button>
+
+                  {/* Search Button */}
+                  <div className="relative">
+                    <button
+                      onClick={() => setIsSearchOpen(!isSearchOpen)}
+                      className={cn(
+                        "bg-surface/50 backdrop-blur-xl border border-white/5 px-6 py-5 rounded-2xl transition-all shadow-2xl tracking-wide hover:bg-black/60 hover:border-primary/50 flex flex-col items-center justify-center gap-1.5 group",
+                        isSearchOpen ? "text-primary border-primary/50" : "text-gray-400"
+                      )}
+                      title="Search Tasks"
+                    >
+                      <Search size={22} className="group-hover:drop-shadow-[0_0_8px_rgba(var(--primary-rgb),0.8)]" />
+                      <span className="text-[10px] uppercase font-bold tracking-widest leading-none">Search</span>
+                    </button>
+
+                    {/* Search Dropdown */}
+                    <AnimatePresence>
+                      {isSearchOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                          className="absolute left-0 top-full mt-2 w-80 bg-surface border border-border rounded-xl shadow-2xl overflow-hidden z-[100]"
+                        >
+                          <div className="p-3 border-b border-border">
+                            <input
+                              type="text"
+                              autoFocus
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              placeholder="Search all tasks..."
+                              className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-primary/50"
+                            />
+                          </div>
+                          <div className="max-h-[300px] overflow-y-auto">
+                            {searchQuery.length > 0 ? (
+                              tasks
+                                .filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase()))
+                                .slice(0, 8)
+                                .map(t => (
+                                  <button
+                                    key={t._id}
+                                    onClick={() => {
+                                      playSound('TASK_MODAL_OPENED');
+                                      setEditingTask(t);
+                                      setIsSearchOpen(false);
+                                      setSearchQuery("");
+                                    }}
+                                    className="w-full px-4 py-3 text-left hover:bg-white/5 transition-colors border-b border-border/50 last:border-0"
+                                  >
+                                    <div className="text-sm font-medium text-white truncate">{t.title}</div>
+                                    <div className="text-xs text-gray-500 mt-0.5 flex items-center gap-2">
+                                      <span className={cn(
+                                        "px-1.5 py-0.5 rounded text-[10px] uppercase font-bold",
+                                        t.priority === "high" ? "bg-red-500/20 text-red-500" :
+                                          t.priority === "medium" ? "bg-yellow-500/20 text-yellow-500" :
+                                            "bg-gray-500/20 text-gray-500"
+                                      )}>
+                                        {t.priority}
+                                      </span>
+                                      <span className="capitalize">{t.status}</span>
+                                    </div>
+                                  </button>
+                                ))
+                            ) : (
+                              <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                                Type to search across all tasks
+                              </div>
+                            )}
+                            {searchQuery.length > 0 && tasks.filter(t => t.title.toLowerCase().includes(searchQuery.toLowerCase())).length === 0 && (
+                              <div className="px-4 py-6 text-center text-gray-500 text-sm">
+                                No tasks found
+                              </div>
+                            )}
+                          </div>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
+                  </div>
                 </div>
               </div>
 
