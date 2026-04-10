@@ -1,5 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
+const FETCH_TIMEOUT = 30000;
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
@@ -54,7 +69,7 @@ Generate a weekly recap in 3-4 sentences. Discuss productivity trends, suggest i
 
     console.log("[AI Summary] Calling MiniMax API...");
     
-    const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
+    const response = await fetchWithTimeout("https://api.minimax.io/v1/text/chatcompletion_v2", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -82,6 +97,10 @@ Generate a weekly recap in 3-4 sentences. Discuss productivity trends, suggest i
       return NextResponse.json({ summary: "Unable to generate summary. Please try again." });
     }
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error("[AI Summary] Request timed out");
+      return NextResponse.json({ error: "Request timed out. Please try again." }, { status: 504 });
+    }
     console.error("[AI Summary] Error:", error.message || error);
     return NextResponse.json({ error: error.message || "Failed to generate summary" }, { status: 500 });
   }

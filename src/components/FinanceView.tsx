@@ -203,7 +203,7 @@ const StatCard = ({
 }) => (
     <div className="bg-surface border border-border rounded-2xl p-5 flex flex-col gap-3">
         <div className="flex items-center justify-between">
-            <span className="text-sm text-gray-400 font-medium">{label}</span>
+            <span className="text-sm text-gray-400 font-light">{label}</span>
             <div className="p-2 rounded-xl" style={{ background: `${color}20` }}>
                 <Icon size={16} style={{ color }} />
             </div>

@@ -2,10 +2,15 @@ import dbConnect from "@/lib/db";
 import Lead from "@/models/Lead";
 import { NextResponse } from "next/server";
 
-const TELEGRAM_BOT_TOKEN = "8511870918:AAGUWcPIW-FvAfkNJE4waOsGhpXrsz2V9qA";
-const TELEGRAM_CHAT_ID = "6916518025";
+// Telegram credentials from environment variables
+const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
-async function sendTelegramAlert(message: string) {
+async function sendTelegramAlert(message: string): Promise<void> {
+  if (!TELEGRAM_BOT_TOKEN || !TELEGRAM_CHAT_ID) {
+    console.error("Telegram credentials not configured - skipping alert");
+    return;
+  }
   await fetch(`https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import FoodEntry from '@/models/FoodEntry';
 
+const FETCH_TIMEOUT = 30000;
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 export async function POST(request: Request) {
   try {
     await dbConnect();
@@ -44,7 +59,7 @@ Items: ${itemsList}`;
 
     let response;
     try {
-      response = await fetch('https://api.minimax.io/v1/text/chatcompletion_v2', {
+      response = await fetchWithTimeout('https://api.minimax.io/v1/text/chatcompletion_v2', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -57,7 +72,11 @@ Items: ${itemsList}`;
           ],
         }),
       });
-    } catch (fetchError) {
+    } catch (fetchError: any) {
+      if (fetchError.name === 'AbortError') {
+        console.error('Minimax fetch timed out');
+        return NextResponse.json({ error: 'AI service request timed out. Please try again.' }, { status: 504 });
+      }
       console.error('Minimax fetch error:', fetchError);
       return NextResponse.json({ error: 'Failed to reach AI service' }, { status: 500 });
     }

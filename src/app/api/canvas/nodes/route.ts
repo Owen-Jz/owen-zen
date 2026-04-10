@@ -6,12 +6,18 @@ import { randomUUID } from 'crypto';
 export async function POST(req: Request) {
   await dbConnect();
   try {
-    const { position, content } = await req.json();
+    const { position, content, description, subNodes } = await req.json();
     const newNode = {
       id: randomUUID(),
       type: 'idea',
-      position,
-      data: { content: content || '', color: '#f97316', labels: [] },
+      position: position || { x: Math.random() * 400 + 100, y: Math.random() * 400 + 100 },
+      data: {
+        content: content || '',
+        description: description || '',
+        color: '#f97316',
+        labels: [],
+        subNodes: subNodes || [],
+      },
     };
     const canvas = await Canvas.findOneAndUpdate(
       {},

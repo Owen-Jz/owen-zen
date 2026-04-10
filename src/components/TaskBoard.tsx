@@ -1,4 +1,5 @@
 // --- Task Board Component ---
+import { useSoundContext } from "@/components/SoundEffects";
 import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, pointerWithin, CollisionDetection } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -89,6 +90,8 @@ export const TaskBoard = ({
   const [priorityFilter, setPriorityFilter] = useState<"all" | "high" | "medium" | "low">("all");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
+  const { playSound } = useSoundContext();
+
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
   };
@@ -150,7 +153,7 @@ export const TaskBoard = ({
     // Normal Reorder / Status Change
     let newStatus: TaskStatus | undefined;
 
-    if (["pending", "in-progress", "completed", "pinned", "ai-agent"].includes(overIdStr)) {
+    if (["pending", "in-progress", "completed", "pinned", "ai-agent", "mind-map"].includes(overIdStr)) {
       newStatus = overIdStr as TaskStatus;
     } else {
       const overTask = tasks.find(t => t._id === overIdStr);
@@ -168,6 +171,8 @@ export const TaskBoard = ({
       } else {
         activeTask.completedAt = undefined;
       }
+      // Play sound on column move
+      playSound("TASK_MOVED");
     }
 
     if (activeIdStr !== overIdStr) {
@@ -196,12 +201,13 @@ export const TaskBoard = ({
     });
   };
 
-  const columns: { id: TaskStatus | "ai-agent"; title: string }[] = [
+  const columns: { id: TaskStatus | "ai-agent" | "mind-map"; title: string }[] = [
     { id: "pending", title: "Backlog" },
     { id: "in-progress", title: "In Focus" },
     { id: "completed", title: "Done" },
     { id: "pinned", title: "Pin for Later" },
-    { id: "ai-agent", title: "AI Agent" }
+    { id: "ai-agent", title: "AI Agent" },
+    { id: "mind-map", title: "Mind Map" }
   ];
 
   // Only show non-archived tasks and apply filters
@@ -230,7 +236,7 @@ export const TaskBoard = ({
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary),0.8)]"
+              className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.8)]"
             />
           </div>
         </div>
@@ -243,13 +249,14 @@ export const TaskBoard = ({
               <button
                 key={filter}
                 onClick={() => setPriorityFilter(filter)}
+                aria-pressed={priorityFilter === filter}
                 className={cn(
                   "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
                   priorityFilter === filter
                     ? filter === 'high' ? "bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
                       filter === 'medium' ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
                         filter === 'low' ? "bg-blue-500/20 text-blue-500 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
-                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
                     : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
                 )}
               >
@@ -264,10 +271,11 @@ export const TaskBoard = ({
               <button
                 key={cat}
                 onClick={() => setCategoryFilter(cat)}
+                aria-pressed={categoryFilter === cat}
                 className={cn(
                   "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
                   categoryFilter === cat
-                    ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
+                    ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
                     : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
                 )}
               >
@@ -284,7 +292,7 @@ export const TaskBoard = ({
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-5 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6 gap-4 md:gap-6">
           {columns.map(col => {
             const isFocusCol = col.id === "in-progress";
             return (

@@ -1,5 +1,20 @@
 import { NextRequest } from "next/server";
 
+const FETCH_TIMEOUT = 60000;
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 // Force dynamic rendering so Next.js doesn't buffer
 export const dynamic = 'force-dynamic';
 
@@ -66,18 +81,30 @@ For all other responses (questions, analysis, discussion), respond with plain te
   ];
 
   // Use fetch with streaming
-  const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: "MiniMax-M2.7",
-      messages: minimaxMessages,
-      stream: true,
-    }),
-  });
+  let response;
+  try {
+    response = await fetchWithTimeout("https://api.minimax.io/v1/text/chatcompletion_v2", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: "MiniMax-M2.7",
+        messages: minimaxMessages,
+        stream: true,
+      }),
+    });
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error("[Canvas AI] Request timed out");
+      return new Response(JSON.stringify({ error: "AI request timed out. Please try again." }), {
+        status: 504,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+    throw error;
+  }
 
   if (!response.ok) {
     const errorText = await response.text();

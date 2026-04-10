@@ -546,7 +546,7 @@ function CanvasInner() {
         </div>
       )}
       <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} />
-      <BottomDock onCreateNode={handleCreateNodeFromTask} onCreateTask={handleCreateTaskFromNode} />
+      <BottomDock />
       {creatingNode && (
         <div
           className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"

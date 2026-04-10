@@ -19,6 +19,10 @@ const CanvasNodeSchema = new mongoose.Schema({
       content: { type: String, default: '' },
       color: { type: String, default: '#f97316' },
     }],
+    messages: [{
+      role: { type: String, enum: ['user', 'assistant'], default: 'user' },
+      content: { type: String, default: '' },
+    }],
   },
 }, { _id: false });
 

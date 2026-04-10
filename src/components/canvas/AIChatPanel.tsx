@@ -206,9 +206,6 @@ Sub-nodes: ${nodeData.subNodes?.length ? nodeData.subNodes.map((s: any) => s.con
         return;
       }
 
-      const text = await response.text();
-      console.log('[AIChatPanel] received text length:', text.length, 'first 100 chars:', text.slice(0, 100));
-
       let assistantMessage = '';
       const newSuggestions: Suggestion[] = [];
 

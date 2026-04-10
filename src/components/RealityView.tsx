@@ -229,7 +229,7 @@ export const RealityView = () => {
             <div key={years} className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className={cn("w-2 h-2 rounded-full", color)} />
-                <span className="text-sm font-medium text-gray-400">{label}</span>
+                <span className="text-sm font-light text-gray-400">{label}</span>
               </div>
               {editingSection === `yearPlan-${years}` ? (
                 <div className="space-y-2">

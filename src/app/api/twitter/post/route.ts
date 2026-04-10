@@ -2,6 +2,21 @@
 import { NextResponse } from 'next/server';
 import { TwitterApi } from 'twitter-api-v2';
 
+const FETCH_TIMEOUT = 30000;
+
+async function fetchWithTimeout(url: string, options?: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 export async function POST(req: Request) {
     try {
         const { content, imageUrl } = await req.json();
@@ -24,7 +39,7 @@ export async function POST(req: Request) {
         if (imageUrl) {
             try {
                 // Fetch the image from URL
-                const imageResponse = await fetch(imageUrl);
+                const imageResponse = await fetchWithTimeout(imageUrl);
                 if (!imageResponse.ok) throw new Error("Failed to fetch image");
 
                 const arrayBuffer = await imageResponse.arrayBuffer();
@@ -37,6 +52,13 @@ export async function POST(req: Request) {
                 // Upload media (v1.1 endpoint is required for media upload currently)
                 mediaId = await client.v1.uploadMedia(imageBuffer, { mimeType });
             } catch (mediaError: any) {
+                if (mediaError.name === 'AbortError') {
+                    console.error("Image fetch timed out");
+                    return NextResponse.json({
+                        success: false,
+                        error: 'Image fetch timed out. Please try again.'
+                    }, { status: 504 });
+                }
                 console.error("Media upload failed:", mediaError);
                 // Return detailed error if possible
                 return NextResponse.json({
@@ -56,6 +78,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, data: tweet });
 
     } catch (error: any) {
+        if (error.name === 'AbortError') {
+            console.error('Twitter API request timed out');
+            return NextResponse.json({ success: false, error: 'Request timed out. Please try again.' }, { status: 504 });
+        }
         console.error('Twitter API Error:', error);
         return NextResponse.json({ success: false, error: error.message || 'Failed to post to Twitter' }, { status: 500 });
     }

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { Lock, Eye, EyeOff } from "lucide-react";
 
-const CORRECT_PASSWORD = "123454";
-
 interface LockScreenProps {
   onUnlock: () => void;
 }
@@ -13,17 +11,40 @@ export const LockScreen = ({ onUnlock }: LockScreenProps) => {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === CORRECT_PASSWORD) {
-      localStorage.setItem("auth-unlocked", "true");
-      localStorage.setItem("auth-unlocked-at", Date.now().toString());
-      onUnlock();
-    } else {
+    if (!password) return;
+
+    setIsVerifying(true);
+    setError(false);
+
+    try {
+      const res = await fetch("/api/auth/verify-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await res.json();
+
+      if (data.valid) {
+        localStorage.setItem("auth-unlocked", "true");
+        localStorage.setItem("auth-unlocked-at", Date.now().toString());
+        onUnlock();
+      } else {
+        setError(true);
+        setPassword("");
+        setTimeout(() => setError(false), 1000);
+      }
+    } catch (err) {
+      console.error("Password verification error:", err);
       setError(true);
       setPassword("");
       setTimeout(() => setError(false), 1000);
+    } finally {
+      setIsVerifying(false);
     }
   };
 
@@ -65,9 +86,10 @@ export const LockScreen = ({ onUnlock }: LockScreenProps) => {
 
           <button
             type="submit"
-            className="w-full bg-primary hover:brightness-110 text-white font-medium py-3 rounded-xl transition-all"
+            disabled={isVerifying}
+            className="w-full bg-primary hover:brightness-110 disabled:opacity-50 text-white font-medium py-3 rounded-xl transition-all"
           >
-            Unlock
+            {isVerifying ? "Verifying..." : "Unlock"}
           </button>
         </form>
 

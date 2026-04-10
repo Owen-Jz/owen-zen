@@ -7,7 +7,7 @@ import { Loading } from "@/components/Loading";
 import { HabitDetailModal } from "./habit/HabitDetailModal";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { useSound } from "@/components/SoundEffects";
+import { useSoundContext } from "@/components/SoundEffects";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -54,7 +54,7 @@ export const HabitView = () => {
     const [dailyWeekOffset, setDailyWeekOffset] = useState(0);
 
     // Sound effects
-    const { playComplete } = useSound();
+    const { playSound } = useSoundContext();
 
     // --- getCurrentWeekKey Helper ---
     const getCurrentWeekKey = (): string => {
@@ -323,7 +323,7 @@ export const HabitView = () => {
 
         // Play sound when marking a habit as complete
         if (isCompleting) {
-            playComplete();
+            playSound('HABIT_COMPLETED');
         }
 
         await fetch(`/api/habits/${id}`, {
@@ -555,7 +555,7 @@ export const HabitView = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
-                            <div className="text-sm text-gray-400 font-medium mb-1">Today's Progress</div>
+                            <div className="text-sm text-gray-400 font-light mb-1">Today's Progress</div>
                             <div className="text-2xl font-bold text-white">
                                 {completedToday} <span className="text-gray-500 text-base font-medium">/ {totalHabits}</span>
                             </div>
@@ -575,7 +575,7 @@ export const HabitView = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
-                            <div className="text-sm text-gray-400 font-medium mb-1">Weekly Consistency</div>
+                            <div className="text-sm text-gray-400 font-light mb-1">Weekly Consistency</div>
                             <div className="text-2xl font-bold text-white">
                                 {last7Rate}%
                             </div>
@@ -595,7 +595,7 @@ export const HabitView = () => {
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
-                            <div className="text-sm text-gray-400 font-medium mb-1">Monthly Focus</div>
+                            <div className="text-sm text-gray-400 font-light mb-1">Monthly Focus</div>
                             <div className="text-2xl font-bold text-white">
                                 {last30Rate}%
                             </div>
@@ -671,7 +671,7 @@ export const HabitView = () => {
                             <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative z-10 flex justify-between items-start mb-4">
                                 <div>
-                                    <div className="text-sm text-gray-400 font-medium mb-1">This Week</div>
+                                    <div className="text-sm text-gray-400 font-light mb-1">This Week</div>
                                     <div className="text-2xl font-bold text-white">
                                         {completedThisWeek} <span className="text-gray-500 text-base font-medium">/ {totalWeekly}</span>
                                     </div>
@@ -691,7 +691,7 @@ export const HabitView = () => {
                             <div className="absolute inset-0 bg-gradient-to-br from-cyan-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative z-10 flex justify-between items-start mb-4">
                                 <div>
-                                    <div className="text-sm text-gray-400 font-medium mb-1">Weekly Consistency</div>
+                                    <div className="text-sm text-gray-400 font-light mb-1">Weekly Consistency</div>
                                     <div className="text-2xl font-bold text-white">
                                         {weeklyConsistencyRate}%
                                     </div>
@@ -711,7 +711,7 @@ export const HabitView = () => {
                             <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative z-10 flex justify-between items-start mb-4">
                                 <div>
-                                    <div className="text-sm text-gray-400 font-medium mb-1">Current Streak</div>
+                                    <div className="text-sm text-gray-400 font-light mb-1">Current Streak</div>
                                     <div className="text-2xl font-bold text-white">
                                         {weeklyMaxStreak} <span className="text-gray-500 text-base font-medium">wks</span>
                                     </div>
@@ -728,7 +728,7 @@ export const HabitView = () => {
                             <div className="absolute inset-0 bg-gradient-to-br from-yellow-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                             <div className="relative z-10 flex justify-between items-start mb-4">
                                 <div>
-                                    <div className="text-sm text-gray-400 font-medium mb-1">Total Weeks</div>
+                                    <div className="text-sm text-gray-400 font-light mb-1">Total Weeks</div>
                                     <div className="text-2xl font-bold text-white">
                                         {totalWeeksCompleted}
                                     </div>
@@ -797,7 +797,7 @@ export const HabitView = () => {
                         {totalHabits > 0 && completedToday < totalHabits && (
                             <button
                                 onClick={markAllCompletedToday}
-                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-bold uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(var(--primary),0.2)]"
+                                className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/20 text-primary border border-primary/30 rounded-lg hover:bg-primary hover:text-white transition-all text-xs font-bold uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]"
                                 title="Fast Track: Complete entirely"
                             >
                                 <Zap size={14} /> Fast Track

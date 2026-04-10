@@ -127,7 +127,7 @@ const GoalItem = ({
                 <div className="flex items-center gap-3 mt-1.5 opacity-80">
                   <div className="h-1 w-24 bg-white/10 rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(var(--primary),0.8)]"
+                      className="h-full bg-primary transition-all duration-500 shadow-[0_0_10px_rgba(var(--primary-rgb),0.8)]"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>

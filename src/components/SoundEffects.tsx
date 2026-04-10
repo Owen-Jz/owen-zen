@@ -1,52 +1,86 @@
 "use client";
 
-import { useCallback, useRef } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
+import { playSound as playSoundFile } from "@/lib/soundService";
+import type { SoundEvent } from "@/lib/soundEvents";
 
-type SoundType = "complete" | "tick" | "alarm" | "success";
+// SoundContext for global mute state
+interface SoundContextValue {
+  isMuted: boolean;
+  setMuted: (muted: boolean) => void;
+  playSound: (event: SoundEvent) => void;
+}
 
-const SOUNDS = {
-  complete: { frequency: 587.33, duration: 0.15, type: "sine" as OscillatorType },
-  tick: { frequency: 220, duration: 0.05, type: "square" as OscillatorType },
-  alarm: { frequency: 440, duration: 0.3, type: "square" as OscillatorType },
-  success: { frequency: 783.99, duration: 0.2, type: "sine" as OscillatorType },
-};
+const SoundContext = createContext<SoundContextValue>({
+  isMuted: false,
+  setMuted: () => {},
+  playSound: () => {},
+});
 
-let audioContext: AudioContext | null = null;
+export function SoundProvider({ children }: { children: React.ReactNode }) {
+  const [isMuted, setIsMuted] = useState(false);
 
-const getAudioContext = () => {
-  if (typeof window === "undefined") return null;
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-  }
-  return audioContext;
-};
+  useEffect(() => {
+    const stored = localStorage.getItem("sound-muted");
+    if (stored !== null) {
+      setIsMuted(stored === "true");
+    }
+  }, []);
 
-export const playSound = (type: SoundType = "complete", volume: number = 0.3) => {
-  const ctx = getAudioContext();
-  if (!ctx) return;
+  const setMuted = useCallback((muted: boolean) => {
+    setIsMuted(muted);
+    localStorage.setItem("sound-muted", String(muted));
+  }, []);
 
-  const sound = SOUNDS[type];
-  const oscillator = ctx.createOscillator();
-  const gainNode = ctx.createGain();
+  const playSound = useCallback(
+    (event: SoundEvent) => {
+      if (!isMuted) {
+        playSoundFile(event);
+      }
+    },
+    [isMuted]
+  );
 
-  oscillator.connect(gainNode);
-  gainNode.connect(ctx.destination);
+  return (
+    <SoundContext.Provider value={{ isMuted, setMuted, playSound }}>
+      {children}
+    </SoundContext.Provider>
+  );
+}
 
-  oscillator.frequency.value = sound.frequency;
-  oscillator.type = sound.type;
+export function useSoundContext() {
+  return useContext(SoundContext);
+}
 
-  gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + sound.duration);
-
-  oscillator.start(ctx.currentTime);
-  oscillator.stop(ctx.currentTime + sound.duration);
+// Backward-compatible sound triggers using MP3 files
+const SOUND_EVENTS = {
+  complete: "TASK_COMPLETED" as SoundEvent,
+  tick: "POMODORO_STARTED" as SoundEvent,
+  alarm: "BREAK_ENDED" as SoundEvent,
+  success: "GOAL_ACHIEVED" as SoundEvent,
 };
 
 export const useSound = () => {
-  const playComplete = useCallback(() => playSound("complete", 0.2), []);
-  const playSuccess = useCallback(() => playSound("success", 0.2), []);
-  const playAlarm = useCallback(() => playSound("alarm", 0.15), []);
-  const playTick = useCallback(() => playSound("tick", 0.05), []);
+  const { playSound: contextPlaySound, isMuted, setMuted } = useSoundContext();
 
-  return { playComplete, playSuccess, playAlarm, playTick };
+  const playComplete = useCallback(() => {
+    if (!isMuted) playSoundFile(SOUND_EVENTS.complete);
+  }, [isMuted]);
+
+  const playSuccess = useCallback(() => {
+    if (!isMuted) playSoundFile(SOUND_EVENTS.success);
+  }, [isMuted]);
+
+  const playAlarm = useCallback(() => {
+    if (!isMuted) playSoundFile(SOUND_EVENTS.alarm);
+  }, [isMuted]);
+
+  const playTick = useCallback(() => {
+    if (!isMuted) playSoundFile(SOUND_EVENTS.tick);
+  }, [isMuted]);
+
+  return { playComplete, playSuccess, playAlarm, playTick, isMuted, setMuted };
 };
+
+// Standalone playSound for new code
+export { playSoundFile };

@@ -135,7 +135,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
                             "p-1.5 flex justify-center items-center rounded-xl text-xs font-medium transition-all w-8 h-8",
                             !isCurrentMonth ? "text-gray-600 hover:text-gray-400" : "text-gray-300",
                             isCurrentMonth && !isSelected && "hover:bg-white/10 hover:text-white",
-                            isSelected && "bg-primary text-white font-bold shadow-[0_0_10px_rgba(var(--primary),0.5)]",
+                            isSelected && "bg-primary text-white font-bold shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]",
                             isToday && !isSelected && "border border-primary/50 text-primary"
                         )}
                     >
@@ -166,7 +166,7 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
                 className={cn(
                     "w-full flex items-center justify-between bg-black/20 border border-white/10 rounded-lg pl-3 pr-4 py-2.5 text-sm transition-colors hover:bg-black/30 outline-none",
                     value ? "text-gray-200" : "text-gray-500 focus:border-primary",
-                    isOpen && "border-primary shadow-[0_0_10px_rgba(var(--primary),0.2)]"
+                    isOpen && "border-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.2)]"
                 )}
             >
                 <div className="flex items-center gap-2">

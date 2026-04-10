@@ -45,6 +45,7 @@ import { TimeTracker } from "@/components/TimeTracker";
 import { FocusOverlay } from "@/components/FocusOverlay";
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
 import { SectionsGrid, useSectionsGrid } from "@/components/SectionsGrid";
+import BottomDock from "@/components/canvas/BottomDock";
 
 // Lazy load views for better performance
 const HabitView = dynamic(() => import("@/components/HabitView").then(mod => ({ default: mod.HabitView })), {
@@ -1330,6 +1331,15 @@ export default function Dashboard() {
 
     return () => clearInterval(interval);
   }, [tasks]);
+
+  // Switch to mind map tab when a dock task is dropped on the canvas
+  useEffect(() => {
+    const handleDockTaskDropped = () => {
+      setActiveTab('mind-map');
+    };
+    window.addEventListener('canvas:addTaskNode', handleDockTaskDropped);
+    return () => window.removeEventListener('canvas:addTaskNode', handleDockTaskDropped);
+  }, []);
 
   // Load Boards
   useEffect(() => {
@@ -2711,8 +2721,7 @@ export default function Dashboard() {
               )}
             </motion.div>
           )}
-
-          {activeTab === "projects" && <ProjectView />}
+            <BottomDock />
           {activeTab === "stats" && <AnalyticsView />}
           {activeTab === "habits" && <HabitView />}
           {activeTab === "habit-analytics" && <HabitAnalyticsView />}

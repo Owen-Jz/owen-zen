@@ -34,6 +34,7 @@
   --foreground: #f5f5f5;
   --primary: #dc2626;
   /* Red-600 */
+  --primary-rgb: 220, 38, 38;
   --primary-light: #ef4444;
   /* Red-500 */
   --surface: #0a0a0a;
@@ -66,6 +67,7 @@
   --foreground: #e0f2fe;
   --primary: #d946ef;
   /* Fuchsia */
+  --primary-rgb: 217, 70, 239;
   --primary-light: #22d3ee;
   /* Cyan */
   --surface: #0f172a;
@@ -79,6 +81,7 @@
   --background: #000000;
   --foreground: #00ff41;
   --primary: #008f11;
+  --primary-rgb: 0, 143, 17;
   --primary-light: #00ff41;
   --surface: #050505;
   --surface-hover: #0a0a0a;
@@ -92,6 +95,7 @@
   --foreground: #f8fafc;
   --primary: #3b82f6;
   /* Blue-500 */
+  --primary-rgb: 59, 130, 246;
   --primary-light: #60a5fa;
   /* Blue-400 */
   --surface: #0f172a;
@@ -107,6 +111,7 @@
   --foreground: #ecfdf5;
   --primary: #10b981;
   /* Emerald-500 */
+  --primary-rgb: 16, 185, 129;
   --primary-light: #34d399;
   /* Emerald-400 */
   --surface: #064e3b;
@@ -122,6 +127,7 @@
   --foreground: #fafaf9;
   --primary: #f59e0b;
   /* Amber-500 */
+  --primary-rgb: 245, 158, 11;
   --primary-light: #fbbf24;
   /* Amber-400 */
   --surface: #292524;
@@ -137,6 +143,7 @@
   --foreground: #e0e7ff;
   --primary: #6366f1;
   /* Indigo-500 */
+  --primary-rgb: 99, 102, 241;
   --primary-light: #818cf8;
   /* Indigo-400 */
   --surface: #0f0f2a;
@@ -151,6 +158,7 @@
   --foreground: #fce7f3;
   --primary: #ec4899;
   /* Pink-500 */
+  --primary-rgb: 236, 72, 153;
   --primary-light: #f472b6;
   /* Pink-400 */
   --surface: #2d1020;
@@ -165,6 +173,7 @@
   --foreground: #dcfce7;
   --primary: #22c55e;
   /* Green-500 */
+  --primary-rgb: 34, 197, 94;
   --primary-light: #4ade80;
   /* Green-400 */
   --surface: #0a2d18;
@@ -181,6 +190,7 @@
   /* Snow Storm 0 */
   --primary: #88c0d0;
   /* Frost 0 */
+  --primary-rgb: 136, 192, 208;
   --primary-light: #81a1c1;
   /* Aurora 1 */
   --surface: #3b4252;
@@ -198,6 +208,7 @@
   --foreground: #f8f8f2;
   --primary: #bd93f9;
   /* Purple */
+  --primary-rgb: 189, 147, 249;
   --primary-light: #d6acff;
   /* Light Purple */
   --surface: #1e1f29;
@@ -213,6 +224,7 @@
   --foreground: #f5f0e8;
   --primary: #cd853f;
   /* Peru / terracotta */
+  --primary-rgb: 205, 133, 63;
   --primary-light: #daa520;
   /* Goldenrod */
   --surface: #2a2622;
@@ -227,6 +239,7 @@
   --foreground: #24292f;
   --primary: #0969da;
   /* GitHub blue */
+  --primary-rgb: 9, 105, 218;
   --primary-light: #58a6ff;
   --surface: #ffffff;
   --surface-hover: #f0f0f0;
@@ -256,6 +269,7 @@
   --foreground: #c0caf5;
   --primary: #7aa2f7;
   /* Soft blue */
+  --primary-rgb: 122, 162, 247;
   --primary-light: #9ece6a;
   /* Lime accent */
   --surface: #16161e;
@@ -270,6 +284,7 @@
   /* Zinc-950 */
   --primary: #3b82f6;
   /* Blue-500 */
+  --primary-rgb: 59, 130, 246;
   --primary-light: #60a5fa;
   /* Blue-400 */
   --surface: #f4f4f5;
@@ -303,6 +318,7 @@
   --foreground: #e9d5ff;
   --primary: #8b5cf6;
   /* Purple-500 */
+  --primary-rgb: 139, 92, 246;
   --primary-light: #a78bfa;
   /* Purple-400 */
   --surface: #251f33;
@@ -316,6 +332,7 @@
   --foreground: #ffe4e6;
   --primary: #f43f5e;
   /* Rose-500 */
+  --primary-rgb: 244, 63, 94;
   --primary-light: #fb7185;
   /* Rose-400 */
   --surface: #2a1f24;
@@ -329,6 +346,7 @@
   --foreground: #b4e5f9;
   --primary: #06b6d4;
   /* Cyan-500 */
+  --primary-rgb: 6, 182, 212;
   --primary-light: #22d3ee;
   /* Cyan-400 */
   --surface: #132f4c;
@@ -383,6 +401,10 @@ body::before {
   &:hover {
     box-shadow: 0 6px 20px color-mix(in srgb, var(--primary) 23%, transparent);
   }
+}
+
+@utility btn-disabled {
+  @apply opacity-50 cursor-not-allowed pointer-events-none;
 }
 
 @utility card-glass {
@@ -440,6 +462,36 @@ body::before {
   }
 }
 
+/* =============================================
+   RADIUS TOKEN SYSTEM (Tailwind v4 aligned)
+   =============================================
+
+   Use Tailwind classes directly — the CSS tokens below
+   document the scale but do NOT need to be referenced in components.
+   Map to Tailwind classes for consistency:
+
+   --radius-sm  (0.375rem / 6px)  → rounded-md
+   --radius-md  (0.5rem / 8px)    → rounded-lg
+   --radius-lg  (0.75rem / 12px)  → rounded-xl
+   --radius-xl  (1rem / 16px)     → rounded-2xl
+   --radius-2xl (1.5rem / 24px)  → rounded-3xl
+   --radius-full (9999px)         → rounded-full
+
+   ============================================= */
+
+/* =============================================
+   BLUR LEVEL CONVENTION
+   =============================================
+   Use backdrop-blur classes consistently:
+
+   backdrop-blur-sm  (4px)  - subtle, near-background (overlays, headers)
+   backdrop-blur-md  (12px) - cards, default glass surfaces
+   backdrop-blur-xl  (24px) - modals, prominent panels
+   backdrop-blur-2xl (32px) - drag overlays, focused/elevated elements
+
+   Use backdrop-blur-3xl sparingly for top-level overlays.
+   ============================================= */
+
 /* Animation timing tokens */
 :root {
   --duration-fast: 150ms;
@@ -448,7 +500,7 @@ body::before {
   --ease-default: cubic-bezier(0.4, 0, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
 
-  /* Border radius tokens */
+  /* Border radius tokens (mapped to Tailwind classes above) */
   --radius-sm: 0.375rem;
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
@@ -464,6 +516,20 @@ body::before {
 
 @utility card-hover {
   @apply hover:bg-surface/80 hover:border-white/10 hover:shadow-2xl;
+}
+
+/* Typography Scale */
+.text-h1 { @apply text-2xl font-bold leading-tight tracking-tight; }
+.text-h2 { @apply text-xl font-semibold leading-tight tracking-tight; }
+.text-h3 { @apply text-lg font-semibold leading-normal; }
+.text-body { @apply text-base font-normal leading-normal; }
+.text-caption { @apply text-sm font-medium leading-normal; }
+.text-overline { @apply text-xs font-bold uppercase tracking-widest leading-normal; }
+
+/* Responsive text scaling for 2xl+ screens */
+@media (min-width: 1536px) {
+  .text-h1 { @apply text-3xl; }
+  .text-h2 { @apply text-2xl; }
 }
 
 /* Focus visible styles for accessibility */
@@ -502,4 +568,8 @@ select:focus-visible {
 
 .skip-link:focus {
   top: 0;
+}
+/* Icon stroke weight: 1.5px standard, 2px for emphasis (e.g. bold checkmarks) */
+:root {
+  --icon-stroke: 1.5;
 }

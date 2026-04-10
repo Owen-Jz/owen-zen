@@ -61,7 +61,7 @@ export const ProjectView = () => {
                             className={cn(
                                 "px-4 py-2 rounded-xl text-sm font-medium transition-all capitalize",
                                 activeCategory === cat
-                                    ? "bg-primary text-white shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                                    ? "bg-primary text-white shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
                                     : "bg-surface border border-border text-gray-400 hover:text-white"
                             )}
                         >
@@ -71,7 +71,7 @@ export const ProjectView = () => {
                 </div>
                 <button
                     onClick={() => { setEditingProject(null); setIsModalOpen(true); }}
-                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl shadow-[0_0_15px_rgba(var(--primary),0.3)] hover:bg-primary/90 transition-all font-bold"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white rounded-xl shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] hover:bg-primary/90 transition-all font-bold"
                 >
                     <Plus size={18} className="stroke-[3px]" /> New Project
                 </button>
@@ -192,7 +192,7 @@ const ProjectCard = ({ project, onEdit, onDelete }: { project: Project, onEdit: 
                         transition={{ duration: 1, ease: "easeOut" }}
                         className={cn(
                             "h-full rounded-full transition-colors duration-500",
-                            project.progress === 100 ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-primary shadow-[0_0_10px_rgba(var(--primary),0.5)]"
+                            project.progress === 100 ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]" : "bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
                         )}
                     />
                 </div>
@@ -539,7 +539,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                             type="submit"
                             form="project-form"
                             disabled={isSubmitting}
-                            className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary),0.5)] font-bold transition-all disabled:opacity-50"
+                            className="px-6 py-3 rounded-xl bg-primary text-white hover:bg-primary/90 hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] font-bold transition-all disabled:opacity-50"
                         >
                             {isSubmitting ? "Saving..." : "Save Project"}
                         </button>

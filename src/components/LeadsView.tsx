@@ -475,7 +475,7 @@ export function LeadsView() {
       <div className="bg-surface/50 border border-border/50 rounded-xl p-4 flex items-start gap-3">
         <ExternalLink size={16} className="text-gray-500 mt-0.5 shrink-0" />
         <div>
-          <div className="text-sm font-medium text-gray-400 mb-0.5">Resend Webhook</div>
+          <div className="text-sm font-light text-gray-400 mb-0.5">Resend Webhook</div>
           <div className="text-xs text-gray-600">
             Point your Resend inbound/reply webhook to:
             <code className="ml-1 text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs">

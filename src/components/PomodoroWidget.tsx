@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Play, Pause, RotateCcw, Coffee, Brain, Clock, CheckCircle2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useSound } from "@/components/SoundEffects";
+import { useSoundContext } from "@/components/SoundEffects";
 
 type TimerMode = "focus" | "shortBreak" | "longBreak";
 type WidgetMode = "pomodoro" | "dailyTrack";
@@ -63,7 +63,9 @@ export const PomodoroWidget = () => {
   const [currentSeconds, setCurrentSeconds] = useState(0);
 
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const { playAlarm } = useSound();
+  const { playSound } = useSoundContext();
+  const playSoundRef = useRef(playSound);
+  playSoundRef.current = playSound;
 
   const getTimeForMode = (m: TimerMode) => {
     switch (m) {
@@ -169,7 +171,7 @@ export const PomodoroWidget = () => {
     if (widgetMode !== "pomodoro" || timeLeft !== 0 || !isLoaded) return;
 
     setIsRunning(false);
-    playAlarm();
+    playSoundRef.current(mode === "focus" ? 'POMODORO_COMPLETE' : 'BREAK_ENDED');
     if (mode === "focus") {
       setSessions((prev) => prev + 1);
     }
@@ -485,6 +487,7 @@ export const PomodoroWidget = () => {
             <div className="flex items-center justify-center gap-2 mb-3">
               <button
                 onClick={toggleTimer}
+                aria-label={isRunning ? "Pause timer" : "Start timer"}
                 className={`p-2 rounded-full transition-all ${
                   isRunning
                     ? "bg-yellow-500/30 hover:bg-yellow-500/40 text-yellow-500"
@@ -495,6 +498,7 @@ export const PomodoroWidget = () => {
               </button>
               <button
                 onClick={resetTimer}
+                aria-label="Reset timer"
                 className="p-2 bg-gray-700/50 hover:bg-gray-700 rounded-full transition-all"
               >
                 <RotateCcw className="w-4 h-4" />

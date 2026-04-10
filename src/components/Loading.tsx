@@ -8,7 +8,7 @@ export const Loading = ({ text = "Loading..." }: { text?: string }) => {
             <div className="relative w-16 h-16">
                 {/* Outer Ring */}
                 <motion.div
-                    className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full shadow-[0_0_15px_rgba(var(--primary),0.3)]"
+                    className="absolute inset-0 border-4 border-primary/20 border-t-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]"
                     animate={{ rotate: 360 }}
                     transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                 />
@@ -19,7 +19,7 @@ export const Loading = ({ text = "Loading..." }: { text?: string }) => {
                     transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                 />
                 {/* Center Dot */}
-                <div className="absolute inset-[26px] bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary),0.8)]" />
+                <div className="absolute inset-[26px] bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.8)]" />
             </div>
 
             <motion.div

@@ -121,23 +121,35 @@ export async function GET(req: Request) {
             dailyTrend.push({ date: dateStr, day, amount: dailySpending[dateStr] || 0 });
         }
 
-        // Last 6 months comparison
+        // Last 6 months comparison - fetch all upfront
+        const sixMonthsAgo = new Date(year, monthNum - 6, 1);
+        const sixMonthsEnd = new Date(year, monthNum, 0, 23, 59, 59);
+
+        const [sixMonthsExpenses, sixMonthsIncomes] = await Promise.all([
+            Expense.find({ date: { $gte: sixMonthsAgo, $lte: sixMonthsEnd } }),
+            Income.find({ date: { $gte: sixMonthsAgo, $lte: sixMonthsEnd } }),
+        ]);
+
         const monthlyComparison = [];
         for (let i = 5; i >= 0; i--) {
             const compareDate = new Date(year, monthNum - 1 - i, 1);
             const compareStart = new Date(compareDate.getFullYear(), compareDate.getMonth(), 1);
             const compareEnd = new Date(compareDate.getFullYear(), compareDate.getMonth() + 1, 0, 23, 59, 59);
 
-            const [mExpenses, mIncomes] = await Promise.all([
-                Expense.find({ date: { $gte: compareStart, $lte: compareEnd } }),
-                Income.find({ date: { $gte: compareStart, $lte: compareEnd } }),
-            ]);
+            const monthExpenses = sixMonthsExpenses.filter(e => {
+                const d = new Date(e.date);
+                return d >= compareStart && d <= compareEnd;
+            });
+            const monthIncomes = sixMonthsIncomes.filter(i => {
+                const d = new Date(i.date);
+                return d >= compareStart && d <= compareEnd;
+            });
 
             monthlyComparison.push({
                 month: `${compareDate.getFullYear()}-${String(compareDate.getMonth() + 1).padStart(2, "0")}`,
                 label: compareDate.toLocaleDateString("en-US", { month: "short" }),
-                expenses: mExpenses.reduce((sum, e) => sum + e.amount, 0),
-                income: mIncomes.reduce((sum, i) => sum + i.amount, 0),
+                expenses: monthExpenses.reduce((sum, e) => sum + e.amount, 0),
+                income: monthIncomes.reduce((sum, i) => sum + i.amount, 0),
             });
         }
 

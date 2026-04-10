@@ -1,12 +1,25 @@
 import dbConnect from "@/lib/db";
 import WeeklyGoal from "@/models/WeeklyGoal";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
         await dbConnect();
-        const weeklyGoals = await WeeklyGoal.find({}).sort({ order: 1, createdAt: 1 }).lean();
-        return NextResponse.json({ success: true, data: weeklyGoals });
+        const { searchParams } = new URL(req.url);
+        const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+        const limit = Math.min(100, Math.max(1, parseInt(searchParams.get('limit') || '20', 10)));
+        const skip = (page - 1) * limit;
+
+        const [weeklyGoals, total] = await Promise.all([
+            WeeklyGoal.find({}).sort({ order: 1, createdAt: 1 }).skip(skip).limit(limit).lean(),
+            WeeklyGoal.countDocuments({})
+        ]);
+
+        return NextResponse.json({
+            success: true,
+            data: weeklyGoals,
+            pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+        });
     } catch (error) {
         console.error("GET /api/weekly-goals error:", error);
         return NextResponse.json({ success: false, error: String(error) }, { status: 400 });

@@ -7,8 +7,7 @@ import { GripVertical, ChevronUp, ChevronDown, Sparkles } from 'lucide-react';
 import { Task } from '@/types';
 
 interface BottomDockProps {
-  onCreateNode: (task: Task, position: { x: number; y: number }) => void;
-  onCreateTask: (nodeId: string, position: { x: number; y: number }) => void;
+  onAddTaskNode?: (task: DockTask) => void;
 }
 
 interface DockTask extends Task {
@@ -17,7 +16,7 @@ interface DockTask extends Task {
   subtasks?: { title: string; completed: boolean }[];
 }
 
-export default function BottomDock({ onCreateNode, onCreateTask }: BottomDockProps) {
+export default function BottomDock({ onAddTaskNode }: BottomDockProps) {
   const [collapsed, setCollapsed] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
   const [draggingTaskId, setDraggingTaskId] = useState<string | null>(null);
@@ -39,25 +38,18 @@ export default function BottomDock({ onCreateNode, onCreateTask }: BottomDockPro
   const handleTaskDragEnd = useCallback((e: React.DragEvent) => {
     setDraggingTaskId(null);
     sessionStorage.removeItem('dock-drag-task');
-  }, []);
-
-  const handleNodeDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragOver(false);
-    const nodeId = e.dataTransfer.getData('application/canvas-node');
-    if (!nodeId) return;
-
-    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-    const position = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    onCreateTask(nodeId, position);
-  }, [onCreateTask]);
-
-  const handleNodeDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const hasNode = e.dataTransfer.types.includes('application/canvas-node');
-    if (hasNode) {
-      setIsDragOver(true);
-      e.dataTransfer.dropEffect = 'move';
+    const target = e.relatedTarget as HTMLElement | null;
+    const dockEl = e.currentTarget as HTMLElement;
+    // Only fire if dropped OUTSIDE the dock (i.e., on the page/canvas)
+    if (!dockEl.contains(target)) {
+      const taskJson = sessionStorage.getItem('dock-drag-task') ?? '';
+      if (taskJson) {
+        const task: DockTask = JSON.parse(taskJson);
+        // Dispatch event for the page to handle (switch to canvas tab + create node)
+        window.dispatchEvent(new CustomEvent('canvas:addTaskNode', {
+          detail: { task },
+        }));
+      }
     }
   }, []);
 
@@ -111,9 +103,6 @@ export default function BottomDock({ onCreateNode, onCreateTask }: BottomDockPro
             minHeight: 80,
             pointerEvents: 'auto',
           }}
-          onDrop={handleNodeDrop}
-          onDragOver={handleNodeDragOver}
-          onDragLeave={handleNodeDragLeave}
         >
           {dockTasks.length === 0 ? (
             <div

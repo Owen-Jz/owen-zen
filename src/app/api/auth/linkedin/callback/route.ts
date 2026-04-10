@@ -1,15 +1,37 @@
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from "@/lib/db";
 import Integration from "@/models/Integration";
 
 const CLIENT_ID = process.env.LINKEDIN_CLIENT_ID;
 const CLIENT_SECRET = process.env.LINKEDIN_CLIENT_SECRET;
-const REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI || 'http://127.0.0.1:3000/api/auth/linkedin/callback';
+const REDIRECT_URI = process.env.LINKEDIN_REDIRECT_URI;
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:3000';
 
-export async function GET(req: Request) {
+// Timeout for external API calls (30 seconds)
+const FETCH_TIMEOUT = 30000;
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
+export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
+    const state = searchParams.get('state');
     const error = searchParams.get('error');
 
     if (error) {
@@ -20,9 +42,21 @@ export async function GET(req: Request) {
         return NextResponse.json({ error: "No authorization code provided" }, { status: 400 });
     }
 
+    // Validate state parameter for CSRF protection
+    const expectedState = req.cookies.get('linkedin_oauth_state')?.value;
+    if (!expectedState || state !== expectedState) {
+        return NextResponse.json({ error: "Invalid OAuth state - possible CSRF attack" }, { status: 400 });
+    }
+
+    // Validate that REDIRECT_URI is configured (no localhost fallback)
+    if (!REDIRECT_URI) {
+        console.error("LINKEDIN_REDIRECT_URI environment variable is not set");
+        return NextResponse.redirect(`${FRONTEND_URL}/?linkedin_error=configuration`);
+    }
+
     try {
         // Exchange code for access token
-        const tokenRes = await fetch('https://www.linkedin.com/oauth/v2/accessToken', {
+        const tokenRes = await fetchWithTimeout('https://www.linkedin.com/oauth/v2/accessToken', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: new URLSearchParams({
@@ -45,7 +79,7 @@ export async function GET(req: Request) {
         const expiresAt = new Date(Date.now() + expiresIn * 1000);
 
         // Fetch User Profile to get URN/ID
-        const profileRes = await fetch('https://api.linkedin.com/v2/userinfo', {
+        const profileRes = await fetchWithTimeout('https://api.linkedin.com/v2/userinfo', {
             headers: { Authorization: `Bearer ${accessToken}` }
         });
         const profileData = await profileRes.json();
@@ -66,7 +100,7 @@ export async function GET(req: Request) {
         );
 
         // Redirect back to dashboard with success query param
-        return NextResponse.redirect('http://127.0.0.1:3000/?linkedin_connected=true');
+        return NextResponse.redirect(`${FRONTEND_URL}/?linkedin_connected=true`);
 
     } catch (error: any) {
         console.error("LinkedIn OAuth Error:", error);

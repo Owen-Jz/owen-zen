@@ -4,6 +4,20 @@ import Task from "@/models/Task";
 import Habit from "@/models/Habit";
 
 const MONGODB_URI = process.env.MONGODB_URI;
+const FETCH_TIMEOUT = 30000;
+
+async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+  try {
+    const response = await fetch(url, { ...options, signal: controller.signal });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -123,7 +137,7 @@ Format the response with clear headings using emojis and bullet points. Be encou
 
     console.log("[Weekly Summary] Calling MiniMax API...");
 
-    const response = await fetch("https://api.minimax.io/v1/text/chatcompletion_v2", {
+    const response = await fetchWithTimeout("https://api.minimax.io/v1/text/chatcompletion_v2", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -160,6 +174,10 @@ Format the response with clear headings using emojis and bullet points. Be encou
       return NextResponse.json({ error: "Failed to generate summary" }, { status: 500 });
     }
   } catch (error: any) {
+    if (error.name === 'AbortError') {
+      console.error("[Weekly Summary] Request timed out");
+      return NextResponse.json({ error: "Request timed out. Please try again." }, { status: 504 });
+    }
     console.error("[Weekly Summary] Error:", error.message || error);
     return NextResponse.json({ error: error.message || "Failed to generate summary" }, { status: 500 });
   }

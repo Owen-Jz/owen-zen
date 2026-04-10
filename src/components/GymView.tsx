@@ -589,7 +589,7 @@ export const GymView = () => {
                           "w-full rounded-t-md transition-all group-hover:brightness-125",
                           exerciseCount > 0 
                             ? isToday 
-                              ? "bg-gradient-to-t from-primary/30 via-primary to-primary shadow-[0_0_15px_rgba(var(--primary),0.4)]"
+                              ? "bg-gradient-to-t from-primary/30 via-primary to-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]"
                               : "bg-gradient-to-t from-green-600/40 to-green-500"
                             : "bg-gray-800/50"
                         )}

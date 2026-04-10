@@ -190,19 +190,9 @@ export async function GET(req: NextRequest) {
     // Month-end projection
     const projectedTotal = projectMonthEnd(totalExpenses, daysElapsed, daysInMonth);
 
-    // 3-month rolling average
-    const monthlyTotals: number[] = [];
-    for (let i = 2; i >= 0; i--) {
-      const mDate = new Date(year, monthNum - 1 - i, 1);
-      const mStr = `${mDate.getFullYear()}-${String(mDate.getMonth() + 1).padStart(2, "0")}`;
-      const mStart = new Date(mDate.getFullYear(), mDate.getMonth(), 1);
-      const mEnd = new Date(mDate.getFullYear(), mDate.getMonth() + 1, 0, 23, 59, 59);
-      const mExpenses = await Expense.find({ date: { $gte: mStart, $lte: mEnd } });
-      monthlyTotals.push(mExpenses.reduce((sum, e) => sum + e.amount, 0));
-    }
-
-    const rollingAverage = monthlyTotals.length > 0
-      ? monthlyTotals.reduce((a, b) => a + b, 0) / monthlyTotals.length
+    // 3-month rolling average - use already fetched threeMonthExpenses
+    const rollingAverage = threeMonthExpenses.length > 0
+      ? threeMonthExpenses.reduce((sum, e) => sum + e.amount, 0) / 3
       : 0;
 
     // Unusual spending spikes (>150% of monthly average)
@@ -243,7 +233,15 @@ export async function GET(req: NextRequest) {
         };
       });
 
-    // 6-month trend data
+    // 6-month trend data - fetch all upfront
+    const sixMonthsAgo = new Date(year, monthNum - 6, 1);
+    const sixMonthsEnd = new Date(year, monthNum, 0, 23, 59, 59);
+
+    const [sixMonthsExpenses, sixMonthsIncomes] = await Promise.all([
+      Expense.find({ date: { $gte: sixMonthsAgo, $lte: sixMonthsEnd } }),
+      Income.find({ date: { $gte: sixMonthsAgo, $lte: sixMonthsEnd } }),
+    ]);
+
     const monthlyTrend: MonthlyData[] = [];
     for (let i = 5; i >= 0; i--) {
       const mDate = new Date(year, monthNum - 1 - i, 1);
@@ -251,17 +249,21 @@ export async function GET(req: NextRequest) {
       const mStart = new Date(mDate.getFullYear(), mDate.getMonth(), 1);
       const mEnd = new Date(mDate.getFullYear(), mDate.getMonth() + 1, 0, 23, 59, 59);
 
-      const [mExpenses, mIncomes] = await Promise.all([
-        Expense.find({ date: { $gte: mStart, $lte: mEnd } }),
-        Income.find({ date: { $gte: mStart, $lte: mEnd } }),
-      ]);
+      const monthExpenses = sixMonthsExpenses.filter(e => {
+        const d = new Date(e.date);
+        return d >= mStart && d <= mEnd;
+      });
+      const monthIncomes = sixMonthsIncomes.filter(i => {
+        const d = new Date(i.date);
+        return d >= mStart && d <= mEnd;
+      });
 
       monthlyTrend.push({
         month: mStr,
         label: getMonthLabel(mStr),
-        expenses: mExpenses.reduce((sum, e) => sum + e.amount, 0),
-        income: mIncomes.reduce((sum, i) => sum + i.amount, 0),
-        transactionCount: mExpenses.length + mIncomes.length,
+        expenses: monthExpenses.reduce((sum, e) => sum + e.amount, 0),
+        income: monthIncomes.reduce((sum, i) => sum + i.amount, 0),
+        transactionCount: monthExpenses.length + monthIncomes.length,
       });
     }
 

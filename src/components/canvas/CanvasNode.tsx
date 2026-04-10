@@ -31,7 +31,7 @@ const COLOR_MAP = [
   { name: 'Gray', hex: '#64748b' },
 ];
 
-export function CanvasNode({ data, selected, id }: NodeProps) {
+export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeProps) {
   const [editing, setEditing] = useState(false);
   const nodeData = data as unknown as CanvasNodeData;
   const [text, setText] = useState(nodeData.content);
@@ -221,4 +221,4 @@ export function CanvasNode({ data, selected, id }: NodeProps) {
       )}
     </div>
   );
-}
+});

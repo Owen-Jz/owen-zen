@@ -242,7 +242,7 @@ export const WeeklyGoalsView = () => {
                         <ChevronLeft className="w-4 h-4 text-gray-400" />
                     </button>
                     <div className="text-center min-w-[120px]">
-                        <div className="text-white font-medium text-sm">
+                        <div className="text-white font-light text-sm">
                             {weekOffset === 0 ? "This Week" : weekOffset === -1 ? "Last Week" : `${Math.abs(weekOffset)} weeks ago`}
                         </div>
                         <div className="text-gray-500 text-xs">{currentWeekRange}</div>
