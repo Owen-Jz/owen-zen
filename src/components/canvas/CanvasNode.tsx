@@ -71,8 +71,17 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
 
   const onContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setShowColors(true);
   }, []);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    if (!showColors) return;
+    const handleClick = () => setShowColors(false);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, [showColors]);
 
   const changeColor = useCallback((hex: string) => {
     nodeData.onUpdate?.(id, { color: hex });
@@ -184,37 +193,88 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
       </div>
 
       {showColors && (
-        <div className="absolute top-full left-0 mt-2 rounded-lg shadow-lg p-2 z-50" style={{ background: 'var(--surface)', border: '1px solid var(--border)' }}>
-          <div className="flex gap-2">
-            {COLOR_MAP.map(({ hex }) => (
-              <button
-                key={hex}
-                className="w-6 h-6 rounded-full border-2 border-transparent hover:border-white/40 transition-colors"
-                style={{ backgroundColor: hex }}
-                onClick={() => changeColor(hex)}
-              />
-            ))}
+        <div
+          className="absolute top-full left-0 mt-2 w-52 rounded-xl shadow-2xl z-[200] overflow-hidden"
+          style={{
+            background: 'rgba(15, 15, 20, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {/* Color section */}
+          <div className="p-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Color</p>
+            <div className="flex gap-2">
+              {COLOR_MAP.map(({ hex }) => (
+                <button
+                  key={hex}
+                  className="w-6 h-6 rounded-full border-2 transition-all hover:scale-110"
+                  style={{
+                    backgroundColor: hex,
+                    borderColor: nodeData.color === hex ? 'white' : 'transparent',
+                    boxShadow: nodeData.color === hex ? `0 0 0 2px rgba(255,255,255,0.3)` : 'none',
+                  }}
+                  onClick={() => changeColor(hex)}
+                />
+              ))}
+            </div>
           </div>
-          <div className="flex gap-2 mt-2 pt-2" style={{ borderTop: '1px solid var(--border)' }}>
+
+          {/* Actions */}
+          <div className="p-1.5">
             <button
-              className="text-xs px-2 py-1 rounded transition-colors"
-              style={{ color: 'var(--primary)' }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('canvas:addSubNode', { detail: { parentId: id, color: nodeData.color } }));
                 setShowColors(false);
               }}
             >
-              + Add sub node
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              Add sub node
             </button>
+
             <button
-              className="text-xs px-2 py-1 rounded transition-colors"
-              style={{ color: 'var(--color-error)' }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-white/10"
+              style={{ color: 'rgba(255,255,255,0.7)' }}
+              onClick={() => {
+                window.dispatchEvent(new CustomEvent('canvas:moveNodeToTaskBoard', {
+                  detail: {
+                    id,
+                    data: {
+                      content: nodeData.content,
+                      description: nodeData.description,
+                      color: nodeData.color,
+                      subNodes: nodeData.subNodes,
+                    },
+                  },
+                }));
+                setShowColors(false);
+              }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
+              </svg>
+              Move to Task Board
+            </button>
+
+            <button
+              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm text-left transition-colors"
+              style={{ color: 'rgba(239, 68, 68, 0.8)' }}
               onClick={() => {
                 window.dispatchEvent(new CustomEvent('canvas:deleteNode', { detail: id }));
                 setShowColors(false);
               }}
+              onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(239, 68, 68, 0.12)')}
+              onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
             >
-              Delete
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+              </svg>
+              Delete node
             </button>
           </div>
         </div>

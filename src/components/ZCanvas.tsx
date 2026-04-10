@@ -318,6 +318,32 @@ function CanvasInner() {
     return () => window.removeEventListener('canvas:deleteNode', handleDelete);
   }, []);
 
+  // Move node to task board (backlog)
+  useEffect(() => {
+    const handleMoveToTaskBoard = async (e: Event) => {
+      const { id, data } = (e as CustomEvent).detail;
+      const nodeData = data as { content: string; description?: string; subNodes?: { id: string; content: string; color: string }[] };
+      const subtasks = (nodeData.subNodes ?? []).map((sn: { content: string }) => ({
+        title: sn.content,
+        completed: false,
+      }));
+      try {
+        await fetch('/api/tasks', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: nodeData.content, status: 'pending', subtasks }),
+        });
+        queryClient.invalidateQueries({ queryKey: ['tasks'] });
+        setNodes(nds => nds.filter(n => n.id !== id));
+        setEdges(eds => eds.filter(ed => ed.source !== id && ed.target !== id));
+      } catch (err) {
+        console.error('Failed to move node to task board:', err);
+      }
+    };
+    window.addEventListener('canvas:moveNodeToTaskBoard', handleMoveToTaskBoard);
+    return () => window.removeEventListener('canvas:moveNodeToTaskBoard', handleMoveToTaskBoard);
+  }, [queryClient]);
+
   const handleDeleteEdge = useCallback((e: Event) => {
     const id = (e as CustomEvent).detail;
     setEdges(eds => eds.filter(ed => ed.id !== id));
