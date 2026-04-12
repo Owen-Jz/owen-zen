@@ -17,6 +17,7 @@ export interface CanvasNodeData {
   parentId?: string;
   subNodes?: SubNode[];
   isNew?: boolean;
+  searchQuery?: string;
   onUpdate?: (id: string, data: Partial<CanvasNodeData>) => void;
 }
 
@@ -34,19 +35,25 @@ const COLOR_MAP = [
 export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeProps) {
   const [editing, setEditing] = useState(false);
   const nodeData = data as unknown as CanvasNodeData;
+  const searchQuery = nodeData.searchQuery;
   const [text, setText] = useState(nodeData.content);
   const [showColors, setShowColors] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showInlineTagInput, setShowInlineTagInput] = useState(false);
+  const [inlineTagInputValue, setInlineTagInputValue] = useState('');
+  const [showContextTagInput, setShowContextTagInput] = useState(false);
+  const [contextTagInputValue, setContextTagInputValue] = useState('');
 
   const hasSubNodes = (nodeData.subNodes?.length ?? 0) > 0;
+  const isSearchMatch = searchQuery && nodeData.content.toLowerCase().includes(searchQuery.toLowerCase());
 
-  // Auto-focus when a new node is created
+  // Run once when isNew transitions to falsy; onUpdate ref is stable from parent
   useEffect(() => {
     if (nodeData.isNew) {
       setEditing(true);
       nodeData.onUpdate?.(id, { isNew: undefined });
     }
-  }, []);
+  }, [id, nodeData.isNew]); // intentionally omitting nodeData.onUpdate — it is stable
 
   const onDoubleClick = useCallback(() => {
     window.dispatchEvent(new CustomEvent('canvas:openNodeModal', { detail: { nodeId: id } }));
@@ -87,6 +94,40 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
     nodeData.onUpdate?.(id, { color: hex });
     setShowColors(false);
   }, [id, nodeData]);
+
+  const addTag = useCallback((tag: string) => {
+    const trimmed = tag.trim();
+    if (!trimmed || nodeData.labels.includes(trimmed)) return;
+    nodeData.onUpdate?.(id, { labels: [...nodeData.labels, trimmed] });
+  }, [id, nodeData]);
+
+  const removeTag = useCallback((tag: string) => {
+    nodeData.onUpdate?.(id, { labels: nodeData.labels.filter(l => l !== tag) });
+  }, [id, nodeData]);
+
+  const onInlineTagKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      addTag(inlineTagInputValue);
+      setInlineTagInputValue('');
+      setShowInlineTagInput(false);
+    }
+    if (e.key === 'Escape') {
+      setInlineTagInputValue('');
+      setShowInlineTagInput(false);
+    }
+  }, [addTag, inlineTagInputValue]);
+
+  const onContextTagKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      addTag(contextTagInputValue);
+      setContextTagInputValue('');
+      setShowContextTagInput(false);
+    }
+    if (e.key === 'Escape') {
+      setContextTagInputValue('');
+      setShowContextTagInput(false);
+    }
+  }, [addTag, contextTagInputValue]);
 
   const onDragStart = useCallback((e: React.DragEvent) => {
     e.dataTransfer.setData('application/canvas-node', id);
@@ -149,6 +190,8 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
           ? `0 0 0 2px var(--primary), 0 2px 8px rgba(0,0,0,0.3)`
           : isDragOver
           ? `0 0 0 2px ${nodeData.color}, 0 2px 8px rgba(0,0,0,0.3)`
+          : isSearchMatch
+          ? `0 0 0 2px ${nodeData.color}80, 0 2px 8px rgba(0,0,0,0.3)`
           : '0 2px 8px rgba(0,0,0,0.3)',
       }}
       onDoubleClick={onDoubleClick}
@@ -177,6 +220,65 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
             {nodeData.content || 'Double-click to edit'}
           </p>
         )}
+
+        {/* Inline tags */}
+        {(nodeData.labels.length > 0 || showInlineTagInput) && (
+          <div className="mt-2 flex flex-wrap gap-1.5 items-center">
+            {nodeData.labels.map(label => (
+              <span
+                key={label}
+                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                style={{
+                  background: `${nodeData.color}20`,
+                  border: `1px solid ${nodeData.color}60`,
+                  color: nodeData.color,
+                }}
+              >
+                {label}
+                <button
+                  className="ml-0.5 hover:opacity-80 leading-none"
+                  onClick={(e) => { e.stopPropagation(); removeTag(label); }}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {showInlineTagInput ? (
+              <input
+                className="inline-block w-20 px-1.5 py-0.5 rounded-full text-xs bg-transparent outline-none"
+                style={{
+                  border: `1px solid ${nodeData.color}60`,
+                  color: 'var(--foreground)',
+                }}
+                value={inlineTagInputValue}
+                onChange={(e) => setInlineTagInputValue(e.target.value)}
+                onKeyDown={onInlineTagKeyDown}
+                onBlur={() => { setInlineTagInputValue(''); setShowInlineTagInput(false); }}
+                autoFocus
+              />
+            ) : (
+              <button
+                className="inline-flex items-center px-2 py-0.5 rounded-full text-xs hover:opacity-80 transition-opacity"
+                style={{ color: `${nodeData.color}80` }}
+                onClick={(e) => { e.stopPropagation(); setShowInlineTagInput(true); }}
+              >
+                +tag
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* "+tag" button always visible when no labels and no input */}
+        {nodeData.labels.length === 0 && !showInlineTagInput && (
+          <button
+            className="mt-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs hover:opacity-80 transition-opacity"
+            style={{ color: `${nodeData.color}80` }}
+            onClick={(e) => { e.stopPropagation(); setShowInlineTagInput(true); }}
+          >
+            +tag
+          </button>
+        )}
+
         {hasSubNodes && (
           <div className="mt-3 pt-3 flex flex-col gap-1.5" style={{ borderTop: `1px dashed ${nodeData.color}40` }}>
             {nodeData.subNodes?.map(sub => (
@@ -219,6 +321,55 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
                 />
               ))}
             </div>
+          </div>
+
+          {/* Tags section */}
+          <div className="p-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-[10px] uppercase font-bold tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Tags</p>
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {nodeData.labels.map(label => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs"
+                  style={{
+                    background: `${nodeData.color}20`,
+                    border: `1px solid ${nodeData.color}60`,
+                    color: nodeData.color,
+                  }}
+                >
+                  {label}
+                  <button
+                    className="ml-0.5 hover:opacity-80 leading-none"
+                    onClick={(e) => { e.stopPropagation(); removeTag(label); }}
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+            {showContextTagInput ? (
+              <input
+                className="w-full px-2 py-1 rounded text-xs bg-transparent outline-none"
+                style={{
+                  border: `1px solid ${nodeData.color}60`,
+                  color: 'var(--foreground)',
+                }}
+                value={contextTagInputValue}
+                onChange={(e) => setContextTagInputValue(e.target.value)}
+                onKeyDown={onContextTagKeyDown}
+                onBlur={() => { setContextTagInputValue(''); setShowContextTagInput(false); }}
+                autoFocus
+                placeholder="Tag name — Enter to add"
+              />
+            ) : (
+              <button
+                className="text-xs px-2 py-1 rounded hover:bg-white/10 transition-colors"
+                style={{ color: `${nodeData.color}80` }}
+                onClick={(e) => { e.stopPropagation(); setShowContextTagInput(true); }}
+              >
+                + Add tag
+              </button>
+            )}
           </div>
 
           {/* Actions */}

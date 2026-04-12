@@ -394,6 +394,7 @@ export default function NotesView() {
   // Refs
   const userIdRef = useRef<string>("default-user");
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingSaveRef = useRef<{ title: string; content: string } | null>(null);
 
   // Debounced values
   const debouncedContent = useDebounce(formData.content, DEBOUNCE_DELAY);
@@ -608,32 +609,52 @@ export default function NotesView() {
     fetchNotes();
   }, [fetchNotes]);
 
+  // Track what's actually saved to avoid unnecessary saves
+  const lastSavedRef = useRef<{ title: string; content: string } | null>(null);
+
   // Auto-save effect
   useEffect(() => {
     if (!selectedNote) return;
 
-    // Only save if there's a difference and we're not just initializing
+    // Skip if we haven't initialized lastSavedRef yet (happens on first selection)
+    if (lastSavedRef.current === null) return;
+
+    // Compare debounced values against what was last SAVED (not selectedNote which may have been updated)
     const hasContentChanged =
-      debouncedContent !== selectedNote.content ||
-      debouncedTitle !== selectedNote.title;
+      debouncedContent !== lastSavedRef.current?.content ||
+      debouncedTitle !== lastSavedRef.current?.title;
+
+    // Cancel any pending save
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
 
     if (hasContentChanged && (debouncedContent || debouncedTitle)) {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
+      // Store what we're about to save so we don't re-save the same thing
+      pendingSaveRef.current = { title: debouncedTitle, content: debouncedContent };
 
-      saveTimeoutRef.current = setTimeout(() => {
-        saveNote({
-          ...selectedNote,
-          title: debouncedTitle,
-          content: debouncedContent
-        });
-      }, 100); // Small buffer for immediate feedback
+      saveTimeoutRef.current = setTimeout(async () => {
+        if (pendingSaveRef.current) {
+          const noteToSave = {
+            ...selectedNote,
+            title: pendingSaveRef.current.title,
+            content: pendingSaveRef.current.content
+          };
+
+          // Optimistically update lastSaved
+          lastSavedRef.current = { title: debouncedTitle, content: debouncedContent };
+          pendingSaveRef.current = null;
+
+          await saveNote(noteToSave);
+        }
+      }, 1000); // 1 second buffer - enough to catch rapid typing
     }
 
     return () => {
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
+        saveTimeoutRef.current = null;
       }
     };
   }, [debouncedContent, debouncedTitle, selectedNote, saveNote]);
@@ -645,6 +666,11 @@ export default function NotesView() {
         title: selectedNote.title,
         content: selectedNote.content
       });
+      // Initialize last saved state so we don't auto-save on selection
+      lastSavedRef.current = {
+        title: selectedNote.title,
+        content: selectedNote.content
+      };
     } else {
       setFormData({ title: "", content: "" });
     }

@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { ReactFlow, Background, BackgroundVariant, Controls, MiniMap, Node, Edge, Viewport, ReactFlowProvider, useReactFlow, applyNodeChanges, applyEdgeChanges, NodeChange, EdgeChange, Connection, OnConnect, SelectionMode } from '@xyflow/react';
+import { motion } from 'framer-motion';
 import '@xyflow/react/dist/style.css';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { CanvasNode } from './canvas/CanvasNode';
@@ -37,8 +38,13 @@ function CanvasInner() {
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedNodeIds, setSelectedNodeIds] = useState<Set<string>>(new Set());
   const [selectedEdgeIds, setSelectedEdgeIds] = useState<Set<string>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Node[]>([]);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [hasSearchPanelAppeared, setHasSearchPanelAppeared] = useState(false);
   const { fitView, getViewport } = useReactFlow();
   const saveTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchTimeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
   const queryClient = useQueryClient();
   const isUpdatingSelection = useRef(false);
 
@@ -273,7 +279,7 @@ function CanvasInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [fitView]);
 
-  const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string; subNodes?: { id: string; content: string; color: string }[] }) => {
+  const onNodeUpdate = useCallback((id: string, data: { content?: string; color?: string; subNodes?: { id: string; content: string; color: string }[]; labels?: string[] }) => {
     setNodes(nds => nds.map(n => n.id === id ? { ...n, data: { ...n.data, ...data } } : n));
   }, []);
 
@@ -517,10 +523,45 @@ function CanvasInner() {
     setIsMarqueeActive(prev => !prev);
   }, []);
 
+  // Search state handlers
+  const handleSearchChange = useCallback((query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+      setSearchResults([]);
+      setIsSearchOpen(false);
+      return;
+    }
+    setIsSearchOpen(true);
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    searchTimeoutRef.current = setTimeout(() => {
+      const lowerQuery = query.toLowerCase();
+      const results = nodes.filter(n => {
+        const content = (n.data as { content?: string }).content || '';
+        return content.toLowerCase().includes(lowerQuery);
+      });
+      setSearchResults(results);
+      // Auto-fit single result after debounce settles
+      if (results.length === 1) {
+        setTimeout(() => {
+          fitView({ nodes: [results[0]], padding: 0.3, duration: 400 });
+        }, 50);
+      }
+    }, 300);
+  }, [nodes, fitView]);
+
+  const handleSearchClose = useCallback(() => {
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    setSearchQuery('');
+    setSearchResults([]);
+    setIsSearchOpen(false);
+    setHasSearchPanelAppeared(false);
+  }, []);
+
   // Pass onUpdate to all nodes so CanvasNode can call it
   const nodesWithCallbacks = nodes.map(n => ({
     ...n,
-    data: { ...n.data, onUpdate: onNodeUpdate },
+    data: { ...n.data, onUpdate: onNodeUpdate, searchQuery },
   }));
 
   if (isLoading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
@@ -571,8 +612,67 @@ function CanvasInner() {
           {saveStatus === 'saving' ? 'Saving...' : 'Saved'}
         </div>
       )}
-      <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} />
+      <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} onSearchChange={handleSearchChange} onSearchClose={handleSearchClose} />
       <BottomDock />
+      {/* Search results sidebar */}
+      {isSearchOpen && searchQuery && searchResults.length > 1 && (
+        <motion.div
+          key={hasSearchPanelAppeared ? 'search-panel-stable' : 'search-panel-enter'}
+          initial={hasSearchPanelAppeared ? false : { x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          onAnimationComplete={() => setHasSearchPanelAppeared(true)}
+          className="fixed left-4 top-1/2 -translate-y-1/2 w-64 max-h-96 rounded-xl shadow-2xl overflow-y-auto z-50"
+          style={{
+            background: 'rgba(15, 15, 20, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <div className="p-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+            <p className="text-xs font-semibold" style={{ color: 'rgba(255,255,255,0.5)' }}>
+              {searchResults.length} node{searchResults.length !== 1 ? 's' : ''} found
+            </p>
+          </div>
+          <div className="p-1.5">
+            {searchResults.map(node => {
+              const nodeData = node.data as { content: string; color: string };
+              return (
+                <button
+                  key={node.id}
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm text-left transition-colors hover:bg-white/10"
+                  style={{ color: 'rgba(255,255,255,0.8)' }}
+                  onClick={() => fitView({ nodes: [node], padding: 0.3, duration: 400 })}
+                >
+                  <span
+                    className="w-2 h-2 rounded-full flex-shrink-0"
+                    style={{ backgroundColor: nodeData.color }}
+                  />
+                  <span className="truncate">{nodeData.content || '(empty)'}</span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.div>
+      )}
+      {/* No results message */}
+      {isSearchOpen && searchQuery && searchResults.length === 0 && (
+        <motion.div
+          key={hasSearchPanelAppeared ? 'no-results-stable' : 'no-results-enter'}
+          initial={hasSearchPanelAppeared ? false : { x: -20, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+          onAnimationComplete={() => setHasSearchPanelAppeared(true)}
+          className="fixed left-4 top-1/2 -translate-y-1/2 w-64 rounded-xl shadow-2xl p-4 z-50"
+          style={{
+            background: 'rgba(15, 15, 20, 0.95)',
+            backdropFilter: 'blur(20px)',
+            border: '1px solid rgba(255,255,255,0.1)',
+          }}
+        >
+          <p className="text-sm text-center" style={{ color: 'rgba(255,255,255,0.4)' }}>No results</p>
+        </motion.div>
+      )}
       {creatingNode && (
         <div
           className="absolute rounded-xl shadow-xl p-4 min-w-[200px] z-50"

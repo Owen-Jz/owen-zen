@@ -335,7 +335,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                 </button>
 
                 <AnimatePresence initial={false}>
-                  {(expandedSections[section.title] || isCollapsed) && (
+                  {expandedSections[section.title] && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: "auto", opacity: 1 }}
