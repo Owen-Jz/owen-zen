@@ -174,7 +174,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="flex items-start gap-2 flex-1 min-w-0">
             {/* Drag Handle - Only functional if listeners provided */}
-            <button {...attributes} {...listeners} className={cn("p-1.5 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")} aria-label="Drag to reorder task">
+            <button {...attributes} {...listeners} className={cn("p-2 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")} aria-label="Drag to reorder task">
               <GripVertical size={16} />
             </button>
             <h4 className={cn(
@@ -197,7 +197,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
               <div className="relative" ref={menuRef}>
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
-                  className="p-1.5 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
+                  className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
                   aria-label="Task options menu"
                 >
                   <MoreVertical size={16} />
@@ -293,10 +293,10 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                       if (onToggleSubtask) onToggleSubtask(task._id, i);
                     }}
                     className={cn(
-                      "w-4 h-4 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
-                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
+                      "w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
+                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
                     )}>
-                    {st.completed && <Check size={10} className="text-white" />}
+                    {st.completed && <Check size={12} className="text-white" />}
                   </div>
                   <span 
                     onClick={(e) => {

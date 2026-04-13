@@ -253,10 +253,10 @@ export const TaskBoard = ({
                 className={cn(
                   "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
                   priorityFilter === filter
-                    ? filter === 'high' ? "bg-red-500/20 text-red-500 border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
-                      filter === 'medium' ? "bg-amber-500/20 text-amber-500 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
-                        filter === 'low' ? "bg-blue-500/20 text-blue-500 border-blue-500/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
-                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
+                    ? filter === 'high' ? "bg-[var(--priority-high)]/20 text-[var(--priority-high)] border-[var(--priority-high)]/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
+                      filter === 'medium' ? "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
+                        filter === 'low' ? "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
+                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
                     : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
                 )}
               >

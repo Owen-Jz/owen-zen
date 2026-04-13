@@ -13,7 +13,15 @@ interface ConfettiPiece {
   duration: number;
 }
 
-const COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#3b82f6", "#8b5cf6", "#ec4899"];
+const COLORS = [
+  "var(--confetti-red, #ef4444)",
+  "var(--confetti-orange, #f97316)",
+  "var(--confetti-yellow, #eab308)",
+  "var(--confetti-green, #22c55e)",
+  "var(--confetti-blue, #3b82f6)",
+  "var(--confetti-purple, #8b5cf6)",
+  "var(--confetti-pink, #ec4899)"
+];
 
 let confettiId = 0;
 

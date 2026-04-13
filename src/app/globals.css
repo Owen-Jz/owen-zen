@@ -59,6 +59,27 @@
   --color-error: #ef4444;
   --color-warning: #f59e0b;
   --color-info: #3b82f6;
+
+  /* Semantic status colors */
+  --status-income: #22c55e;
+  --status-expense: #ef4444;
+  --status-positive: #22c55e;
+  --status-negative: #ef4444;
+  --status-warning: #f59e0b;
+
+  /* Priority colors */
+  --priority-high: #ef4444;
+  --priority-medium: #f59e0b;
+  --priority-low: #3b82f6;
+
+  /* Confetti colors - vivid celebration colors */
+  --confetti-red: #ef4444;
+  --confetti-orange: #f97316;
+  --confetti-yellow: #eab308;
+  --confetti-green: #22c55e;
+  --confetti-blue: #3b82f6;
+  --confetti-purple: #8b5cf6;
+  --confetti-pink: #ec4899;
 }
 
 [data-theme="cyberpunk"] {
@@ -378,6 +399,8 @@ body {
   transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s ease;
   overflow-x: hidden;
   position: relative;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* Base Texture - Subtle Grain */
@@ -446,6 +469,15 @@ body::before {
   background: var(--primary);
 }
 
+/* Scrollbar hide utility */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -491,6 +523,16 @@ body::before {
 
    Use backdrop-blur-3xl sparingly for top-level overlays.
    ============================================= */
+
+/* Z-index token scale */
+:root {
+  --z-base: 0;
+  --z-dropdown: 50;
+  --z-sticky: 100;
+  --z-modal: 200;
+  --z-overlay: 300;
+  --z-toast: 400;
+}
 
 /* Animation timing tokens */
 :root {
@@ -543,6 +585,12 @@ body::before {
   outline: none;
 }
 
+/* Touch target utilities - ensures 44x44px minimum */
+@utility touch-target {
+  min-width: 44px;
+  min-height: 44px;
+}
+
 /* Ensure buttons have visible focus states */
 button:focus-visible,
 [role="button"]:focus-visible,
@@ -572,4 +620,24 @@ select:focus-visible {
 /* Icon stroke weight: 1.5px standard, 2px for emphasis (e.g. bold checkmarks) */
 :root {
   --icon-stroke: 1.5;
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print,
+  nav,
+  .sidebar,
+  header {
+    display: none !important;
+  }
+  a[href]::after {
+    content: " (" attr(href) ")";
+  }
+  @page {
+    margin: 1cm;
+  }
 }
