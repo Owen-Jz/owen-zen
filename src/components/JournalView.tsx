@@ -15,6 +15,7 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 interface Entry {
   _id: string;
   date: string;
+  slot: 'morning' | 'evening';
   text: string;
   mood: number;
   tags: string[];
@@ -49,7 +50,7 @@ export default function JournalView() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: async (body: { date: string; text: string; mood: number; tags: string[] }) => {
+    mutationFn: async (body: { date: string; slot: 'morning' | 'evening'; text: string; mood: number; tags: string[] }) => {
       const res = await fetch('/api/journal', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -62,9 +63,16 @@ export default function JournalView() {
     },
   });
 
-  const entriesMap = useMemo(() => {
-    const map: Record<string, Entry> = {};
-    data?.data?.forEach((e: Entry) => { map[e.date] = e; });
+  // Build a map: date -> { morning: Entry, evening: Entry }
+  const entriesByDate = useMemo(() => {
+    const map: Record<string, { morning: Entry | null; evening: Entry | null }> = {};
+    data?.data?.forEach((e: Entry) => {
+      if (!map[e.date]) {
+        map[e.date] = { morning: null, evening: null };
+      }
+      if (e.slot === 'morning') map[e.date].morning = e;
+      else map[e.date].evening = e;
+    });
     return map;
   }, [data?.data]);
 
@@ -74,17 +82,17 @@ export default function JournalView() {
     return Array.from(tags).sort();
   }, [data?.data]);
 
-  const selectedEntry = selectedDate ? (entriesMap[selectedDate] ?? null) : null;
+  const selectedEntries = selectedDate ? (entriesByDate[selectedDate] ?? { morning: null, evening: null }) : { morning: null, evening: null };
 
-  const handleSave = (formData: { text: string; mood: number; tags: string[] }) => {
+  const handleSave = (slot: 'morning' | 'evening', formData: { text: string; mood: number; tags: string[] }) => {
     if (!selectedDate) return;
-    saveMutation.mutate({ date: selectedDate, ...formData });
+    saveMutation.mutate({ date: selectedDate, slot, ...formData });
   };
 
   const years = [currentYear - 2, currentYear - 1, currentYear, currentYear + 1];
 
-  const sortedEntries = useMemo(() => {
-    return [...(data?.data ?? [])].sort((a, b) => b.date.localeCompare(a.date));
+  const sortedDates = useMemo(() => {
+    return [...new Set(data?.data?.map((e: Entry) => e.date) ?? [])].sort((a, b) => b.localeCompare(a));
   }, [data?.data]);
 
   const MOOD_COLORS: Record<number, string> = {
@@ -182,57 +190,87 @@ export default function JournalView() {
         <div className="bg-white/5 border border-white/10 rounded-2xl p-6">
           <JournalHeatmap
             year={year}
-            entries={entriesMap}
+            entries={entriesByDate}
             onDateClick={setSelectedDate}
           />
         </div>
       )}
 
       {/* Entry List */}
-      {sortedEntries.length > 0 && (
+      {sortedDates.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-3">
             <Calendar size={16} className="text-gray-500" />
             <h2 className="text-sm font-bold text-gray-300 uppercase tracking-wider">Entries</h2>
-            <span className="text-xs text-gray-600">({sortedEntries.length})</span>
+            <span className="text-xs text-gray-600">({sortedDates.length})</span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {sortedEntries.map(entry => (
-              <button
-                key={entry._id}
-                onClick={() => setSelectedDate(entry.date)}
-                className="text-left bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all group"
-              >
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <span className="text-sm font-bold text-white">{formatCardDate(entry.date)}</span>
-                  <div
-                    className="w-4 h-4 rounded-full shrink-0"
-                    style={{ backgroundColor: MOOD_COLORS[entry.mood] ?? '#666' }}
-                    title={MOOD_LABELS[entry.mood]}
-                  />
-                </div>
-                {entry.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1 mb-2">
-                    {entry.tags.slice(0, 3).map(tag => (
-                      <span key={tag} className="px-1.5 py-0.5 bg-primary/15 text-primary text-xs rounded">
-                        {tag}
-                      </span>
-                    ))}
-                    {entry.tags.length > 3 && (
-                      <span className="text-xs text-gray-500">+{entry.tags.length - 3}</span>
-                    )}
+            {sortedDates.map(date => {
+              const entryGroup = entriesByDate[date];
+              const morningEntry = entryGroup?.morning;
+              const eveningEntry = entryGroup?.evening;
+
+              // Combine tags from both slots (max 4 shown)
+              const allTags = [...(morningEntry?.tags ?? []), ...(eveningEntry?.tags ?? [])];
+              const uniqueTags = allTags.filter((t, i) => allTags.indexOf(t) === i);
+              const displayedTags = uniqueTags.slice(0, 4);
+              const overflowCount = uniqueTags.length - 4;
+
+              // Text preview: prioritize evening.text, then morning.text
+              const previewText = eveningEntry?.text || morningEntry?.text;
+
+              return (
+                <button
+                  key={date}
+                  onClick={() => setSelectedDate(date)}
+                  className="text-left bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 hover:border-white/20 transition-all group"
+                >
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-white">{formatCardDate(date)}</span>
+                      {morningEntry && <span className="text-sm" title="Morning entry">🌅</span>}
+                      {eveningEntry && <span className="text-sm" title="Evening entry">🌙</span>}
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {morningEntry && (
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: MOOD_COLORS[morningEntry.mood] ?? '#666' }}
+                          title={`Morning: ${MOOD_LABELS[morningEntry.mood]}`}
+                        />
+                      )}
+                      {eveningEntry && (
+                        <div
+                          className="w-3 h-3 rounded-full shrink-0"
+                          style={{ backgroundColor: MOOD_COLORS[eveningEntry.mood] ?? '#666' }}
+                          title={`Evening: ${MOOD_LABELS[eveningEntry.mood]}`}
+                        />
+                      )}
+                    </div>
                   </div>
-                )}
-                {entry.text && (
-                  <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
-                    {entry.text}
-                  </p>
-                )}
-                {!entry.text && (
-                  <p className="text-xs text-gray-600 italic">No entry text</p>
-                )}
-              </button>
-            ))}
+                  {displayedTags.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mb-2">
+                      {displayedTags.map(tag => (
+                        <span key={tag} className="px-1.5 py-0.5 bg-primary/15 text-primary text-xs rounded">
+                          {tag}
+                        </span>
+                      ))}
+                      {overflowCount > 0 && (
+                        <span className="text-xs text-gray-500">+{overflowCount}</span>
+                      )}
+                    </div>
+                  )}
+                  {previewText && (
+                    <p className="text-xs text-gray-400 line-clamp-2 leading-relaxed">
+                      {previewText}
+                    </p>
+                  )}
+                  {!previewText && (
+                    <p className="text-xs text-gray-600 italic">No entry text</p>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -247,7 +285,7 @@ export default function JournalView() {
       {selectedDate && (
         <JournalEntryModal
           date={selectedDate}
-          entry={selectedEntry}
+          entries={selectedEntries}
           onClose={() => setSelectedDate(null)}
           onSave={handleSave}
         />
