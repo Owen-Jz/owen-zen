@@ -11,7 +11,6 @@ import { CanvasEdge } from './canvas/CanvasEdge';
 import { CanvasToolbar } from './canvas/CanvasToolbar';
 import { NodeModal } from './canvas/NodeModal';
 import BottomDock from './canvas/BottomDock';
-import { EventsCenter } from './canvas/EventsCenter';
 import { Task } from '@/types';
 
 const nodeTypes = { idea: CanvasNode };
@@ -615,7 +614,6 @@ function CanvasInner() {
       )}
       <CanvasToolbar saveStatus={saveStatus} marqueeActive={isMarqueeActive} onToggleMarquee={toggleMarquee} onSearchChange={handleSearchChange} onSearchClose={handleSearchClose} />
       <BottomDock />
-      <EventsCenter />
       {/* Search results sidebar */}
       {isSearchOpen && searchQuery && searchResults.length > 1 && (
         <motion.div

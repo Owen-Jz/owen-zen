@@ -28,7 +28,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { AddTaskModal } from "@/components/AddTaskModal";
-import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board } from "@/types";
+import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board, ProjectLink } from "@/types";
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -46,6 +46,7 @@ import { FocusOverlay } from "@/components/FocusOverlay";
 import { CommandPalette, useCommandPalette } from "@/components/CommandPalette";
 import { SectionsGrid, useSectionsGrid } from "@/components/SectionsGrid";
 import BottomDock from "@/components/canvas/BottomDock";
+import { UpcomingEvents } from "@/components/UpcomingEvents";
 
 // Lazy load views for better performance
 const HabitView = dynamic(() => import("@/components/HabitView").then(mod => ({ default: mod.HabitView })), {
@@ -1597,16 +1598,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, links?: ProjectLink[]) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category, links } : t));
     setEditingTask(null);
 
     try {
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category }),
+        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, links }),
       });
     } catch {
       setTasks(oldTasks);
@@ -2484,6 +2485,15 @@ export default function Dashboard() {
                   onToggleMIT={toggleMIT}
                   currentBoardId={currentBoardId}
                 />
+              </motion.div>
+
+              {/* Upcoming Events Section */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.4, delay: 0.15 }}
+              >
+                <UpcomingEvents />
               </motion.div>
 
               {/* Board Selector */}
