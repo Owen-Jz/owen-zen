@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { GET, POST } from '@/app/api/journal/route';
 import { DELETE } from '@/app/api/journal/[id]/route';
+import Journal from '@/models/Journal';
 
 vi.mock('@/lib/db', () => ({
   __esModule: true,
@@ -18,6 +19,17 @@ vi.mock('@/models/Journal', () => ({
   },
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  // Reset to default mock chain
+  vi.mocked(Journal.find).mockReturnValue({
+    sort: vi.fn().mockReturnThis(),
+    lean: vi.fn().mockResolvedValue([]),
+  } as any);
+  vi.mocked(Journal.findOneAndUpdate).mockResolvedValue(null);
+  vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0 });
+});
+
 describe('Journal API', () => {
   describe('GET /api/journal', () => {
     it('returns entries for the given year', async () => {
@@ -26,7 +38,6 @@ describe('Journal API', () => {
         { _id: '2', date: '2024-03-16', text: 'Evening entry', slot: 'evening' },
       ];
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.find).mockReturnValue({
         sort: vi.fn().mockReturnThis(),
         lean: vi.fn().mockResolvedValue(mockEntries),
@@ -46,7 +57,6 @@ describe('Journal API', () => {
         { _id: '1', date: '2024-03-15', text: 'Morning entry', slot: 'morning' },
       ];
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.find).mockReturnValue({
         sort: vi.fn().mockReturnThis(),
         lean: vi.fn().mockResolvedValue(mockMorningEntries),
@@ -59,6 +69,9 @@ describe('Journal API', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockMorningEntries);
+      expect(Journal.find).toHaveBeenCalledWith(
+        expect.objectContaining({ slot: 'morning' })
+      );
     });
 
     it('filters by slot=evening', async () => {
@@ -66,7 +79,6 @@ describe('Journal API', () => {
         { _id: '2', date: '2024-03-16', text: 'Evening entry', slot: 'evening' },
       ];
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.find).mockReturnValue({
         sort: vi.fn().mockReturnThis(),
         lean: vi.fn().mockResolvedValue(mockEveningEntries),
@@ -79,6 +91,9 @@ describe('Journal API', () => {
       const data = await response.json();
       expect(data.success).toBe(true);
       expect(data.data).toEqual(mockEveningEntries);
+      expect(Journal.find).toHaveBeenCalledWith(
+        expect.objectContaining({ slot: 'evening' })
+      );
     });
   });
 
@@ -86,7 +101,6 @@ describe('Journal API', () => {
     it('creates a morning entry with slot: morning', async () => {
       const mockEntry = { _id: '1', date: '2024-03-15', text: 'Morning thoughts', slot: 'morning' };
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.findOneAndUpdate).mockResolvedValue(mockEntry);
 
       const request = new Request('http://localhost/api/journal', {
@@ -105,7 +119,6 @@ describe('Journal API', () => {
     it('creates an evening entry with slot: evening', async () => {
       const mockEntry = { _id: '2', date: '2024-03-15', text: 'Evening thoughts', slot: 'evening' };
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.findOneAndUpdate).mockResolvedValue(mockEntry);
 
       const request = new Request('http://localhost/api/journal', {
@@ -124,7 +137,6 @@ describe('Journal API', () => {
     it('defaults missing slot to evening when slot not provided', async () => {
       const mockEntry = { _id: '3', date: '2024-03-15', text: 'Some thoughts', slot: 'evening' };
 
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.findOneAndUpdate).mockResolvedValue(mockEntry);
 
       const request = new Request('http://localhost/api/journal', {
@@ -159,7 +171,6 @@ describe('Journal API', () => {
 describe('Journal [id] API', () => {
   describe('DELETE /api/journal/[id]', () => {
     it('deletes an entry successfully', async () => {
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 1 });
 
       const request = new Request('http://localhost/api/journal/123', {
@@ -174,7 +185,6 @@ describe('Journal [id] API', () => {
     });
 
     it('returns 404 when entry not found', async () => {
-      const Journal = (await import('@/models/Journal')).default;
       vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0 });
 
       const request = new Request('http://localhost/api/journal/123', {
