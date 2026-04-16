@@ -11,9 +11,10 @@ function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
 }
 
-interface Entry {
+interface SlotEntry {
   _id?: string;
   date: string;
+  slot: string;
   text: string;
   mood: number;
   tags: string[];
@@ -21,21 +22,42 @@ interface Entry {
 }
 
 interface JournalEntryModalProps {
-  date: string; // "2026-04-05"
-  entry: Entry | null;
+  date: string;
+  entries: { morning: SlotEntry | null; evening: SlotEntry | null };
   onClose: () => void;
+  onSave: (slot: 'morning' | 'evening', data: { text: string; mood: number; tags: string[] }) => void;
+}
+
+interface SlotSectionProps {
+  slot: 'morning' | 'evening';
+  entry: SlotEntry | null;
   onSave: (data: { text: string; mood: number; tags: string[] }) => void;
 }
 
 const MOOD_COLORS = ['#c0392b', '#e74c3c', '#f39c12', '#2ecc71', '#27ae60'];
 const MOOD_LABELS = ['Terrible', 'Bad', 'Okay', 'Good', 'Great'];
 
+const SLOT_CONFIG = {
+  morning: {
+    emoji: '🌅',
+    label: 'Morning',
+    sublabel: "What's on your plate today?",
+    placeholder: 'What will you do today? What are you grateful for?',
+  },
+  evening: {
+    emoji: '🌙',
+    label: 'Evening',
+    sublabel: 'Reflect on your day',
+    placeholder: 'What went well? What did you learn?',
+  },
+};
+
 function formatDisplayDate(dateStr: string): string {
   const date = new Date(dateStr + 'T12:00:00');
   return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 }
 
-export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntryModalProps) {
+function SlotSection({ slot, entry, onSave }: SlotSectionProps) {
   const [text, setText] = useState(entry?.text ?? '');
   const [mood, setMood] = useState(entry?.mood ?? 3);
   const [tags, setTags] = useState<string[]>(entry?.tags ?? []);
@@ -43,6 +65,8 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+
+  const config = SLOT_CONFIG[slot];
 
   // Sync when entry changes
   useEffect(() => {
@@ -65,7 +89,7 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
 
   // Debounced auto-save on text change
   useEffect(() => {
-    if (!entry && text === '' && mood === 3 && tags.length === 0) return;
+    if (text === '' && mood === 3 && tags.length === 0) return;
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {
       save({ text, mood, tags });
@@ -73,7 +97,7 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
     };
-  }, [text, mood, tags, save, entry]);
+  }, [text, mood, tags, save]);
 
   // Immediate save on mood change
   const handleMoodClick = useCallback((m: number) => {
@@ -105,6 +129,92 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
     }
   };
 
+  return (
+    <div className="py-4">
+      {/* Header */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2">
+          <span className="text-xl">{config.emoji}</span>
+          <span className="text-base font-semibold text-white">{config.label}</span>
+        </div>
+        <p className="text-sm text-gray-400 mt-0.5 ml-7">{config.sublabel}</p>
+      </div>
+
+      {/* Mood selector */}
+      <div className="mb-4">
+        <div className="flex items-center gap-3 mb-2">
+          <span className="text-sm text-gray-400">Mood:</span>
+          <div className="flex gap-2">
+            {MOOD_COLORS.map((color, i) => (
+              <button
+                key={i}
+                onClick={() => handleMoodClick(i + 1)}
+                className={cn(
+                  "w-7 h-7 rounded-full transition-all hover:scale-110",
+                  mood === i + 1 && "ring-2 ring-white ring-offset-2 ring-offset-gray-900"
+                )}
+                style={{ backgroundColor: color }}
+                title={MOOD_LABELS[i]}
+              />
+            ))}
+          </div>
+          <span className="text-sm text-gray-300 ml-1">{MOOD_LABELS[mood - 1] ?? 'Unknown'}</span>
+        </div>
+      </div>
+
+      {/* Tags */}
+      <div className="mb-4">
+        <div className="flex items-center gap-2 flex-wrap">
+          {tags.map(tag => (
+            <span
+              key={tag}
+              className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full flex items-center gap-1"
+            >
+              {tag}
+              <button onClick={() => handleRemoveTag(tag)} className="hover:text-white">
+                <X size={12} />
+              </button>
+            </span>
+          ))}
+          <input
+            type="text"
+            value={tagInput}
+            onChange={e => setTagInput(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onBlur={handleAddTag}
+            placeholder="+ Add tag"
+            className="bg-transparent text-xs text-gray-400 placeholder:text-gray-600 outline-none w-20"
+          />
+        </div>
+      </div>
+
+      {/* Text area */}
+      <textarea
+        value={text}
+        onChange={e => setText(e.target.value)}
+        placeholder={config.placeholder}
+        className="w-full h-32 bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white placeholder:text-gray-600 resize-none outline-none focus:border-primary/50 transition-colors"
+      />
+
+      {/* Footer */}
+      <div className="flex justify-end items-center mt-3">
+        {isSaving ? (
+          <span className="text-xs text-gray-500">Saving...</span>
+        ) : lastSaved ? (
+          <span className="text-xs text-gray-500">Last saved: {lastSaved}</span>
+        ) : (
+          <span className="text-xs text-gray-500">Auto-saves as you type</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function JournalEntryModal({ date, entries, onClose, onSave }: JournalEntryModalProps) {
+  const handleSave = useCallback((slot: 'morning' | 'evening') => (data: { text: string; mood: number; tags: string[] }) => {
+    onSave(slot, data);
+  }, [onSave]);
+
   // Escape key handler
   useEffect(() => {
     const handleEscape = (e: KeyboardEvent) => {
@@ -129,11 +239,11 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg p-6 shadow-2xl"
+          className="bg-gray-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl"
           onClick={e => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex justify-between items-center mb-5">
+          <div className="flex justify-between items-center mb-2 pt-6 px-6">
             <h2 className="text-lg font-bold text-white">{formatDisplayDate(date)}</h2>
             <button
               onClick={onClose}
@@ -143,72 +253,22 @@ export function JournalEntryModal({ date, entry, onClose, onSave }: JournalEntry
             </button>
           </div>
 
-          {/* Mood selector */}
-          <div className="mb-4">
-            <div className="flex items-center gap-3 mb-2">
-              <span className="text-sm text-gray-400">Mood:</span>
-              <div className="flex gap-2">
-                {MOOD_COLORS.map((color, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleMoodClick(i + 1)}
-                    className={cn(
-                      "w-7 h-7 rounded-full transition-all hover:scale-110",
-                      mood === i + 1 && "ring-2 ring-white ring-offset-2 ring-offset-gray-900"
-                    )}
-                    style={{ backgroundColor: color }}
-                    title={MOOD_LABELS[i]}
-                  />
-                ))}
-              </div>
-              <span className="text-sm text-gray-300 ml-1">{MOOD_LABELS[mood - 1] ?? 'Unknown'}</span>
-            </div>
-          </div>
-
-          {/* Tags */}
-          <div className="mb-4">
-            <div className="flex items-center gap-2 flex-wrap">
-              {tags.map(tag => (
-                <span
-                  key={tag}
-                  className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded-full flex items-center gap-1"
-                >
-                  {tag}
-                  <button onClick={() => handleRemoveTag(tag)} className="hover:text-white">
-                    <X size={12} />
-                  </button>
-                </span>
-              ))}
-              <input
-                type="text"
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onBlur={handleAddTag}
-                placeholder="+ Add tag"
-                className="bg-transparent text-xs text-gray-400 placeholder:text-gray-600 outline-none w-20"
-              />
-            </div>
-          </div>
-
-          {/* Text area */}
-          <textarea
-            value={text}
-            onChange={e => setText(e.target.value)}
-            placeholder="Write your thoughts for today..."
-            className="w-full h-48 bg-white/5 border border-white/10 rounded-xl p-4 text-sm text-white placeholder:text-gray-600 resize-none outline-none focus:border-primary/50 transition-colors"
+          {/* Morning Section */}
+          <SlotSection
+            slot="morning"
+            entry={entries.morning}
+            onSave={handleSave('morning')}
           />
 
-          {/* Footer */}
-          <div className="flex justify-end items-center mt-3">
-            {isSaving ? (
-              <span className="text-xs text-gray-500">Saving...</span>
-            ) : lastSaved ? (
-              <span className="text-xs text-gray-500">Last saved: {lastSaved}</span>
-            ) : (
-              <span className="text-xs text-gray-500">Auto-saves as you type</span>
-            )}
-          </div>
+          {/* Divider */}
+          <div className="border-t border-white/10 mx-6" />
+
+          {/* Evening Section */}
+          <SlotSection
+            slot="evening"
+            entry={entries.evening}
+            onSave={handleSave('evening')}
+          />
         </motion.div>
       </motion.div>
     </AnimatePresence>
