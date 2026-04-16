@@ -78,7 +78,7 @@ export async function GET(req: Request) {
     if (search) {
       filtered = entries.filter(e =>
         (e.text ?? '').toLowerCase().includes(search) ||
-        e.tags.some((t: string) => t.toLowerCase().includes(search))
+        (e.tags ?? []).some((t: string) => t.toLowerCase().includes(search))
       );
     }
 
