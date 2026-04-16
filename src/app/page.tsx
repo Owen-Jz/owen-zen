@@ -109,6 +109,9 @@ const DisciplineChallenge = dynamic(() => import("@/components/DisciplineChallen
 const ZCanvas = dynamic(() => import("@/components/ZCanvas").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
+const RoutinesView = dynamic(() => import("@/components/RoutinesView").then(mod => ({ default: mod.RoutinesView })), {
+  loading: () => <Loading />
+});
 const ShoppingListModal = dynamic(() => import("@/components/ShoppingListModal").then(mod => ({ default: mod.ShoppingListModal })), {
   loading: () => null
 });
@@ -171,6 +174,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     Core: true,
+    Routines: true,
     Planning: true,
     Tools: true,
     System: false
@@ -222,6 +226,12 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
         { id: "journal", label: "Journal", icon: BookOpen },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
+      ]
+    },
+    {
+      title: "Routines",
+      links: [
+        { id: "routines", label: "Routines", icon: CheckSquare },
       ]
     },
     {
@@ -2736,6 +2746,7 @@ export default function Dashboard() {
           {activeTab === "habit-analytics" && <HabitAnalyticsView />}
           {activeTab === "journal" && <JournalView />}
           {activeTab === "discipline" && <DisciplineChallenge />}
+          {activeTab === "routines" && <RoutinesView />}
           {activeTab === "daily-word" && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
