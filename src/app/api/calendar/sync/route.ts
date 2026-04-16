@@ -1,39 +1,7 @@
-import { google } from 'googleapis';
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import { NextResponse } from "next/server";
-import path from 'path';
-
-// Initialize Google Auth
-const getGoogleCalendar = async () => {
-  // Priority 1: Use Environment Variable (Production/Vercel/Local)
-  if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-    try {
-      const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-      const auth = new google.auth.GoogleAuth({
-        credentials,
-        scopes: ['https://www.googleapis.com/auth/calendar'],
-      });
-      return google.calendar({ version: 'v3', auth });
-    } catch (e) {
-      console.error("Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON", e);
-      throw new Error("Invalid GOOGLE_SERVICE_ACCOUNT_JSON format.");
-    }
-  }
-
-  // Priority 2: Fallback to local file in project root (Cross-platform)
-  try {
-    const keyFilePath = path.join(process.cwd(), 'service_account.json');
-    const auth = new google.auth.GoogleAuth({
-      keyFile: keyFilePath,
-      scopes: ['https://www.googleapis.com/auth/calendar'],
-    });
-    return google.calendar({ version: 'v3', auth });
-  } catch (e) {
-    console.warn("Could not initialize Google Calendar with local file:", e);
-    throw new Error("Google Calendar credentials missing. Set GOOGLE_SERVICE_ACCOUNT_JSON env var or place service_account.json in project root.");
-  }
-};
+import { GoogleCalendarService } from "@/lib/googleCalendar";
 
 export async function POST(req: Request) {
   await dbConnect();
@@ -53,7 +21,7 @@ export async function POST(req: Request) {
     // 1. Create Google Calendar Event
     let calendar;
     try {
-      calendar = await getGoogleCalendar();
+      calendar = await GoogleCalendarService.getInstance().getCalendar();
     } catch (authError: any) {
       console.error("Google Auth Failed:", authError.message);
       return NextResponse.json({
