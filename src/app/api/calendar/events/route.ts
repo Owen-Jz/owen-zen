@@ -22,3 +22,33 @@ export async function GET() {
     );
   }
 }
+
+export async function POST(req: Request) {
+  try {
+    const { title, description, start, end, location } = await req.json();
+
+    if (!title || !start || !end) {
+      return NextResponse.json(
+        { success: false, error: 'Missing title, start, or end' },
+        { status: 400 }
+      );
+    }
+
+    const service = GoogleCalendarService.getInstance();
+    const result = await service.createEvent({
+      title,
+      description,
+      start: new Date(start),
+      end: new Date(end),
+      location,
+    });
+
+    return NextResponse.json({ success: true, data: result });
+  } catch (error: any) {
+    console.error('Failed to create calendar event:', error);
+    return NextResponse.json(
+      { success: false, error: error.message || 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}

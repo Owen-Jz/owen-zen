@@ -169,6 +169,44 @@ export class GoogleCalendarService {
     this.clearSyncToken();
     return this.getUpcomingEvents(maxResults);
   }
+
+  public async createEvent(params: {
+    title: string;
+    description?: string;
+    start: Date;
+    end: Date;
+    location?: string;
+    timeZone?: string;
+  }): Promise<{ id: string; htmlLink: string }> {
+    const calendar = await this.getCalendarClient();
+    const event = {
+      summary: params.title,
+      description: params.description,
+      location: params.location,
+      start: {
+        dateTime: params.start.toISOString(),
+        timeZone: params.timeZone || 'Africa/Lagos',
+      },
+      end: {
+        dateTime: params.end.toISOString(),
+        timeZone: params.timeZone || 'Africa/Lagos',
+      },
+      reminders: {
+        useDefault: false,
+        overrides: [
+          { method: 'popup' as const, minutes: 10 },
+        ],
+      },
+    };
+    const response = await calendar.events.insert({
+      calendarId: this.CALENDAR_ID,
+      requestBody: event,
+    });
+    return {
+      id: response.data.id || '',
+      htmlLink: response.data.htmlLink || '',
+    };
+  }
 }
 
 // Export a singleton instance for convenience
