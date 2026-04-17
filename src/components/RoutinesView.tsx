@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Check, ChevronLeft, ChevronRight, Plus, X } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Plus, X, Link2, Link2Off } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
@@ -15,6 +15,7 @@ interface RoutineItem {
   _id: string;
   title: string;
   completedDates: string[];
+  habitId?: string | null;
 }
 
 interface Routine {
@@ -24,6 +25,12 @@ interface Routine {
   color: string;
   items: RoutineItem[];
   order: number;
+}
+
+interface Habit {
+  _id: string;
+  title: string;
+  category: string;
 }
 
 const formatter = new Intl.DateTimeFormat("en-US", {
@@ -154,21 +161,86 @@ const MonthGrid = ({ routines, monthOffset }: { routines: Routine[]; monthOffset
   );
 };
 
+const HabitLinkPicker = ({
+  habits,
+  currentHabitId,
+  onSelect,
+  onClose,
+}: {
+  habits: Habit[];
+  currentHabitId: string | null | undefined;
+  onSelect: (habitId: string | null) => void;
+  onClose: () => void;
+}) => {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        onClose();
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [onClose]);
+
+  return (
+    <div
+      ref={ref}
+      className="absolute right-0 top-full mt-1 z-50 w-52 bg-surface border border-white/10 rounded-lg shadow-xl overflow-hidden"
+    >
+      <div className="px-3 py-2 text-[10px] uppercase tracking-widest text-gray-500 border-b border-white/5">
+        Link to Habit
+      </div>
+      <button
+        onClick={() => { onSelect(null); onClose(); }}
+        className={cn(
+          "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-white/5 transition-colors",
+          !currentHabitId ? "text-primary" : "text-gray-400"
+        )}
+      >
+        <Link2Off size={14} />
+        {currentHabitId ? "Unlink habit" : "No habit linked"}
+      </button>
+      {habits.map((habit) => (
+        <button
+          key={habit._id}
+          onClick={() => { onSelect(habit._id); onClose(); }}
+          className={cn(
+            "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-white/5 transition-colors",
+            currentHabitId === habit._id ? "text-primary" : "text-gray-300"
+          )}
+        >
+          <Link2 size={14} className="shrink-0" />
+          <span className="truncate">{habit.title}</span>
+          {currentHabitId === habit._id && <Check size={12} className="ml-auto shrink-0" />}
+        </button>
+      ))}
+    </div>
+  );
+};
+
 const RoutineItemRow = ({
   item,
   routineId,
+  habits,
   onToggle,
   onEditTitle,
+  onLinkHabit,
 }: {
   item: RoutineItem;
   routineId: string;
+  habits: Habit[];
   onToggle: (itemId: string, completed: boolean) => void;
   onEditTitle: (itemId: string, title: string) => void;
+  onLinkHabit: (itemId: string, habitId: string | null) => void;
 }) => {
   const [editing, setEditing] = useState(false);
   const [editValue, setEditValue] = useState(item.title);
+  const [showHabitPicker, setShowHabitPicker] = useState(false);
   const todayStr = getTodayStr();
   const completed = item.completedDates.some((d) => toLocalString(d) === todayStr);
+  const linkedHabit = habits.find((h) => h._id === item.habitId);
 
   const handleDoubleClick = () => {
     setEditValue(item.title);
@@ -188,65 +260,104 @@ const RoutineItemRow = ({
   };
 
   return (
-    <motion.div
-      layout
-      className={cn(
-        "flex items-center gap-3 px-4 py-3 rounded-lg border transition-all cursor-pointer",
-        completed
-          ? "border-primary/30 bg-primary/5"
-          : "border-white/5 bg-white/[2%] hover:bg-white/[4%]"
-      )}
-      onClick={() => onToggle(item._id, !completed)}
-    >
+    <div className="relative">
       <motion.div
-        animate={{ scale: completed ? 1 : 0.9 }}
+        layout
         className={cn(
-          "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0",
-          completed ? "border-primary bg-primary" : "border-gray-600"
+          "flex items-center gap-3 px-4 py-3 rounded-lg border transition-all",
+          completed
+            ? "border-primary/30 bg-primary/5"
+            : "border-white/5 bg-white/[2%] hover:bg-white/[4%]"
         )}
       >
-        {completed && <Check size={12} className="text-black" strokeWidth={3} />}
-      </motion.div>
-
-      {editing ? (
-        <input
-          autoFocus
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          onBlur={handleSave}
-          onKeyDown={handleKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          className="flex-1 bg-transparent border-b border-primary/50 outline-none text-sm"
-        />
-      ) : (
-        <span
-          className={cn("flex-1 text-sm", completed && "line-through text-gray-500")}
-          onDoubleClick={handleDoubleClick}
-          title="Double-click to edit"
+        <div
+          className={cn(
+            "w-5 h-5 rounded border-2 flex items-center justify-center transition-colors shrink-0 cursor-pointer",
+            completed ? "border-primary bg-primary" : "border-gray-600 hover:border-gray-400"
+          )}
+          onClick={() => onToggle(item._id, !completed)}
         >
-          {item.title}
-        </span>
-      )}
-    </motion.div>
+          {completed && <Check size={12} className="text-black" strokeWidth={3} />}
+        </div>
+
+        {editing ? (
+          <input
+            autoFocus
+            value={editValue}
+            onChange={(e) => setEditValue(e.target.value)}
+            onBlur={handleSave}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent border-b border-primary/50 outline-none text-sm"
+          />
+        ) : (
+          <span
+            className={cn("flex-1 text-sm cursor-default", completed && "line-through text-gray-500")}
+            onDoubleClick={handleDoubleClick}
+            title="Double-click to edit title"
+          >
+            {item.title}
+          </span>
+        )}
+
+        {/* Habit link indicator */}
+        <div className="relative shrink-0">
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowHabitPicker((v) => !v); }}
+            className={cn(
+              "p-1 rounded transition-colors",
+              item.habitId
+                ? "text-primary hover:bg-primary/10"
+                : "text-gray-600 hover:text-gray-400 hover:bg-white/5"
+            )}
+            title={item.habitId ? `Linked to: ${linkedHabit?.title}` : "Link to a habit"}
+          >
+            {item.habitId ? <Link2 size={14} /> : <Link2Off size={14} />}
+          </button>
+
+          <AnimatePresence>
+            {showHabitPicker && (
+              <motion.div
+                initial={{ opacity: 0, y: -4 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.15 }}
+              >
+                <HabitLinkPicker
+                  habits={habits}
+                  currentHabitId={item.habitId}
+                  onSelect={(habitId) => onLinkHabit(item._id, habitId)}
+                  onClose={() => setShowHabitPicker(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </motion.div>
+    </div>
   );
 };
 
 export const RoutinesView = () => {
   const [routines, setRoutines] = useState<Routine[]>([]);
+  const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedRoutine, setSelectedRoutine] = useState<Routine | null>(null);
   const [view, setView] = useState<"week" | "month">("week");
   const [weekOffset, setWeekOffset] = useState(0);
   const [monthOffset, setMonthOffset] = useState(0);
-  const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
-    fetch("/api/routines")
-      .then((r) => r.json())
-      .then((j) => {
-        if (j.success) {
-          setRoutines(j.data);
-          if (j.data.length > 0) setSelectedRoutine(j.data[0]);
+    Promise.all([
+      fetch("/api/routines").then((r) => r.json()),
+      fetch("/api/habits").then((r) => r.json()),
+    ])
+      .then(([routinesJson, habitsJson]) => {
+        if (routinesJson.success) {
+          setRoutines(routinesJson.data);
+          if (routinesJson.data.length > 0) setSelectedRoutine(routinesJson.data[0]);
+        }
+        if (habitsJson.success) {
+          setHabits(habitsJson.data);
         }
       })
       .catch(console.error)
@@ -271,7 +382,7 @@ export const RoutinesView = () => {
     // Optimistic update
     setSelectedRoutine((prev) => {
       if (!prev) return prev;
-      const updated = {
+      return {
         ...prev,
         items: prev.items.map((item) => {
           if (item._id !== itemId) return item;
@@ -281,10 +392,8 @@ export const RoutinesView = () => {
           return { ...item, completedDates: newDates };
         }),
       };
-      return updated;
     });
 
-    // Update routines list too
     setRoutines((prev) =>
       prev.map((r) => {
         if (r._id !== selectedRoutine._id) return r;
@@ -302,14 +411,12 @@ export const RoutinesView = () => {
     );
 
     try {
-      const res = await fetch(`/api/routines/${selectedRoutine._id}/items/${itemId}/toggle`, {
-        method: "PUT",
-      });
+      const res = await fetch(
+        `/api/routines/${selectedRoutine._id}/items/${itemId}/toggle`,
+        { method: "PUT" }
+      );
       const json = await res.json();
-      if (!json.success) {
-        // Revert on failure
-        window.location.reload();
-      }
+      if (!json.success) window.location.reload();
     } catch {
       window.location.reload();
     }
@@ -330,6 +437,24 @@ export const RoutinesView = () => {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ title: newTitle }),
+    });
+  };
+
+  const linkHabit = async (itemId: string, habitId: string | null) => {
+    if (!selectedRoutine) return;
+    setSelectedRoutine((prev) => {
+      if (!prev) return prev;
+      return {
+        ...prev,
+        items: prev.items.map((item) =>
+          item._id === itemId ? { ...item, habitId: habitId ?? null } : item
+        ),
+      };
+    });
+    await fetch(`/api/routines/${selectedRoutine._id}/items/${itemId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ habitId: habitId ?? null }),
     });
   };
 
@@ -444,8 +569,10 @@ export const RoutinesView = () => {
                     key={item._id}
                     item={item}
                     routineId={selectedRoutine._id}
+                    habits={habits}
                     onToggle={toggleItem}
                     onEditTitle={editItemTitle}
+                    onLinkHabit={linkHabit}
                   />
                 ))
               )}

@@ -18,6 +18,8 @@ const toLocalString = (d: Date | string) => {
   return `${yr}-${mo}-${da}`;
 };
 
+const toDateString = (d: Date) => d.toISOString().split("T")[0];
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string; itemId: string }> }) {
   await dbConnect();
   try {
@@ -48,6 +50,21 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     await routine.save();
+
+    // Sync to linked habit via its toggle endpoint (with syncToRoutines=false to avoid loop)
+    if (item.habitId) {
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
+      await fetch(`${baseUrl}/api/habits/${item.habitId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "toggle",
+          date: today.toISOString(),
+          syncToRoutines: false,
+        }),
+      });
+    }
+
     return NextResponse.json({ success: true, data: item });
   } catch (error) {
     return NextResponse.json({ success: false, error: error }, { status: 400 });

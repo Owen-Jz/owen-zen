@@ -1,14 +1,15 @@
 import dbConnect from "@/lib/db";
 import Habit from "@/models/Habit";
+import Routine from "@/models/Routine";
 import { NextResponse } from "next/server";
 
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   await dbConnect();
   const { id } = await params;
-  
+
   try {
     const body = await req.json();
-    
+
     // Logic to toggle today's completion
     if (body.action === 'toggle') {
       const habit = await Habit.findById(id);
@@ -19,18 +20,18 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       if (body.date) {
         targetDate = new Date(body.date);
       }
-      
+
       // Normalize to YYYY-MM-DD string for comparison to avoid Timezone/UTC shifts
       // We assume the date passed in is the correct "Day" intended by the user
       const toDateString = (d: Date) => d.toISOString().split('T')[0];
       const targetDateStr = toDateString(targetDate);
-      
-      const hasCompletedTarget = habit.completedDates.some((d: Date) => 
+
+      const hasCompletedTarget = habit.completedDates.some((d: Date) =>
         toDateString(new Date(d)) === targetDateStr
       );
 
       let newDates = [...habit.completedDates];
-      
+
       if (hasCompletedTarget) {
         // Uncheck - remove all entries matching that day
         newDates = newDates.filter((d: Date) => toDateString(new Date(d)) !== targetDateStr);
@@ -68,11 +69,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           }
       }
 
-      const updated = await Habit.findByIdAndUpdate(id, { 
+      const updated = await Habit.findByIdAndUpdate(id, {
           completedDates: newDates,
           streak: streak
       }, { new: true });
-      
+
+      // Sync to all linked routine items (unless syncToRoutines is explicitly false to avoid loops)
+      if (body.syncToRoutines !== false) {
+        const routines = await Routine.find({ "items.habitId": id });
+        for (const routine of routines) {
+          let changed = false;
+          routine.items = routine.items.map((item: any) => {
+            if (String(item.habitId) === String(id)) {
+              changed = true;
+              return { ...item.toObject(), completedDates: newDates };
+            }
+            return item;
+          });
+          if (changed) await routine.save();
+        }
+      }
+
       return NextResponse.json({ success: true, data: updated });
     }
 

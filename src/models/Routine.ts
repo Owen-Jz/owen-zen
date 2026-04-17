@@ -10,6 +10,11 @@ const RoutineItemSchema = new mongoose.Schema({
     type: [Date],
     default: [],
   },
+  habitId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Habit',
+    default: null,
+  },
 });
 
 const RoutineSchema = new mongoose.Schema({
