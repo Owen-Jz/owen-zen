@@ -5,7 +5,11 @@ const JournalSchema = new mongoose.Schema({
   date: {
     type: String,
     required: [true, 'Date is required'],
-    unique: true, // one entry per day
+  },
+  slot: {
+    type: String,
+    enum: ['morning', 'evening'],
+    default: 'evening',
   },
   text: {
     type: String,
@@ -24,5 +28,8 @@ const JournalSchema = new mongoose.Schema({
 }, {
   timestamps: true, // adds createdAt and updatedAt
 });
+
+// Compound unique index: one entry per date+slot combination
+JournalSchema.index({ date: 1, slot: 1 }, { unique: true });
 
 export default mongoose.models.Journal || mongoose.model('Journal', JournalSchema);

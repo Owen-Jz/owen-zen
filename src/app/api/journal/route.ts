@@ -58,11 +58,15 @@ export async function GET(req: Request) {
     const year = searchParams.get('year') || new Date().getFullYear().toString();
     const search = searchParams.get('search')?.toLowerCase();
     const tag = searchParams.get('tag');
+    const slot = searchParams.get('slot'); // "morning" | "evening" | null
 
     const startDate = `${year}-01-01`;
     const endDate = `${year}-12-31`;
 
     const query: Record<string, any> = { date: { $gte: startDate, $lte: endDate } };
+    if (slot === 'morning' || slot === 'evening') {
+      query.slot = slot;
+    }
 
     if (tag) {
       query.tags = tag;
@@ -73,13 +77,15 @@ export async function GET(req: Request) {
     let filtered = entries;
     if (search) {
       filtered = entries.filter(e =>
-        e.text.toLowerCase().includes(search) ||
-        e.tags.some((t: string) => t.toLowerCase().includes(search))
+        (e.text ?? '').toLowerCase().includes(search) ||
+        (e.tags ?? []).some((t: string) => t.toLowerCase().includes(search))
       );
     }
 
+    // For streaks, always get ALL entries for the year (all slots) and deduplicate by date
     const allEntriesForYear = await Journal.find({ date: { $gte: startDate, $lte: endDate } }).lean();
-    const streaks = calculateStreaks(allEntriesForYear.map(e => ({ date: e.date })));
+    const uniqueDates = [...new Set(allEntriesForYear.map(e => e.date))];
+    const streaks = calculateStreaks(uniqueDates.map(d => ({ date: d })));
 
     return NextResponse.json({
       success: true,
@@ -99,15 +105,17 @@ export async function POST(req: Request) {
   await dbConnect();
   try {
     const body = await req.json();
-    const { date, text, mood, tags } = body;
+    const { date, text, mood, tags, slot } = body;
 
     if (!date) {
       return NextResponse.json({ success: false, error: 'date is required' }, { status: 400 });
     }
 
+    const resolvedSlot = slot === 'morning' || slot === 'evening' ? slot : 'evening';
+
     const entry = await Journal.findOneAndUpdate(
-      { date },
-      { $set: { text, mood, tags } },
+      { date, slot: resolvedSlot },
+      { $set: { text, mood, tags, slot: resolvedSlot } },
       { new: true, upsert: true, runValidators: true }
     );
 

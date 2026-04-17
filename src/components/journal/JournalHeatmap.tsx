@@ -10,15 +10,18 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 }
 
 interface Entry {
+  _id: string;
   date: string;
-  mood: number;
+  slot: 'morning' | 'evening';
   text: string;
+  mood: number;
   tags: string[];
+  updatedAt: string;
 }
 
 interface JournalHeatmapProps {
   year: number;
-  entries: Record<string, Entry>;
+  entries: Record<string, { morning: Entry | null; evening: Entry | null }>;
   onDateClick: (date: string) => void;
 }
 
@@ -35,7 +38,9 @@ const NO_ENTRY_COLOR = '#161b22';
 const CELL_SIZE = 13; // pixels
 const CELL_GAP = 2; // pixels
 
-function getCellColor(mood: number | undefined): string {
+function getCellColor(morningMood: number | null, eveningMood: number | null): string {
+  // Prioritize evening mood, fall back to morning
+  const mood = eveningMood ?? morningMood;
   if (!mood) return NO_ENTRY_COLOR;
   return MOOD_COLORS[mood] || NO_ENTRY_COLOR;
 }
@@ -129,8 +134,12 @@ export function JournalHeatmap({ year, entries, onDateClick }: JournalHeatmapPro
             {weeks.map((week, wi) => (
               <div key={wi} className="flex flex-col" style={{ gap: `${CELL_GAP}px` }}>
                 {week.map((day) => {
-                  const entry = entries[day.date];
+                  const entryGroup = entries[day.date];
+                  const morningEntry = entryGroup?.morning;
+                  const eveningEntry = entryGroup?.evening;
                   const isCurrentYear = day.date.startsWith(year.toString());
+                  const hasMorning = !!morningEntry;
+                  const hasEvening = !!eveningEntry;
                   return (
                     <div
                       key={day.date}
@@ -142,9 +151,11 @@ export function JournalHeatmap({ year, entries, onDateClick }: JournalHeatmapPro
                       style={{
                         width: `${CELL_SIZE}px`,
                         height: `${CELL_SIZE}px`,
-                        backgroundColor: isCurrentYear ? getCellColor(entry?.mood) : 'transparent'
+                        backgroundColor: isCurrentYear ? getCellColor(morningEntry?.mood ?? null, eveningEntry?.mood ?? null) : 'transparent'
                       }}
-                      title={isCurrentYear && entry ? `${day.date} — Mood ${entry.mood}` : isCurrentYear ? `${day.date} — No entry` : ''}
+                      title={isCurrentYear && (hasMorning || hasEvening)
+                        ? `${day.date}${hasMorning ? ` [🌅 Mood ${morningEntry!.mood}]` : ''}${hasEvening ? ` [🌙 Mood ${eveningEntry!.mood}]` : ''}`
+                        : isCurrentYear ? `${day.date} — No entry` : ''}
                     />
                   );
                 })}
