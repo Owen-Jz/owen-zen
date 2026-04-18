@@ -14,6 +14,8 @@ const DailyTrackSchema = new mongoose.Schema({
   autoCompleteTriggered: { type: Boolean, default: false },
 }, { _id: false });
 
+
+
 const PomodoroStateSchema = new mongoose.Schema({
   mode: {
     type: String,
