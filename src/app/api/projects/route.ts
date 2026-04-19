@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/db";
 import Project from "@/models/Project";
+import Task from "@/models/Task";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function GET(req: NextRequest) {
@@ -15,9 +16,21 @@ export async function GET(req: NextRequest) {
             Project.countDocuments({})
         ]);
 
+        // Aggregate task counts per project
+        const projectIds = projects.map(p => p._id);
+        const taskCounts = await Task.aggregate([
+            { $match: { projectId: { $in: projectIds } } },
+            { $group: { _id: "$projectId", total: { $sum: 1 }, completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } } } }
+        ]);
+        const countMap = new Map(taskCounts.map(t => [String(t._id), { taskCount: t.total, completedTaskCount: t.completed }]));
+        const projectsWithTasks = projects.map(p => ({
+            ...p.toObject(),
+            ...(countMap.get(String(p._id)) || { taskCount: 0, completedTaskCount: 0 })
+        }));
+
         return NextResponse.json({
             success: true,
-            data: projects,
+            data: projectsWithTasks,
             pagination: { page, limit, total, pages: Math.ceil(total / limit) }
         });
     } catch (error) {

@@ -39,6 +39,7 @@ export interface Task {
     totalTimeSpent?: number;
     activeTimer?: ActiveTimer;
     boardId?: string;
+    projectId?: string;
     isMIT: boolean;
     scheduledDate?: string; // ISO string 
     dueDate?: string;      // ISO string
@@ -74,6 +75,8 @@ export interface Project {
     deliverables: ProjectDeliverable[];
     links: ProjectLink[];
     createdAt: string;
+    taskCount?: number;
+    completedTaskCount?: number;
 }
 
 export interface Note {

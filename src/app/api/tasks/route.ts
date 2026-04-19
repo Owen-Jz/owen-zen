@@ -6,12 +6,15 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const boardId = searchParams.get('boardId');
+    const projectId = searchParams.get('projectId');
     const status = searchParams.get('status');
     console.log("Attributes: GET /api/tasks called", boardId ? `for board ${boardId}` : "for all tasks (or default)");
     await dbConnect();
 
     let query: Record<string, any>;
-    if (boardId) {
+    if (projectId) {
+      query = { projectId };
+    } else if (boardId) {
       query = { boardId };
     } else if (status) {
       query = { status };
