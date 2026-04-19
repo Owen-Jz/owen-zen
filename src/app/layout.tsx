@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope } from "next/font/google";
+import { Manrope, Geist } from "next/font/google";
 import "./globals.css";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
@@ -48,6 +48,10 @@ export const metadata: Metadata = {
 };
 
 import { Providers } from "@/components/Providers";
+import { cn } from "@/lib/utils";
+
+const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+
 
 export default function RootLayout({
   children,
@@ -55,7 +59,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={cn("font-sans", geist.variable)}>
       <body className={`${manrope.variable} antialiased min-h-screen relative`}>
         <a href="#main-content" className="skip-link">
           Skip to main content

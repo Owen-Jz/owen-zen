@@ -45,3 +45,4 @@ next-env.d.ts
 
 # electron / build output
 dist/
+.env*.local
