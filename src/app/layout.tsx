@@ -47,6 +47,7 @@ export const metadata: Metadata = {
   },
 };
 
+import { TooltipProvider } from "@/components/ui/tooltip"
 import { Providers } from "@/components/Providers";
 import { cn } from "@/lib/utils";
 
@@ -65,10 +66,11 @@ export default function RootLayout({
           Skip to main content
         </a>
         <Providers>
-          <SpotlightEffect />
-          <ServiceWorkerRegistration />
-          {children}
-          <Toaster
+          <TooltipProvider delay={300}>
+            <SpotlightEffect />
+            <ServiceWorkerRegistration />
+            {children}
+            <Toaster
             position="bottom-right"
             toastOptions={{
               style: {
@@ -78,6 +80,7 @@ export default function RootLayout({
               },
             }}
           />
+          </TooltipProvider>
         </Providers>
       </body>
     </html>
