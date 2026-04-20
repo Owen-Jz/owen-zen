@@ -5,6 +5,11 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TaskPriority, SubTask, Board } from "@/types";
 import { DatePicker } from "./DatePicker";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Separator } from "@/components/ui/separator";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -78,13 +83,13 @@ export const AddTaskModal = ({
                 {/* Header */}
                 <div className="flex items-start justify-between p-6 border-b border-white/5 bg-white/5">
                     <div className="flex-1 mr-8">
-                        <input
+                        <Input
                             autoFocus
                             type="text"
                             value={title}
                             onChange={(e) => setTitle(e.target.value)}
                             placeholder="Task Title (Required)"
-                            className="w-full bg-transparent text-2xl font-bold text-white placeholder-gray-500 outline-none border-none p-0 focus:ring-0"
+                            className="w-full bg-transparent text-2xl font-bold text-white placeholder-gray-500 border-none shadow-none p-0 focus:ring-0 h-auto"
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter' && !e.shiftKey) {
                                     e.preventDefault();
@@ -93,12 +98,9 @@ export const AddTaskModal = ({
                             }}
                         />
                     </div>
-                    <button
-                        onClick={onClose}
-                        className="p-2 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
-                    >
+                    <Button variant="ghost" size="icon" onClick={onClose} className="text-gray-400 hover:text-white">
                         <X size={20} />
-                    </button>
+                    </Button>
                 </div>
 
                 {/* Body - 2 Columns */}
@@ -164,22 +166,18 @@ export const AddTaskModal = ({
 
                             <form onSubmit={addSubtask} className="flex gap-2">
                                 <div className="relative flex-1">
-                                    <Plus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-                                    <input
+                                    <Input
                                         type="text"
                                         value={newSubtask}
                                         onChange={(e) => setNewSubtask(e.target.value)}
                                         placeholder="Add a new subtask..."
-                                        className="w-full bg-surface-hover/50 border border-transparent rounded-xl pl-9 pr-3 py-3 text-sm focus:border-primary/50 focus:bg-surface-hover outline-none transition-all placeholder:text-gray-600"
+                                        className="pl-9"
                                     />
+                                    <Plus size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
                                 </div>
-                                <button
-                                    type="submit"
-                                    disabled={!newSubtask.trim()}
-                                    className="px-4 bg-surface hover:bg-white/10 rounded-xl border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
-                                >
+                                <Button type="submit" variant="outline" disabled={!newSubtask.trim()}>
                                     Add
-                                </button>
+                                </Button>
                             </form>
                         </div>
                     </div>
@@ -224,46 +222,41 @@ export const AddTaskModal = ({
                             {/* Category Selector */}
                             <div>
                                 <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Category</label>
-                                <div className="relative">
-                                    <select
-                                        value={category}
-                                        onChange={(e) => setCategory(e.target.value)}
-                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30"
-                                    >
+                                <Select value={category} onValueChange={setCategory}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="Select category" />
+                                    </SelectTrigger>
+                                    <SelectContent>
                                         {['Work', 'Personal', 'Health', 'Finance', 'Other'].map(c => (
-                                            <option key={c} value={c}>{c}</option>
+                                            <SelectItem key={c} value={c}>{c}</SelectItem>
                                         ))}
-                                    </select>
-                                    <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                                </div>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {/* Board Selector */}
                             <div>
                                 <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Board</label>
-                                <div className="relative">
-                                    <select
-                                        value={boardId || ""}
-                                        onChange={(e) => setBoardId(e.target.value || null)}
-                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30"
-                                    >
-                                        <option value="">All Tasks (No Board)</option>
+                                <Select value={boardId || ""} onValueChange={(v) => setBoardId(v || null)}>
+                                    <SelectTrigger className="w-full">
+                                        <SelectValue placeholder="No Board" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="">All Tasks (No Board)</SelectItem>
                                         {boards.map(b => (
-                                            <option key={b._id} value={b._id}>{b.title}</option>
+                                            <SelectItem key={b._id} value={b._id}>{b.title}</SelectItem>
                                         ))}
-                                    </select>
-                                    <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                                </div>
+                                    </SelectContent>
+                                </Select>
                             </div>
 
                             {/* MIT Toggle */}
                             <div>
                                 <label className="flex items-center gap-3 bg-gradient-to-r from-primary/10 to-transparent border border-primary/20 p-3 rounded-xl cursor-pointer hover:bg-primary/20 transition-colors group">
-                                    <input
-                                        type="checkbox"
+                                    <Switch
                                         checked={isMIT}
-                                        onChange={(e) => setIsMIT(e.target.checked)}
-                                        className="w-4 h-4 rounded border-gray-500 text-primary focus:ring-primary accent-primary"
+                                        onCheckedChange={setIsMIT}
+                                        className="data-[state=checked]:bg-primary"
                                     />
                                     <div>
                                         <span className="block font-bold text-sm text-primary-light group-hover:text-primary transition-colors">Daily MIT</span>
@@ -278,21 +271,12 @@ export const AddTaskModal = ({
 
                 {/* Footer */}
                 <div className="p-4 border-t border-white/5 bg-black/20 flex justify-end gap-3">
-                    <button
-                        type="button"
-                        onClick={onClose}
-                        className="px-6 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 hover:text-white transition-all text-sm font-medium"
-                    >
+                    <Button variant="outline" onClick={onClose}>
                         Cancel
-                    </button>
-                    <button
-                        type="button"
-                        disabled={!title.trim()}
-                        onClick={handleSave}
-                        className="disabled:opacity-50 disabled:cursor-not-allowed px-8 py-2.5 rounded-xl bg-primary text-white hover:brightness-110 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all text-sm font-bold flex items-center gap-2"
-                    >
-                        <Plus size={16} /> Create Task
-                    </button>
+                    </Button>
+                    <Button disabled={!title.trim()} onClick={handleSave}>
+                        <Plus size={16} className="mr-2" /> Create Task
+                    </Button>
                 </div>
             </motion.div>
         </div>

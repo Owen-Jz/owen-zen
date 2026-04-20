@@ -8,6 +8,14 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Task, TaskStatus, TaskPriority } from "@/types";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Progress } from "@/components/ui/progress";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -66,9 +74,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
     "low": "border-l-4 border-blue-500"
   };
 
-  const [menuOpen, setMenuOpen] = useState(false);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
 
   const { isOver: isSubtaskOver, setNodeRef: setSubtaskDropRef } = useDroppable({
     id: `subtask-${task._id}`,
@@ -92,21 +98,6 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
     const interval = setInterval(calculateTime, 1000);
     return () => clearInterval(interval);
   }, [task.activeTimer]);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setMenuOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleMenuAction = (action: () => void) => {
-    action();
-    setMenuOpen(false);
-  };
 
   const formatTime = (seconds: number) => {
     const hrs = Math.floor(seconds / 3600);
@@ -132,7 +123,6 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
         "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1",
         task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]",
         isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
-        menuOpen && "z-40",
         isDragging && !isOverlay && "opacity-40 grayscale scale-95"
       )}
     >
@@ -194,72 +184,68 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
             )}
 
             {!isOverlay && (
-              <div className="relative" ref={menuRef}>
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
-                  aria-label="Task options menu"
-                >
-                  <MoreVertical size={16} />
-                </button>
-
-                <AnimatePresence>
-                  {menuOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.95 }}
-                      className="absolute right-0 top-full mt-2 w-48 bg-surface border border-border rounded-xl shadow-xl z-50 overflow-hidden"
-                    >
-                      <div className="p-1">
-                        <button onClick={() => onEdit && handleMenuAction(() => onEdit(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Edit2 size={14} /> View Details
-                        </button>
-                        <button onClick={() => onFocus && handleMenuAction(() => onFocus(task))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-white hover:bg-primary/10 hover:text-white rounded-lg text-left font-bold">
-                          <Maximize2 size={14} /> Focus Mode
-                        </button>
-                        <div className="h-px bg-border my-1" />
-                        <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Priority</div>
-                        <button onClick={() => onUpdatePriority && handleMenuAction(() => onUpdatePriority(task._id, "high"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "high" ? "text-red-500" : "text-gray-300 hover:text-white")}>
-                          <div className="w-2 h-2 rounded-full bg-red-500" /> High
-                        </button>
-                        <button onClick={() => onUpdatePriority && handleMenuAction(() => onUpdatePriority(task._id, "medium"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "medium" ? "text-yellow-500" : "text-gray-300 hover:text-white")}>
-                          <div className="w-2 h-2 rounded-full bg-yellow-500" /> Medium
-                        </button>
-                        <button onClick={() => onUpdatePriority && handleMenuAction(() => onUpdatePriority(task._id, "low"))} className={cn("flex w-full items-center gap-2 px-3 py-2 text-sm hover:bg-white/5 rounded-lg text-left", task.priority === "low" ? "text-blue-500" : "text-gray-300 hover:text-white")}>
-                          <div className="w-2 h-2 rounded-full bg-blue-500" /> Low
-                        </button>
-                        <div className="h-px bg-border my-1" />
-                        <div className="px-3 py-1 text-[10px] text-gray-500 uppercase font-bold">Move To</div>
-                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "pending"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Circle size={14} /> Backlog
-                        </button>
-                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "in-progress"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Clock size={14} /> In Focus
-                        </button>
-                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "completed"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Check size={14} /> Done
-                        </button>
-                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "pinned"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Pin size={14} /> Pin for Later
-                        </button>
-                        <button onClick={() => onUpdateStatus && handleMenuAction(() => onUpdateStatus(task._id, "mind-map"))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white rounded-lg text-left">
-                          <Sparkles size={14} /> Mind Map
-                        </button>
-                        <div className="h-px bg-border my-1" />
-                        {task.status === "completed" && (
-                          <button onClick={() => onArchive && handleMenuAction(() => onArchive(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-yellow-500 hover:bg-yellow-500/10 rounded-lg text-left">
-                            <Archive size={14} /> Archive
-                          </button>
-                        )}
-                        <button onClick={() => onDelete && handleMenuAction(() => onDelete(task._id))} className="flex w-full items-center gap-2 px-3 py-2 text-sm text-red-500 hover:bg-red-500/10 rounded-lg text-left">
-                          <Trash2 size={14} /> Delete
-                        </button>
-                      </div>
-                    </motion.div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
+                    aria-label="Task options menu"
+                  >
+                    <MoreVertical size={16} />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => onEdit?.(task)} className="cursor-pointer">
+                    <Edit2 size={14} className="mr-2" /> View Details
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onFocus?.(task)} className="cursor-pointer font-bold text-primary">
+                    <Maximize2 size={14} className="mr-2" /> Focus Mode
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onUpdatePriority?.(task._id, "high")}
+                    className={cn("cursor-pointer", task.priority === "high" && "text-red-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> High Priority
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onUpdatePriority?.(task._id, "medium")}
+                    className={cn("cursor-pointer", task.priority === "medium" && "text-yellow-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" /> Medium Priority
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onUpdatePriority?.(task._id, "low")}
+                    className={cn("cursor-pointer", task.priority === "low" && "text-blue-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" /> Low Priority
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "pending")} className="cursor-pointer">
+                    <Circle size={14} className="mr-2" /> Move to Backlog
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "in-progress")} className="cursor-pointer">
+                    <Clock size={14} className="mr-2" /> Move to In Focus
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "completed")} className="cursor-pointer">
+                    <Check size={14} className="mr-2" /> Move to Done
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "pinned")} className="cursor-pointer">
+                    <Pin size={14} className="mr-2" /> Pin for Later
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "mind-map")} className="cursor-pointer">
+                    <Sparkles size={14} className="mr-2" /> Mind Map
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  {task.status === "completed" && (
+                    <DropdownMenuItem onClick={() => onArchive?.(task._id)} className="cursor-pointer text-yellow-500">
+                      <Archive size={14} className="mr-2" /> Archive
+                    </DropdownMenuItem>
                   )}
-                </AnimatePresence>
-              </div>
+                  <DropdownMenuItem onClick={() => onDelete?.(task._id)} className="cursor-pointer text-red-500">
+                    <Trash2 size={14} className="mr-2" /> Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             )}
           </div>
         </div>
@@ -269,12 +255,10 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
           <div className="mb-4 space-y-2.5">
             {/* Progress Bar */}
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-1 bg-surface-hover rounded-full overflow-hidden relative">
-                <div
-                  className="absolute left-0 top-0 bottom-0 bg-primary transition-all duration-500 ease-out shadow-[0_0_10px_rgba(var(--primary-rgb),0.5)]"
-                  style={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
-                />
-              </div>
+              <Progress
+                value={(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}
+                className="flex-1 h-1"
+              />
               <span className="text-[10px] text-gray-500 font-mono font-bold tracking-wider tabular-nums">
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
               </span>
