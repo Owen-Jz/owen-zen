@@ -60,7 +60,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" data-theme="zen" className={cn("font-sans", geist.variable)}>
       <body className={`${manrope.variable} antialiased min-h-screen relative`}>
         <a href="#main-content" className="skip-link">
           Skip to main content
