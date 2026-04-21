@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -128,6 +128,9 @@ const PromptLibraryView = dynamic(() => import("@/components/PromptLibraryView")
   loading: () => <Loading />
 });
 const JournalView = dynamic(() => import("@/components/JournalView").then(mod => ({ default: mod.default })), {
+  loading: () => <Loading />
+});
+const MarketingDashboard = dynamic(() => import("@/components/MarketingDashboard").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
 
@@ -263,6 +266,12 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
+      ]
+    },
+    {
+      title: "Marketing",
+      links: [
+        { id: "marketing", label: "Marketing HQ", icon: Megaphone },
       ]
     },
     {
@@ -2963,6 +2972,7 @@ export default function Dashboard() {
           {activeTab === "post-bucket" && <PostBucketView />}
           {activeTab === "prompts" && <PromptLibraryView />}
           {activeTab === "canvas" && <ZCanvas />}
+          {activeTab === "marketing" && <MarketingDashboard />}
           </motion.div>
         </main>
 
