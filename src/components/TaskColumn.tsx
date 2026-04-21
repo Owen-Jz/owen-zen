@@ -185,13 +185,11 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
 
             {!isOverlay && (
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
-                    aria-label="Task options menu"
-                  >
-                    <MoreVertical size={16} />
-                  </button>
+                <DropdownMenuTrigger
+                  className="p-2 text-gray-500 hover:text-white rounded-lg hover:bg-white/5"
+                  aria-label="Task options menu"
+                >
+                  <MoreVertical size={16} />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem onClick={() => onEdit?.(task)} className="cursor-pointer">

@@ -222,7 +222,7 @@ export const AddTaskModal = ({
                             {/* Category Selector */}
                             <div>
                                 <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Category</label>
-                                <Select value={category} onValueChange={setCategory}>
+                                <Select value={category} onValueChange={(v) => setCategory(v || "Other")}>
                                     <SelectTrigger className="w-full">
                                         <SelectValue placeholder="Select category" />
                                     </SelectTrigger>

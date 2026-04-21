@@ -682,6 +682,17 @@ const SettingsView = () => {
             <div className="text-xs text-gray-500 mt-1">Icy White</div>
           </button>
 
+          {/* Noir Theme */}
+          <button onClick={() => setTheme('noir')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
+            <div className="w-full h-28 bg-[#0a0a0a] rounded-lg mb-4 border border-[#262626] relative overflow-hidden group-hover:scale-[1.02] transition-transform shadow-lg">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#fafafa]/5 to-transparent"></div>
+              <div className="absolute top-3 left-3 w-8 h-8 rounded-full bg-[#fafafa] shadow-[0_0_15px_rgba(250,250,250,0.3)]"></div>
+              <div className="absolute bottom-3 right-3 text-[#525252] text-xs font-mono">NOIR</div>
+            </div>
+            <div className="font-bold text-lg">Noir</div>
+            <div className="text-xs text-gray-500 mt-1">Pure Greyscale Dark</div>
+          </button>
+
           {/* Neon Theme */}
           <button onClick={() => setTheme('neon')} className="p-4 rounded-xl border border-border hover:border-primary transition-all text-left group bg-surface/30 hover:bg-surface/50">
             <div className="w-full h-28 bg-[#050505] rounded-lg mb-4 border border-[#252525] relative overflow-hidden group-hover:scale-[1.02] transition-transform">
@@ -1255,7 +1266,8 @@ export default function Dashboard() {
     if (savedTheme) document.documentElement.setAttribute('data-theme', savedTheme);
 
     const themeColors: Record<string, string> = {
-      '': '#030303',
+      '': '#0a0a0a',
+      'zen': '#0a0a0a',
       'cyberpunk': '#050508',
       'matrix': '#000000',
       'sapphire': '#020617',
@@ -1273,8 +1285,9 @@ export default function Dashboard() {
       'dracula': '#282a36',
       'chocolate': '#1e1b18',
       'neon': '#050505',
+      'noir': '#0a0a0a',
     };
-    const color = themeColors[savedTheme || ''] || '#030303';
+    const color = themeColors[savedTheme || ''] || '#0a0a0a';
     document.querySelector('meta[name="theme-color"]')?.setAttribute('content', color);
 
     // Set Greeting (Lagos time: GMT+1)
