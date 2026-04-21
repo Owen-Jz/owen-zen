@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
+import MarketingGuide from "./MarketingGuide";
 import {
   Megaphone,
   Lightbulb,
@@ -118,6 +119,7 @@ export default function MarketingDashboard() {
   const [brandAssets, setBrandAssets] = useState<BrandAsset[]>([]);
   const [emailCampaigns, setEmailCampaigns] = useState<EmailCampaign[]>([]);
   const [seoEntries, setSeoEntries] = useState<SEOEntry[]>([]);
+  const [isGuideOpen, setIsGuideOpen] = useState(false);
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
@@ -188,7 +190,16 @@ export default function MarketingDashboard() {
     <div className="max-w-[1600px] mx-auto pb-20">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Marketing Department</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-3xl font-bold">Marketing Department</h1>
+          <button
+            onClick={() => setIsGuideOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-primary/20 text-primary border border-primary/30 text-sm font-medium hover:bg-primary/30 transition-all"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            How To Use This
+          </button>
+        </div>
         <p className="text-gray-400">Manage all your marketing activities in one place</p>
       </div>
 
@@ -651,6 +662,9 @@ export default function MarketingDashboard() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Guide Modal */}
+      <MarketingGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
     </div>
   );
 }
