@@ -834,14 +834,16 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
   );
 }
 
+type MusicGenre = 'lofi' | 'classical' | 'jazz';
+
 const RightSidebar = ({
-  isLofiPlaying,
-  setIsLofiPlaying,
+  currentMusicGenre,
+  setCurrentMusicGenre,
   isCollapsed,
   setIsCollapsed
 }: {
-  isLofiPlaying: boolean;
-  setIsLofiPlaying: (v: boolean) => void;
+  currentMusicGenre: MusicGenre | null;
+  setCurrentMusicGenre: (genre: MusicGenre | null) => void;
   isCollapsed: boolean;
   setIsCollapsed: (v: boolean) => void;
 }) => {
@@ -961,12 +963,12 @@ const RightSidebar = ({
 
       {/* 3. Zen Audio & Lofi Controls */}
       <div className="bg-surface-hover border border-white/5 p-4 rounded-xl mb-6 relative overflow-hidden">
-        {isLofiPlaying && (
+        {currentMusicGenre && (
           <div className="absolute inset-0 bg-indigo-500/5 animate-pulse pointer-events-none" />
         )}
         <div className="flex items-center justify-between mb-4 relative z-10">
           <div className="flex items-center gap-2 text-indigo-400">
-            {isLofiPlaying ? (
+            {currentMusicGenre ? (
               <div className="relative flex items-center justify-center w-5 h-5 min-w-[20px] shrink-0 animate-[spin_3s_linear_infinite]">
                 <div className="absolute inset-0 rounded-full border-[3.5px] border-indigo-500/50 shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
                 <div className="absolute w-2 h-2 rounded-full border border-indigo-400/80 bg-surface z-10" />
@@ -977,7 +979,7 @@ const RightSidebar = ({
             )}
             <h3 className="text-xs font-bold uppercase tracking-widest">Focus Audio</h3>
           </div>
-          {isLofiPlaying && (
+          {currentMusicGenre && (
             <div className="flex gap-1">
               {[...Array(3)].map((_, i) => (
                 <motion.div
@@ -992,28 +994,35 @@ const RightSidebar = ({
         </div>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between group">
-            <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors">Lofi Beats</span>
-            <button
-              onClick={() => {
-                if (isLofiPlaying) {
-                  setIsLofiPlaying(false);
-                } else {
-                  window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
-                  setIsLofiPlaying(true);
-                }
-              }}
-              className={cn(
-                "w-8 h-4 rounded-full transition-colors relative",
-                isLofiPlaying ? "bg-indigo-500/50" : "bg-white/10"
-              )}
-            >
-              <div className={cn(
-                "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
-                isLofiPlaying ? "left-[18px]" : "left-0.5"
-              )} />
-            </button>
-          </div>
+          {(['lofi', 'classical', 'jazz'] as const).map((genre) => (
+            <div key={genre} className="flex items-center justify-between group">
+              <span className="text-xs text-gray-400 group-hover:text-gray-200 transition-colors capitalize">{genre === 'lofi' ? 'Lo-fi Beats' : genre}</span>
+              <button
+                onClick={() => {
+                  if (currentMusicGenre === genre) {
+                    setCurrentMusicGenre(null);
+                  } else {
+                    const urls = {
+                      lofi: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                      classical: 'https://www.youtube.com/watch?v=rR3Spmdj3LU',
+                      jazz: 'https://www.youtube.com/watch?v=6aM31dzlXVM',
+                    };
+                    window.open(urls[genre], '_blank');
+                    setCurrentMusicGenre(genre);
+                  }
+                }}
+                className={cn(
+                  "w-8 h-4 rounded-full transition-colors relative",
+                  currentMusicGenre === genre ? "bg-indigo-500/50" : "bg-white/10"
+                )}
+              >
+                <div className={cn(
+                  "absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all shadow-sm",
+                  currentMusicGenre === genre ? "left-[18px]" : "left-0.5"
+                )} />
+              </button>
+            </div>
+          ))}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-500">Vol</span>
             <input type="range" min="0" max="100" defaultValue="50" className="w-full h-1 bg-white/10 rounded-lg appearance-none cursor-pointer accent-indigo-500" />
@@ -1150,7 +1159,22 @@ export default function Dashboard() {
   const [greeting, setGreeting] = useState("Good Morning");
   const [dailyEmoji, setDailyEmoji] = useState("✨");
   const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
-  const [isLofiPlaying, setIsLofiPlaying] = useState(false);
+  type MusicGenre = 'lofi' | 'classical' | 'jazz';
+  const [currentMusicGenre, setCurrentMusicGenre] = useState<MusicGenre | null>(null);
+  const [isMusicDropdownOpen, setIsMusicDropdownOpen] = useState(false);
+
+  // Close music dropdown on outside click
+  useEffect(() => {
+    if (!isMusicDropdownOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-music-dropdown]')) {
+        setIsMusicDropdownOpen(false);
+      }
+    };
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, [isMusicDropdownOpen]);
   const [, forceUpdate] = useState(0);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const hasInitializedTimers = useRef(false); // Track if we've auto-paused timers on load
@@ -2164,7 +2188,7 @@ export default function Dashboard() {
         {!isZenMode && (
           <>
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} isOpen={isSidebarOpen} setIsOpen={setIsSidebarOpen} isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
-            <RightSidebar isLofiPlaying={isLofiPlaying} setIsLofiPlaying={setIsLofiPlaying} isCollapsed={isRightSidebarCollapsed} setIsCollapsed={setIsRightSidebarCollapsed} />
+            <RightSidebar currentMusicGenre={currentMusicGenre} setCurrentMusicGenre={setCurrentMusicGenre} isCollapsed={isRightSidebarCollapsed} setIsCollapsed={setIsRightSidebarCollapsed} />
           </>
         )}
 
@@ -2426,32 +2450,100 @@ export default function Dashboard() {
               {/* Notification Bell */}
               {!isZenMode && <NotificationBell />}
 
-              {/* Lofi Girl Button */}
-              <button
-                onClick={() => {
-                  if (isLofiPlaying) {
-                    setIsLofiPlaying(false);
-                  } else {
-                    window.open('https://www.youtube.com/watch?v=jfKfPfyJRdk', '_blank');
-                    setIsLofiPlaying(true);
-                  }
-                }}
-                className={clsx(
-                  "hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 border",
-                  isLofiPlaying
-                    ? "bg-gradient-to-r from-primary/30 to-purple-500/20 border-primary shadow-lg shadow-primary/25 text-primary"
-                    : "bg-surface/80 border-border/60 text-gray-400 hover:text-white hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
-                )}
-                title="Play Lofi Girl on YouTube"
-              >
-                <svg className={clsx("w-5 h-5 transition-transform duration-300", isLofiPlaying && "animate-pulse")} fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
-                </svg>
-                <span className="text-sm font-medium">Lofi Girl</span>
-                {isLofiPlaying && (
-                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
-                )}
-              </button>
+              {/* Music Dropdown */}
+              <div className="relative">
+                <button
+                  onClick={() => setIsMusicDropdownOpen(!isMusicDropdownOpen)}
+                  className={clsx(
+                    "hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 border",
+                    currentMusicGenre
+                      ? "bg-gradient-to-r from-primary/30 to-purple-500/20 border-primary shadow-lg shadow-primary/25 text-primary"
+                      : "bg-surface/80 border-border/60 text-gray-400 hover:text-white hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-primary/10 hover:scale-[1.02]"
+                  )}
+                  title="Music Selection"
+                >
+                  <svg className={clsx("w-5 h-5 transition-transform duration-300", currentMusicGenre && "animate-pulse")} fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm4.7 17.3l-4.6-2.7c-.2-.1-.3-.3-.3-.6V9c0-.5.4-.9.9-.9s.9.4.9.9v4.7l4.2 2.4c.4.2.5.7.3 1.1-.2.4-.7.5-1.1.3l-.3-.2z" />
+                  </svg>
+                  <span className="text-sm font-medium">{currentMusicGenre ? currentMusicGenre.charAt(0).toUpperCase() + currentMusicGenre.slice(1) : 'Music'}</span>
+                  <ChevronDown size={14} className={clsx("transition-transform duration-200", isMusicDropdownOpen && "rotate-180")} />
+                  {currentMusicGenre && (
+                    <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-primary rounded-full animate-ping" />
+                  )}
+                </button>
+
+                <AnimatePresence>
+                  {isMusicDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                      transition={{ duration: 0.2 }}
+                      className="absolute right-0 top-full mt-2 w-48 bg-surface/95 backdrop-blur-xl border border-white/10 rounded-xl shadow-xl overflow-hidden z-50"
+                    >
+                      <div className="p-2">
+                        <p className="text-[10px] text-gray-500 uppercase tracking-widest px-3 py-2">Focus Music</p>
+                        {[
+                          { genre: 'lofi' as MusicGenre, label: 'Lo-fi Beats', icon: '🎵' },
+                          { genre: 'classical' as MusicGenre, label: 'Classical', icon: '🎻' },
+                          { genre: 'jazz' as MusicGenre, label: 'Jazz', icon: '🎷' },
+                        ].map(({ genre, label, icon }) => (
+                          <button
+                            key={genre}
+                            onClick={() => {
+                              const urls = {
+                                lofi: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                                classical: 'https://www.youtube.com/watch?v=rR3Spmdj3LU',
+                                jazz: 'https://www.youtube.com/watch?v=6aM31dzlXVM',
+                              };
+                              window.open(urls[genre], '_blank');
+                              setCurrentMusicGenre(genre);
+                              setIsMusicDropdownOpen(false);
+                            }}
+                            className={clsx(
+                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left",
+                              currentMusicGenre === genre
+                                ? "bg-primary/20 text-primary border border-primary/30"
+                                : "text-gray-300 hover:bg-white/5 hover:text-white"
+                            )}
+                          >
+                            <span className="text-base">{icon}</span>
+                            <span className="text-sm font-medium flex-1">{label}</span>
+                            {currentMusicGenre === genre && (
+                              <motion.div
+                                className="flex gap-0.5"
+                                initial={{ scale: 0 }}
+                                animate={{ scale: 1 }}
+                              >
+                                {[...Array(3)].map((_, i) => (
+                                  <motion.div
+                                    key={i}
+                                    className="w-1 bg-primary rounded-full"
+                                    animate={{ height: ["4px", "8px", "4px"] }}
+                                    transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.1 }}
+                                  />
+                                ))}
+                              </motion.div>
+                            )}
+                          </button>
+                        ))}
+                        {currentMusicGenre && (
+                          <button
+                            onClick={() => {
+                              setCurrentMusicGenre(null);
+                              setIsMusicDropdownOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-left text-gray-500 hover:bg-red-500/10 hover:text-red-400 mt-1 border border-transparent hover:border-red-500/20"
+                          >
+                            <span className="text-base">⏹</span>
+                            <span className="text-sm font-medium">Stop Music</span>
+                          </button>
+                        )}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
               {!isZenMode && (
                 <button
                   onClick={() => setIsSidebarOpen(true)}
