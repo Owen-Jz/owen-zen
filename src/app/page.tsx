@@ -482,9 +482,25 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
 
 // ... SettingsView, SniperView, SocialHubView (Unchanged) ...
 const SettingsView = () => {
+  const [isThemeTransitioning, setIsThemeTransitioning] = useState(false);
+  const [transitioningTheme, setTransitioningTheme] = useState('');
+
   const setTheme = (theme: string) => {
-    document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('theme', theme);
+    if (isThemeTransitioning) return;
+    setIsThemeTransitioning(true);
+    setTransitioningTheme(theme);
+
+    // Delay theme change for animation
+    setTimeout(() => {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    }, 400);
+
+    // End animation
+    setTimeout(() => {
+      setIsThemeTransitioning(false);
+      setTransitioningTheme('');
+    }, 800);
   };
 
   return (
@@ -706,6 +722,70 @@ const SettingsView = () => {
 
         </div>
       </div>
+
+      {/* Theme Transition Overlay */}
+      <AnimatePresence>
+        {isThemeTransitioning && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.3 }}
+            className="fixed inset-0 z-[9999] pointer-events-none"
+          >
+            {/* Radial gradient flash from center */}
+            <motion.div
+              initial={{ scale: 0, opacity: 1 }}
+              animate={{ scale: 2.5, opacity: 0 }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+              className="absolute inset-0"
+            >
+              <div
+                className="w-full h-full rounded-full"
+                style={{
+                  background: transitioningTheme === 'noir'
+                    ? 'radial-gradient(circle, rgba(250,250,250,0.3) 0%, transparent 70%)'
+                    : transitioningTheme === 'zen'
+                    ? 'radial-gradient(circle, rgba(220,38,38,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'matrix'
+                    ? 'radial-gradient(circle, rgba(0,255,65,0.3) 0%, transparent 70%)'
+                    : transitioningTheme === 'cyberpunk'
+                    ? 'radial-gradient(circle, rgba(217,70,239,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'sapphire'
+                    ? 'radial-gradient(circle, rgba(59,130,246,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'emerald'
+                    ? 'radial-gradient(circle, rgba(16,185,129,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'sunset'
+                    ? 'radial-gradient(circle, rgba(245,158,11,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'light'
+                    ? 'radial-gradient(circle, rgba(59,130,246,0.3) 0%, transparent 70%)'
+                    : transitioningTheme === 'ocean'
+                    ? 'radial-gradient(circle, rgba(6,182,212,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'midnight'
+                    ? 'radial-gradient(circle, rgba(99,102,241,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'cherry'
+                    ? 'radial-gradient(circle, rgba(236,72,153,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'forest'
+                    ? 'radial-gradient(circle, rgba(34,197,94,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'nord'
+                    ? 'radial-gradient(circle, rgba(136,192,208,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'dracula'
+                    ? 'radial-gradient(circle, rgba(189,147,249,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'chocolate'
+                    ? 'radial-gradient(circle, rgba(205,133,63,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'lavender'
+                    ? 'radial-gradient(circle, rgba(139,92,246,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'rose'
+                    ? 'radial-gradient(circle, rgba(244,63,94,0.4) 0%, transparent 70%)'
+                    : transitioningTheme === 'arctic'
+                    ? 'radial-gradient(circle, rgba(14,165,233,0.3) 0%, transparent 70%)'
+                    : 'radial-gradient(circle, rgba(57,255,20,0.3) 0%, transparent 70%)',
+                }}
+              />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
