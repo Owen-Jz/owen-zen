@@ -2963,6 +2963,7 @@ export default function Dashboard() {
           {activeTab === "inbox" && <InboxView />}
           {activeTab === "finance" && <FinanceView />}
           {activeTab === "bucket" && <BucketListView />}
+          {activeTab === "projects" && <ProjectView />}
           {activeTab === "settings" && <SettingsView />}
 
           {activeTab === "calendar" && <ContentCalendar />}

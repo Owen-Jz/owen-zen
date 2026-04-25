@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Project, ProjectDeliverable, ProjectLink, Task } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Trash2, ExternalLink, Filter, CheckCircle2, Circle, Clock, Target, CalendarDays, MoreVertical, LayoutTemplate, X, Check, ChevronDown, ChevronUp, ListTodo } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, Filter, CheckCircle2, Circle, Clock, Target, CalendarDays, MoreVertical, LayoutTemplate, X, Check, ChevronDown, ChevronUp, ListTodo, FileText } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -290,6 +290,11 @@ const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, on
                                 <ExternalLink size={12} /> {project.links.length}
                             </span>
                         )}
+                        {project.notes?.length > 0 && (
+                            <span className="flex items-center gap-1.5 text-gray-400">
+                                <FileText size={12} /> {project.notes.length}
+                            </span>
+                        )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -392,6 +397,8 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
     const [deliverables, setDeliverables] = useState<ProjectDeliverable[]>(project?.deliverables || []);
     const [links, setLinks] = useState<ProjectLink[]>(project?.links || []);
     const [newDeliverable, setNewDeliverable] = useState("");
+    const [notes, setNotes] = useState<string[]>(project?.notes || []);
+    const [newNote, setNewNote] = useState("");
     const [newLinkTitle, setNewLinkTitle] = useState("");
     const [newLinkUrl, setNewLinkUrl] = useState("");
 
@@ -412,7 +419,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
         setIsSubmitting(true);
 
         const payload = {
-            title, description, category, status, priority, progress, startDate, dueDate, deliverables, links
+            title, description, category, status, priority, progress, startDate, dueDate, deliverables, links, notes
         };
 
         try {
@@ -439,6 +446,12 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
         if (!newDeliverable.trim()) return;
         setDeliverables([...deliverables, { title: newDeliverable, completed: false }]);
         setNewDeliverable("");
+    };
+
+    const addNote = () => {
+        if (!newNote.trim()) return;
+        setNotes([...notes, newNote.trim()]);
+        setNewNote("");
     };
 
     const addLink = () => {
@@ -672,6 +685,46 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                         type="button"
                                         onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
                                         className="text-gray-500 hover:text-red-500 p-2"
+                                    >
+                                        <Trash2 size={14} />
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <h4 className="text-sm font-bold uppercase tracking-widest text-gray-400 mb-4 flex items-center gap-2">
+                            <FileText size={16} className="text-yellow-500" /> Notes
+                        </h4>
+
+                        <div className="flex gap-2 mb-4">
+                            <input
+                                type="text"
+                                value={newNote}
+                                onChange={e => setNewNote(e.target.value)}
+                                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addNote())}
+                                placeholder="Add a note..."
+                                className="flex-1 bg-surface border border-white/10 rounded-xl px-3 py-2 focus:outline-none focus:border-primary transition-all text-sm"
+                            />
+                            <button
+                                type="button"
+                                onClick={addNote}
+                                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white transition-colors"
+                            >
+                                Add
+                            </button>
+                        </div>
+
+                        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+                            {notes.length === 0 && <p className="text-xs text-gray-600">No notes added yet.</p>}
+                            {notes.map((note, i) => (
+                                <div key={i} className="flex items-center gap-3 bg-surface/50 p-2.5 rounded-lg border border-white/5 group">
+                                    <span className="text-sm flex-1 text-gray-300">{note}</span>
+                                    <button
+                                        type="button"
+                                        onClick={() => setNotes(notes.filter((_, idx) => idx !== i))}
+                                        className="text-gray-500 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
                                         <Trash2 size={14} />
                                     </button>

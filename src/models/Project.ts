@@ -40,6 +40,7 @@ const ProjectSchema = new mongoose.Schema({
     startDate: String,
     dueDate: String,
     deliverables: [DeliverableSchema],
+    notes: [{ type: String }],
     links: [LinkSchema],
     createdAt: {
         type: Date,

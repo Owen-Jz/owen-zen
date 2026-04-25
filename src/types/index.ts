@@ -73,6 +73,7 @@ export interface Project {
     startDate?: string;
     dueDate?: string;
     deliverables: ProjectDeliverable[];
+    notes?: string[];
     links: ProjectLink[];
     createdAt: string;
     taskCount?: number;
