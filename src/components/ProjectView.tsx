@@ -124,9 +124,9 @@ export const ProjectView = () => {
                         onClose={() => setIsModalOpen(false)}
                         onSave={(newProject) => {
                             if (editingProject) {
-                                setProjects(projects.map(p => p._id === newProject._id ? newProject : p));
+                                setProjects(prev => prev.map(p => p._id === newProject._id ? newProject : p));
                             } else {
-                                setProjects([newProject, ...projects]);
+                                setProjects(prev => [newProject, ...prev]);
                             }
                             setIsModalOpen(false);
                         }}
@@ -444,19 +444,19 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
 
     const addDeliverable = () => {
         if (!newDeliverable.trim()) return;
-        setDeliverables([...deliverables, { title: newDeliverable, completed: false }]);
+        setDeliverables(prev => [...prev, { title: newDeliverable, completed: false }]);
         setNewDeliverable("");
     };
 
     const addNote = () => {
         if (!newNote.trim()) return;
-        setNotes([...notes, newNote.trim()]);
+        setNotes(prev => [...prev, newNote.trim()]);
         setNewNote("");
     };
 
     const addLink = () => {
         if (!newLinkTitle.trim() || !newLinkUrl.trim()) return;
-        setLinks([...links, { title: newLinkTitle, url: newLinkUrl }]);
+        setLinks(prev => [...prev, { title: newLinkTitle, url: newLinkUrl }]);
         setNewLinkTitle("");
         setNewLinkUrl("");
     };
@@ -631,7 +631,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                     <span className={cn("text-sm flex-1", d.completed && "text-gray-500 line-through")}>{d.title}</span>
                                     <button
                                         type="button"
-                                        onClick={() => setDeliverables(deliverables.filter((_, idx) => idx !== i))}
+                                        onClick={() => setDeliverables(prev => prev.filter((_, idx) => idx !== i))}
                                         className="text-gray-500 hover:text-red-500 p-1"
                                     >
                                         <Trash2 size={14} />
@@ -683,7 +683,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                     </div>
                                     <button
                                         type="button"
-                                        onClick={() => setLinks(links.filter((_, idx) => idx !== i))}
+                                        onClick={() => setLinks(prev => prev.filter((_, idx) => idx !== i))}
                                         className="text-gray-500 hover:text-red-500 p-2"
                                     >
                                         <Trash2 size={14} />
@@ -723,7 +723,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                     <span className="text-sm flex-1 text-gray-300">{note}</span>
                                     <button
                                         type="button"
-                                        onClick={() => setNotes(notes.filter((_, idx) => idx !== i))}
+                                        onClick={() => setNotes(prev => prev.filter((_, idx) => idx !== i))}
                                         className="text-gray-500 hover:text-red-500 p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
                                         <Trash2 size={14} />
