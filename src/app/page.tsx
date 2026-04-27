@@ -934,7 +934,7 @@ const ArchiveView = ({ tasks, onRestore, onDelete }: { tasks: Task[], onRestore:
   );
 }
 
-type MusicGenre = 'lofi' | 'classical' | 'jazz';
+type MusicGenre = 'lofi' | 'classical' | 'jazz' | 'founders';
 
 const RightSidebar = ({
   currentMusicGenre,
@@ -1259,7 +1259,7 @@ export default function Dashboard() {
   const [greeting, setGreeting] = useState("Good Morning");
   const [dailyEmoji, setDailyEmoji] = useState("✨");
   const [dailyQuote, setDailyQuote] = useState("Let's stay focused today.");
-  type MusicGenre = 'lofi' | 'classical' | 'jazz';
+  type MusicGenre = 'lofi' | 'classical' | 'jazz' | 'founders';
   const [currentMusicGenre, setCurrentMusicGenre] = useState<MusicGenre | null>(null);
   const [isMusicDropdownOpen, setIsMusicDropdownOpen] = useState(false);
 
@@ -2589,6 +2589,7 @@ export default function Dashboard() {
                           { genre: 'lofi' as MusicGenre, label: 'Lo-fi Beats', icon: '🎵' },
                           { genre: 'classical' as MusicGenre, label: 'Classical', icon: '🎻' },
                           { genre: 'jazz' as MusicGenre, label: 'Jazz', icon: '🎷' },
+                          { genre: 'founders' as MusicGenre, label: 'Founders Mode', icon: '🚀' },
                         ].map(({ genre, label, icon }) => (
                           <button
                             key={genre}
@@ -2597,6 +2598,7 @@ export default function Dashboard() {
                                 lofi: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
                                 classical: 'https://www.youtube.com/watch?v=rR3Spmdj3LU',
                                 jazz: 'https://www.youtube.com/watch?v=6aM31dzlXVM',
+                                founders: 'https://www.youtube.com/watch?v=0NCrui_dYJY',
                               };
                               window.open(urls[genre], '_blank');
                               setCurrentMusicGenre(genre);
