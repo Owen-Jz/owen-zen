@@ -8,6 +8,7 @@ import { HabitDetailModal } from "./habit/HabitDetailModal";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useSoundContext } from "@/components/SoundEffects";
+import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -21,23 +22,6 @@ interface Habit {
     streak: number;
     completedDates: string[];
 }
-
-// Cache formatter so we don't recreate it on every call (huge performance boost)
-const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Africa/Lagos',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit'
-});
-
-const toLocalString = (d: Date | string) => {
-    const dateObj = typeof d === 'string' ? new Date(d) : d;
-    const parts = formatter.formatToParts(dateObj);
-    const yr = parts.find(p => p.type === 'year')?.value;
-    const mo = parts.find(p => p.type === 'month')?.value;
-    const da = parts.find(p => p.type === 'day')?.value;
-    return `${yr}-${mo}-${da}`;
-};
 
 export const HabitView = () => {
     const [habits, setHabits] = useState<Habit[]>([]);
@@ -55,17 +39,6 @@ export const HabitView = () => {
 
     // Sound effects
     const { playSound } = useSoundContext();
-
-    // --- getCurrentWeekKey Helper ---
-    const getCurrentWeekKey = (): string => {
-        const now = new Date();
-        const t = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-        const day = t.getUTCDay() || 7;
-        t.setUTCDate(t.getUTCDate() + 4 - day);
-        const yearStart = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
-        const weekNum = Math.ceil((((t.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
-        return `${t.getUTCFullYear()}-W${String(weekNum).padStart(2, '0')}`;
-    };
 
     // --- Fetch Weekly Habits ---
     const fetchWeeklyHabits = async () => {
@@ -116,11 +89,14 @@ export const HabitView = () => {
             }));
         }
 
-        await fetch(`/api/weekly-habits/${id}`, {
+        const res = await fetch(`/api/weekly-habits/${id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ action: "toggle", date: targetWeek }),
         });
+        if (!res.ok) {
+            console.error("Failed to toggle habit:", await res.text());
+        }
         fetchWeeklyHabits();
     };
 
@@ -491,16 +467,13 @@ export const HabitView = () => {
 
     // --- Current Week (Mon-Sun) — derived from dailyWeekOffset ---
     const weekDays = useMemo(() => {
-        const now = new Date();
-        const parts = formatter.formatToParts(now);
-        const yr = parseInt(parts.find(p => p.type === 'year')!.value);
-        const mo = parseInt(parts.find(p => p.type === 'month')!.value) - 1;
-        const da = parseInt(parts.find(p => p.type === 'day')!.value);
-
-        const today = new Date(yr, mo, da, 12, 0, 0); // Use noon to avoid DST edge cases
-        const day = today.getDay(); // 0 (Sun) to 6 (Sat)
-        const diff = today.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
-        const monday = new Date(today);
+        const today = new Date();
+        const todayStr = toLocalString(today); // e.g. "2026-05-03"
+        const [yr, mo, da] = todayStr.split('-').map(Number);
+        const localToday = new Date(yr, mo - 1, da, 12, 0, 0); // Use noon to avoid DST edge cases
+        const day = localToday.getDay(); // 0 (Sun) to 6 (Sat)
+        const diff = localToday.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is sunday
+        const monday = new Date(localToday);
         monday.setDate(diff);
 
         // Apply week offset (negative = past weeks)
