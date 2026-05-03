@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -74,6 +74,9 @@ const ContentCalendar = dynamic(() => import("@/components/ContentCalendar").the
   loading: () => <Loading />
 });
 const RoadmapView = dynamic(() => import("@/components/RoadmapView").then(mod => ({ default: mod.RoadmapView })), {
+  loading: () => <Loading />
+});
+const BrainstormingView = dynamic(() => import("@/components/BrainstormingView").then(mod => ({ default: mod.BrainstormingView })), {
   loading: () => <Loading />
 });
 const LeadsView = dynamic(() => import("@/components/LeadsView").then(mod => ({ default: mod.LeadsView })), {
@@ -278,6 +281,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       title: "System",
       links: [
         { id: "watch", label: "Watch Later", icon: Circle },
+        { id: "brainstorming", label: "Brainstorming", icon: Play },
         { id: "notes", label: "Notes", icon: FileText },
         { id: "archive", label: "Archive", icon: Archive },
         { id: "settings", label: "Settings", icon: Settings },
@@ -2723,6 +2727,23 @@ export default function Dashboard() {
                   All Tasks
                 </button>
 
+                {/* TEMPORARY ONE-TIME MIGRATION BUTTON */}
+                <button
+                  onClick={async () => {
+                    if (!confirm("This will move all tasks to the All Tasks board. Continue?")) return;
+                    const res = await fetch('/api/tasks', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'clearBoardId' }) });
+                    const json = await res.json();
+                    if (json.success) {
+                      alert("Migration complete");
+                    } else {
+                      alert("Migration failed: " + (json.error || 'Unknown error'));
+                    }
+                  }}
+                  className="px-4 py-2 rounded-lg text-sm font-medium border border-red-500/50 text-red-400 hover:text-red-300 hover:border-red-500 transition-all whitespace-nowrap"
+                >
+                  Migrate All Tasks to All Tasks Board
+                </button>
+
                 {boards.map(board => (
                   <button
                     key={board._id}
@@ -2960,6 +2981,7 @@ export default function Dashboard() {
           {activeTab === "reality" && <RealityView />}
           {activeTab === "roadmap" && <RoadmapView />}
           {activeTab === "watch" && <WatchLaterView />}
+          {activeTab === "brainstorming" && <BrainstormingView />}
           {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
           {activeTab === "notes" && <NotesView />}
           {activeTab === "sniper" && <SniperView />}
