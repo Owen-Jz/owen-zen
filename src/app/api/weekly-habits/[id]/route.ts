@@ -46,8 +46,8 @@ export async function PUT(
     }
 
     if (body.action === "toggle") {
-      const targetDate = body.date ? new Date(body.date) : new Date();
-      const currentWeek = toISOWeek(targetDate);
+      // body.date is already an ISO week string "YYYY-Www" — use it directly
+      const currentWeek = body.date || toISOWeek(new Date());
 
       const weekIdx = habit.completedWeeks.indexOf(currentWeek);
       if (weekIdx >= 0) {

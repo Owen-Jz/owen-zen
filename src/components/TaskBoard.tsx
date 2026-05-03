@@ -92,6 +92,14 @@ export const TaskBoard = ({
 
   const { playSound } = useSoundContext();
 
+  const handleArchiveAllCompleted = async () => {
+    const completedIds = visibleTasks
+      .filter(t => t.status === "completed")
+      .map(t => t._id);
+    if (completedIds.length === 0) return;
+    await onBulkArchive?.(completedIds);
+  };
+
   const handleDragStart = (event: any) => {
     setActiveId(event.active.id);
   };
@@ -317,6 +325,7 @@ export const TaskBoard = ({
                   onStartTimer={onStartTimer}
                   onStopTimer={onStopTimer}
                   onFocus={onFocus}
+                  onArchiveAll={col.id === "completed" ? handleArchiveAllCompleted : undefined}
                   activeId={activeId}
                 />
               </div>

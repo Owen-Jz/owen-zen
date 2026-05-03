@@ -459,7 +459,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, activeId }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, activeId }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -473,6 +473,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onStartTimer: (id: string, sessionTitle?: string) => void,
   onStopTimer: (id: string, note?: string) => void,
   onFocus: (task: Task) => void,
+  onArchiveAll?: () => void,
   activeId?: string | null
 }) => {
   const { setNodeRef, isOver } = useDroppable({
@@ -496,9 +497,21 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
           {id === "ai-agent" && <Sparkles size={14} className="text-cyan-400" />}
           {title}
         </h3>
-        <span className="bg-surface/80 py-0.5 px-2.5 rounded-full text-[10px] font-mono font-bold text-gray-300 border border-white/10 shadow-inner">
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {id === "completed" && tasks.length > 0 && (
+            <button
+              onClick={onArchiveAll}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/20 hover:border-yellow-500/50 transition-all text-[10px] font-bold"
+              title="Archive all completed tasks"
+            >
+              <Archive size={12} />
+              <span>Archive All</span>
+            </button>
+          )}
+          <span className="bg-surface/80 py-0.5 px-2.5 rounded-full text-[10px] font-mono font-bold text-gray-300 border border-white/10 shadow-inner">
+            {tasks.length}
+          </span>
+        </div>
       </div>
       <SortableContext
         items={tasks.map((t: Task) => t._id)}

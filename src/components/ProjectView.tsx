@@ -290,7 +290,7 @@ const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, on
                                 <ExternalLink size={12} /> {project.links.length}
                             </span>
                         )}
-                        {project.notes?.length > 0 && (
+                        {project.notes && project.notes.length > 0 && (
                             <span className="flex items-center gap-1.5 text-gray-400">
                                 <FileText size={12} /> {project.notes.length}
                             </span>

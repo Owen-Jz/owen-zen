@@ -39,7 +39,7 @@ export const getWeekEndDate = (date: Date): Date => {
  * Returns true if every habit in the array has a completedDate entry for the given date.
  * An empty habits array returns false.
  */
-export const isPerfectDay = (date: Date, habits: { completedDates: Date[] }[]): boolean => {
+export const isPerfectDay = (date: Date, habits: { completedDates: (Date | string)[] }[]): boolean => {
   if (habits.length === 0) return false;
   const target = toLocalString(date);
   return habits.every(h =>
@@ -51,7 +51,7 @@ export const isPerfectDay = (date: Date, habits: { completedDates: Date[] }[]): 
  * Returns true if every day of the Sun-Sat week ending on saturdayDate has every habit completed.
  * An empty habits array returns false.
  */
-export const isPerfectWeek = (saturdayDate: Date, habits: { completedDates: Date[] }[]): boolean => {
+export const isPerfectWeek = (saturdayDate: Date, habits: { completedDates: (Date | string)[] }[]): boolean => {
   if (habits.length === 0) return false;
   const sat = getWeekEndDate(saturdayDate);
   for (let i = 0; i < 7; i++) {
