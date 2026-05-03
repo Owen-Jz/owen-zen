@@ -12,6 +12,26 @@ import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
 import { isPerfectDay, isPerfectWeek } from "@/lib/perfectDetection";
 import { useCelebration } from "@/hooks/useCelebration";
 
+// Lagos-aware Sunday rewind using Intl (consistent with toLocalString timezone)
+const LAGOS_WDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Lagos', weekday: 'short' });
+const SUNDAY_LAGOS_IDX = 0; // 'Sun' is at index 0 in our table
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as const;
+
+function rewindToSundayLagos(date: Date): Date {
+    const d = new Date(date);
+    const LagosDayName = LAGOS_WDAY.format(d);
+    const LagosDayIdx = DAY_NAMES.indexOf(LagosDayName as typeof DAY_NAMES[number]);
+    d.setDate(d.getDate() - LagosDayIdx);
+    return d;
+}
+
+function toLagosKey(date: Date): string {
+    const parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date);
+    return `${parts.find(p => p.type === 'year')!.value}-${parts.find(p => p.type === 'month')!.value}-${parts.find(p => p.type === 'day')!.value}`;
+}
+
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
 }
@@ -455,15 +475,15 @@ export const HabitView = () => {
                 allCompleted.add(typeof d === 'string' ? d.substring(0, 10) : toLocalString(d));
             }
         }
-        // Pre-compute perfect days set once — O(365 * H * 1 Date creation)
+        // Pre-compute perfect days set once — O(365 * H)
         const perfectDays = new Set<string>();
         for (const date of yearDays) {
             if (!date) continue;
-            const dateKey = toLocalString(date);
+            const dateKey = toLagosKey(date);
             let dayComplete = true;
             for (const h of habits) {
                 if (!h.completedDates.some(cd => {
-                    const key = typeof cd === 'string' ? cd.substring(0, 10) : toLocalString(cd);
+                    const key = typeof cd === 'string' ? cd.substring(0, 10) : toLagosKey(new Date(cd));
                     return key === dateKey;
                 })) { dayComplete = false; break; }
             }
@@ -471,10 +491,10 @@ export const HabitView = () => {
         }
         return yearDays.map(date => {
             if (!date) return null;
-            const dateKey = toLocalString(date);
+            const dateKey = toLagosKey(new Date(date));
             const count = habits.reduce((acc, h) => {
                 return acc + (h.completedDates.some(d => {
-                    const key = typeof d === 'string' ? d.substring(0, 10) : toLocalString(d);
+                    const key = typeof d === 'string' ? d.substring(0, 10) : toLagosKey(new Date(d));
                     return key === dateKey;
                 }) ? 1 : 0);
             }, 0);
@@ -483,10 +503,11 @@ export const HabitView = () => {
             const isPSat = dateObj.getDay() === 6;
             const isPWeek = isPSat
                 ? (() => {
+                    const sunday = rewindToSundayLagos(dateObj);
                     for (let i = 0; i < 7; i++) {
-                        const dow = new Date(dateObj);
-                        dow.setDate(dateObj.getDate() - (6 - i));
-                        if (!perfectDays.has(toLocalString(dow))) return false;
+                        const dow = new Date(sunday);
+                        dow.setDate(sunday.getDate() + i);
+                        if (!perfectDays.has(toLagosKey(dow))) return false;
                     }
                     return true;
                 })()
