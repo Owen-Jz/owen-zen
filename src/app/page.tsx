@@ -1546,7 +1546,7 @@ export default function Dashboard() {
     }
   }, [tasks]);
 
-  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean, category: string) => {
+  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string) => {
     // Optimistic UI
     const tempId = crypto.randomUUID();
     const tempTask: Task = {
@@ -1554,7 +1554,6 @@ export default function Dashboard() {
       title,
       description,
       priority,
-      boardId: boardId || undefined,
       status: "pending",
       order: 0,
       subtasks,
@@ -1574,7 +1573,7 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, priority, subtasks, dueDate, boardId, isMIT, category
+          title, description, priority, subtasks, dueDate, isMIT, category
         }),
       });
       const json = await res.json();
@@ -2233,8 +2232,6 @@ export default function Dashboard() {
           {editingTask && (
             <EditTaskModal
               task={editingTask}
-              boards={[]}
-              onMoveToBoard={async () => {}}
               onClose={() => setEditingTask(null)}
               onSave={saveEditTask}
               onStartTimer={startTimer}
@@ -2268,8 +2265,6 @@ export default function Dashboard() {
           {isAddTaskModalOpen && (
             <AddTaskModal
               initialTitle=""
-              boards={[]}
-              defaultBoardId={null}
               onClose={() => setIsAddTaskModalOpen(false)}
               onSave={handleSaveNewTask}
             />

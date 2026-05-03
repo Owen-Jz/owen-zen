@@ -4,7 +4,7 @@ import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle,
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { TimeTracker } from "./TimeTracker";
-import { Task, TaskPriority, SubTask, Board, TaskStatus } from "@/types";
+import { Task, TaskPriority, SubTask, TaskStatus } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { useSoundContext } from "./SoundEffects";
 
@@ -14,7 +14,6 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 interface EditTaskModalProps {
     task: Task | null;
-    boards: Board[];
     onClose: () => void;
     onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => void;
     onStartTimer: (id: string, sessionTitle?: string) => void;
@@ -24,7 +23,6 @@ interface EditTaskModalProps {
     onDeleteTimeLog: (id: string, logIndex: number) => void;
     onAddManualTimeLog: (id: string, duration: number, note: string) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
-    onMoveToBoard: (taskId: string, boardId: string | null) => void;
     onArchive: (id: string) => void;
     onDelete: (id: string) => void;
     onPromoteSubtask?: (taskId: string, subtaskIndex: number) => void;
@@ -32,7 +30,6 @@ interface EditTaskModalProps {
 
 export const EditTaskModal = ({
     task,
-    boards = [],
     onClose,
     onSave,
     onStartTimer,
@@ -42,7 +39,6 @@ export const EditTaskModal = ({
     onDeleteTimeLog,
     onAddManualTimeLog,
     onToggleMIT,
-    onMoveToBoard,
     onArchive,
     onDelete,
     onPromoteSubtask
@@ -54,7 +50,6 @@ export const EditTaskModal = ({
     const [dueDate, setDueDate] = useState<string>(task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : "");
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
-    const [boardId, setBoardId] = useState<string | null>(task?.boardId || null);
     const [category, setCategory] = useState(task?.category || "Other");
 
     const { playSound } = useSoundContext();
@@ -105,10 +100,6 @@ export const EditTaskModal = ({
 
     const handleSave = () => {
         onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category);
-        // Also save board move if changed (separate API call usually, but handled here via callback)
-        if (boardId !== task.boardId) {
-            onMoveToBoard(task._id, boardId);
-        }
         // Also save MIT status if changed
         if (isMIT !== task.isMIT) {
             onToggleMIT(task._id, isMIT);
@@ -359,24 +350,6 @@ export const EditTaskModal = ({
                                     >
                                         {['Work', 'Personal', 'Health', 'Finance', 'Other'].map(c => (
                                             <option key={c} value={c}>{c}</option>
-                                        ))}
-                                    </select>
-                                    <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />
-                                </div>
-                            </div>
-
-                            {/* Board Selector */}
-                            <div>
-                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Board</label>
-                                <div className="relative">
-                                    <select
-                                        value={boardId || ""}
-                                        onChange={(e) => setBoardId(e.target.value || null)}
-                                        className="w-full appearance-none bg-black/20 border border-white/10 rounded-lg pl-3 pr-8 py-2.5 text-sm text-gray-300 focus:border-primary outline-none transition-colors cursor-pointer hover:bg-black/30"
-                                    >
-                                        <option value="">All Tasks (No Board)</option>
-                                        {boards.map(b => (
-                                            <option key={b._id} value={b._id}>{b.title}</option>
                                         ))}
                                     </select>
                                     <Layout size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none" />

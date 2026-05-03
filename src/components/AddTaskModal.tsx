@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { X, Check, Plus, Trash2, Calendar, Layout, AlertCircle, Circle, AlignLeft, CheckCircle2 } from "lucide-react";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { TaskPriority, SubTask, Board } from "@/types";
+import { TaskPriority, SubTask } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -17,16 +17,12 @@ function cn(...inputs: (string | undefined | null | false)[]) {
 
 interface AddTaskModalProps {
     initialTitle?: string;
-    boards: Board[];
-    defaultBoardId: string | null;
     onClose: () => void;
-    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean, category: string) => void;
+    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string) => void;
 }
 
 export const AddTaskModal = ({
     initialTitle = "",
-    boards = [],
-    defaultBoardId,
     onClose,
     onSave,
 }: AddTaskModalProps) => {
@@ -37,7 +33,6 @@ export const AddTaskModal = ({
     const [dueDate, setDueDate] = useState<string>("");
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(false);
-    const [boardId, setBoardId] = useState<string | null>(defaultBoardId);
     const [category, setCategory] = useState("Other");
 
     const addSubtask = (e: React.FormEvent) => {
@@ -59,7 +54,7 @@ export const AddTaskModal = ({
 
     const handleSave = () => {
         if (!title.trim()) return;
-        onSave(title, description, priority, subtasks, dueDate || undefined, boardId, isMIT, category);
+        onSave(title, description, priority, subtasks, dueDate || undefined, isMIT, category);
         onClose();
     };
 
@@ -229,22 +224,6 @@ export const AddTaskModal = ({
                                     <SelectContent>
                                         {['Work', 'Personal', 'Health', 'Finance', 'Other'].map(c => (
                                             <SelectItem key={c} value={c}>{c}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            {/* Board Selector */}
-                            <div>
-                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Board</label>
-                                <Select value={boardId || ""} onValueChange={(v) => setBoardId(v || null)}>
-                                    <SelectTrigger className="w-full">
-                                        <SelectValue placeholder="No Board" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="">All Tasks (No Board)</SelectItem>
-                                        {boards.map(b => (
-                                            <SelectItem key={b._id} value={b._id}>{b.title}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
