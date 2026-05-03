@@ -446,16 +446,51 @@ export const HabitView = () => {
     };
 
     const heatmapGrid = useMemo(() => {
-        return getYearGridData().map(date => {
+        const yearDays = getYearGridData();
+        // Pre-compute a flat set of all completed date strings — O(H * avg completions)
+        const allCompleted = new Set<string>();
+        for (const h of habits) {
+            for (const d of h.completedDates) {
+                // Fast path: ISO string "2026-05-03T..." → "2026-05-03"
+                allCompleted.add(typeof d === 'string' ? d.substring(0, 10) : toLocalString(d));
+            }
+        }
+        // Pre-compute perfect days set once — O(365 * H * 1 Date creation)
+        const perfectDays = new Set<string>();
+        for (const date of yearDays) {
+            if (!date) continue;
+            const dateKey = toLocalString(date);
+            let dayComplete = true;
+            for (const h of habits) {
+                if (!h.completedDates.some(cd => {
+                    const key = typeof cd === 'string' ? cd.substring(0, 10) : toLocalString(cd);
+                    return key === dateKey;
+                })) { dayComplete = false; break; }
+            }
+            if (dayComplete) perfectDays.add(dateKey);
+        }
+        return yearDays.map(date => {
             if (!date) return null;
-            const iso = toLocalString(date);
+            const dateKey = toLocalString(date);
             const count = habits.reduce((acc, h) => {
-                return acc + (h.completedDates.some(d => toLocalString(d) === iso) ? 1 : 0);
+                return acc + (h.completedDates.some(d => {
+                    const key = typeof d === 'string' ? d.substring(0, 10) : toLocalString(d);
+                    return key === dateKey;
+                }) ? 1 : 0);
             }, 0);
             const dateObj = new Date(date);
-            const isPDay = isPerfectDay(dateObj, habits as { completedDates: (Date | string)[] }[]);
-            const isPSat = dateObj.getDay() === 6; // Saturday
-            const isPWeek = isPSat && isPerfectWeek(dateObj, habits as { completedDates: (Date | string)[] }[]);
+            const isPDay = perfectDays.has(dateKey);
+            const isPSat = dateObj.getDay() === 6;
+            const isPWeek = isPSat
+                ? (() => {
+                    for (let i = 0; i < 7; i++) {
+                        const dow = new Date(dateObj);
+                        dow.setDate(dateObj.getDate() - (6 - i));
+                        if (!perfectDays.has(toLocalString(dow))) return false;
+                    }
+                    return true;
+                })()
+                : false;
             return { date: dateObj, count, isPerfectDay: isPDay, isPerfectWeek: isPWeek };
         });
     }, [habits]); // Only recompute when habits change
@@ -464,7 +499,7 @@ export const HabitView = () => {
     useEffect(() => {
       const currentPerfectDays = new Set(
         (heatmapGrid as Array<NonNullable<typeof heatmapGrid[number]>>)
-          .filter(d => d.isPerfectDay)
+          .filter(d => d && d.isPerfectDay)
           .map(d => toLocalString(d.date))
       );
 

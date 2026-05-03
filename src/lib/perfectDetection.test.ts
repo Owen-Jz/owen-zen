@@ -2,10 +2,14 @@ import { describe, it, expect } from 'vitest';
 import { isPerfectDay, isPerfectWeek, getWeekEndDate } from '../lib/perfectDetection';
 
 // Helper to build a mock habit with completedDates
+// Use explicit YYYY, M, D components so Date is unambiguous (not UTC-parsed)
 const mockHabit = (dates: string[]) => ({
   _id: 'h1',
   title: 'Test Habit',
-  completedDates: dates.map(d => new Date(d)),
+  completedDates: dates.map(d => {
+    const [y, m, day] = d.split('-').map(Number);
+    return new Date(y, m - 1, day); // local time, no time-of-day ambiguity
+  }),
   streak: 0,
   category: 'work' as const,
   description: '',
@@ -13,13 +17,15 @@ const mockHabit = (dates: string[]) => ({
 });
 
 describe('isPerfectDay', () => {
+  // May 1 2026 = Friday (day 5)
+  const may1 = new Date(2026, 4, 1);
+
   it('returns true when all habits are completed on that date', () => {
     const habits = [
       mockHabit(['2026-05-01', '2026-05-02']),
       mockHabit(['2026-05-01']),
     ];
-    // May 1 = Friday 2026
-    expect(isPerfectDay(new Date('2026-05-01'), habits)).toBe(true);
+    expect(isPerfectDay(may1, habits)).toBe(true);
   });
 
   it('returns false when some habits are missing', () => {
@@ -27,11 +33,11 @@ describe('isPerfectDay', () => {
       mockHabit(['2026-05-01']),
       mockHabit([]), // second habit not done
     ];
-    expect(isPerfectDay(new Date('2026-05-01'), habits)).toBe(false);
+    expect(isPerfectDay(may1, habits)).toBe(false);
   });
 
   it('returns false when no habits exist', () => {
-    expect(isPerfectDay(new Date('2026-05-01'), [])).toBe(false);
+    expect(isPerfectDay(may1, [])).toBe(false);
   });
 });
 
@@ -47,14 +53,17 @@ describe('getWeekEndDate', () => {
 });
 
 describe('isPerfectWeek', () => {
+  // May 2 2026 = Saturday (day 6)
+  const may2 = new Date(2026, 4, 2);
+  // Sunday before May 2 is Apr 26
+  const apr26 = new Date(2026, 3, 26);
+
   it('returns true when all 7 Sun-Sat days have all habits completed', () => {
-    // All 7 days of the week containing May 1 2026 (Apr 26 - May 2 2026)
     const habits = [
       mockHabit(['2026-04-26','2026-04-27','2026-04-28','2026-04-29','2026-04-30','2026-05-01','2026-05-02']),
       mockHabit(['2026-04-26','2026-04-27','2026-04-28','2026-04-29','2026-04-30','2026-05-01','2026-05-02']),
     ];
-    // Pass the Saturday of that week (May 2, 2026)
-    expect(isPerfectWeek(new Date('2026-05-02'), habits)).toBe(true);
+    expect(isPerfectWeek(may2, habits)).toBe(true);
   });
 
   it('returns false when one day is missing completions', () => {
@@ -62,10 +71,10 @@ describe('isPerfectWeek', () => {
       mockHabit(['2026-04-26','2026-04-27','2026-04-28','2026-04-29','2026-04-30',          '2026-05-02']),
       mockHabit(['2026-04-26','2026-04-27','2026-04-28','2026-04-29','2026-04-30','2026-05-01','2026-05-02']),
     ];
-    expect(isPerfectWeek(new Date('2026-05-02'), habits)).toBe(false);
+    expect(isPerfectWeek(may2, habits)).toBe(false);
   });
 
   it('returns false when habits array is empty', () => {
-    expect(isPerfectWeek(new Date('2026-05-02'), [])).toBe(false);
+    expect(isPerfectWeek(may2, [])).toBe(false);
   });
 });
