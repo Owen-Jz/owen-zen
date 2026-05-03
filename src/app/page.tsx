@@ -1240,10 +1240,6 @@ const RightSidebar = ({
 
 export default function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [boards, setBoards] = useState<Board[]>([]); // New: Boards state
-  const [currentBoardId, setCurrentBoardId] = useState<string | null>(null); // New: Current Board
-  const [isCreatingBoard, setIsCreatingBoard] = useState(false); // New: Create Board UI
-  const [newBoardTitle, setNewBoardTitle] = useState(""); // New: New Board Title
 
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
@@ -1482,37 +1478,12 @@ export default function Dashboard() {
     return () => window.removeEventListener('canvas:addTaskNode', handleDockTaskDropped);
   }, []);
 
-  // Load Boards
-  useEffect(() => {
-    const fetchBoards = async () => {
-      try {
-        const res = await fetch("/api/boards");
-        const json = await res.json();
-        if (json.success) {
-          setBoards(json.data);
-          // If we have boards and no current board, select the first one?
-          // Or keep "All" / "Default" view as null?
-          // Let's assume user wants to see specific boards.
-          // If no board is selected, maybe default to the first one if available, or keep null for "uncategorized"
-          if (json.data.length > 0 && !currentBoardId) {
-            // Optional: Auto-select first board
-            // setCurrentBoardId(json.data[0]._id);
-          }
-        }
-      } catch (error) {
-        console.error("Failed to fetch boards", error);
-      }
-    };
-    fetchBoards();
-  }, []); // Run once on mount
-
-  // Load Tasks (DEPENDS ON currentBoardId)
+  // Load Tasks
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
       try {
-        const url = currentBoardId ? `/api/tasks?boardId=${currentBoardId}` : "/api/tasks";
-        const res = await fetch(url);
+        const res = await fetch("/api/tasks");
         const json = await res.json();
         if (json.success) {
           setTasks(json.data);
@@ -1524,7 +1495,7 @@ export default function Dashboard() {
       }
     };
     fetchTasks();
-  }, [currentBoardId]);
+  }, []);
 
   // Auto-pause any running timers on page load (handles refresh while timer is running)
   useEffect(() => {
@@ -1574,27 +1545,6 @@ export default function Dashboard() {
       }
     }
   }, [tasks]);
-
-  const createBoard = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newBoardTitle.trim()) return;
-    try {
-      const res = await fetch("/api/boards", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newBoardTitle }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setBoards([...boards, json.data]);
-        setCurrentBoardId(json.data._id); // Switch to new board
-        setNewBoardTitle("");
-        setIsCreatingBoard(false);
-      }
-    } catch (error) {
-      console.error("Failed to create board", error);
-    }
-  };
 
   const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, boardId: string | null, isMIT: boolean, category: string) => {
     // Optimistic UI
@@ -2214,22 +2164,6 @@ export default function Dashboard() {
     }
   };
 
-  const deleteBoard = async (boardId: string) => {
-    if (!confirm("Delete this board and all its tasks?")) return;
-
-    try {
-      await fetch(`/api/boards/${boardId}`, { method: "DELETE" });
-      setBoards(boards.filter(b => b._id !== boardId));
-      setCurrentBoardId(null); // Reset to All Tasks
-      // Optionally refetch tasks to clear deleted ones from state if they were loaded
-      const res = await fetch("/api/tasks");
-      const json = await res.json();
-      if (json.success) setTasks(json.data);
-    } catch (error) {
-      console.error("Failed to delete board", error);
-    }
-  };
-
   const moveTaskToBoard = async (taskId: string, boardId: string | null) => {
     const oldTasks = [...tasks];
     setTasks(tasks.map(t => t._id === taskId ? { ...t, boardId: boardId || undefined } : t));
@@ -2239,10 +2173,6 @@ export default function Dashboard() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ boardId: boardId }),
       });
-      // If we moved the task away from the current board view, remove it from local state
-      if (currentBoardId !== null && boardId !== currentBoardId) {
-        setTasks(prev => prev.filter(t => t._id !== taskId));
-      }
     } catch {
       setTasks(oldTasks);
     }
@@ -2303,7 +2233,8 @@ export default function Dashboard() {
           {editingTask && (
             <EditTaskModal
               task={editingTask}
-              boards={boards}
+              boards={[]}
+              onMoveToBoard={async () => {}}
               onClose={() => setEditingTask(null)}
               onSave={saveEditTask}
               onStartTimer={startTimer}
@@ -2313,7 +2244,6 @@ export default function Dashboard() {
               onDeleteTimeLog={deleteTimeLog}
               onAddManualTimeLog={addManualTimeLog}
               onToggleMIT={toggleMIT}
-              onMoveToBoard={moveTaskToBoard}
               onArchive={archiveTask}
               onDelete={deleteTask}
               onPromoteSubtask={promoteSubtaskToMain}
@@ -2338,8 +2268,8 @@ export default function Dashboard() {
           {isAddTaskModalOpen && (
             <AddTaskModal
               initialTitle=""
-              boards={boards}
-              defaultBoardId={currentBoardId}
+              boards={[]}
+              defaultBoardId={null}
               onClose={() => setIsAddTaskModalOpen(false)}
               onSave={handleSaveNewTask}
             />
@@ -2695,7 +2625,6 @@ export default function Dashboard() {
                   setTasks={setTasks}
                   onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
                   onToggleMIT={toggleMIT}
-                  currentBoardId={currentBoardId}
                 />
               </motion.div>
 
@@ -2708,96 +2637,7 @@ export default function Dashboard() {
                 <UpcomingEvents />
               </motion.div>
 
-              {/* Board Selector */}
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, delay: 0.2 }}
-                className={cn("mb-8 flex items-center gap-2 overflow-x-auto pb-2 scrollbar-hide transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}
-              >
-                <button
-                  onClick={() => setCurrentBoardId(null)}
-                  className={cn(
-                    "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap",
-                    currentBoardId === null
-                      ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] backdrop-blur-md"
-                      : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
-                  )}
-                >
-                  All Tasks
-                </button>
-
-                {/* TEMPORARY ONE-TIME MIGRATION BUTTON */}
-                <button
-                  onClick={async () => {
-                    if (!confirm("This will move all tasks to the All Tasks board. Continue?")) return;
-                    const res = await fetch('/api/tasks', { method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ action: 'clearBoardId' }) });
-                    const json = await res.json();
-                    if (json.success) {
-                      alert("Migration complete");
-                    } else {
-                      alert("Migration failed: " + (json.error || 'Unknown error'));
-                    }
-                  }}
-                  className="px-4 py-2 rounded-lg text-sm font-medium border border-red-500/50 text-red-400 hover:text-red-300 hover:border-red-500 transition-all whitespace-nowrap"
-                >
-                  Migrate All Tasks to All Tasks Board
-                </button>
-
-                {boards.map(board => (
-                  <button
-                    key={board._id}
-                    onClick={() => setCurrentBoardId(board._id)}
-                    className={cn(
-                      "px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap group relative flex items-center gap-2",
-                      currentBoardId === board._id
-                        ? "bg-primary/20 border-primary text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] backdrop-blur-md"
-                        : "bg-surface/30 border-white/5 text-gray-400 hover:text-white hover:bg-white/5 backdrop-blur-sm"
-                    )}
-                  >
-                    {board.title}
-                    {currentBoardId === board._id && (
-                      <span
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteBoard(board._id);
-                        }}
-                        className="p-1 hover:bg-red-500/20 text-gray-500 hover:text-red-500 rounded-md transition-colors"
-                        title="Delete Board"
-                      >
-                        <Trash2 size={12} />
-                      </span>
-                    )}
-                  </button>
-                ))}
-
-                {isCreatingBoard ? (
-                  <form onSubmit={createBoard} className="flex items-center gap-2 animate-in fade-in slide-in-from-left-2">
-                    <input
-                      autoFocus
-                      type="text"
-                      value={newBoardTitle}
-                      onChange={(e) => setNewBoardTitle(e.target.value)}
-                      placeholder="Board Name..."
-                      className="w-32 bg-surface text-sm px-3 py-2 rounded-lg border border-primary focus:outline-none text-white placeholder-gray-500"
-                      onBlur={() => !newBoardTitle && setIsCreatingBoard(false)}
-                    />
-                    <button type="submit" className="p-2 bg-primary text-white rounded-lg hover:bg-primary/90">
-                      <Check size={14} />
-                    </button>
-                    <button type="button" onClick={() => setIsCreatingBoard(false)} className="p-2 text-gray-500 hover:text-white">
-                      <X size={14} />
-                    </button>
-                  </form>
-                ) : (
-                  <button
-                    onClick={() => setIsCreatingBoard(true)}
-                    className="px-3 py-2 rounded-lg border border-dashed border-border text-gray-500 hover:text-white hover:border-gray-400 transition-all flex items-center gap-1.5 text-xs uppercase font-bold tracking-wide ml-2 whitespace-nowrap"
-                  >
-                    <Plus size={14} /> Add Board
-                  </button>
-                )}
-              </motion.div>
+              {/* Add Task Input */}
               <div className={cn("mb-8 max-w-3xl mx-auto transition-all", isZenMode && "opacity-0 pointer-events-none h-0 mb-0 overflow-hidden")}>
                 <div className="flex gap-4">
                   <div
@@ -2948,7 +2788,7 @@ export default function Dashboard() {
                   onResumeTimer={resumeTimer}
                   onFocus={setFocusedTask}
                   onMoveToBoard={moveTaskToBoard}
-                  boards={boards}
+                  boards={[]}
                   isZenMode={isZenMode}
                   onBulkDelete={bulkDeleteTasks}
                   onBulkArchive={bulkArchiveTasks}
