@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
@@ -9,6 +9,8 @@ import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { useSoundContext } from "@/components/SoundEffects";
 import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
+import { isPerfectDay, isPerfectWeek } from "@/lib/perfectDetection";
+import { useCelebration } from "@/hooks/useCelebration";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
     return twMerge(clsx(inputs));
@@ -39,6 +41,10 @@ export const HabitView = () => {
 
     // Sound effects
     const { playSound } = useSoundContext();
+
+    // Celebration trigger
+    const { triggerCelebration, overlay } = useCelebration();
+    const prevPerfectDaysRef = useRef<Set<string>>(new Set());
 
     // --- Fetch Weekly Habits ---
     const fetchWeeklyHabits = async () => {
@@ -446,9 +452,42 @@ export const HabitView = () => {
             const count = habits.reduce((acc, h) => {
                 return acc + (h.completedDates.some(d => toLocalString(d) === iso) ? 1 : 0);
             }, 0);
-            return { date: new Date(date), count };
+            const dateObj = new Date(date);
+            const isPDay = isPerfectDay(dateObj, habits as { completedDates: (Date | string)[] }[]);
+            const isPSat = dateObj.getDay() === 6; // Saturday
+            const isPWeek = isPSat && isPerfectWeek(dateObj, habits as { completedDates: (Date | string)[] }[]);
+            return { date: dateObj, count, isPerfectDay: isPDay, isPerfectWeek: isPWeek };
         });
     }, [habits]); // Only recompute when habits change
+
+    // Detect newly perfect days/weeks and trigger celebration
+    useEffect(() => {
+      const currentPerfectDays = new Set(
+        (heatmapGrid as Array<NonNullable<typeof heatmapGrid[number]>>)
+          .filter(d => d.isPerfectDay)
+          .map(d => toLocalString(d.date))
+      );
+
+      const newlyPerfectDay = heatmapGrid.find(d => {
+        if (!d || !d.isPerfectDay) return false;
+        const key = toLocalString(d.date);
+        return !prevPerfectDaysRef.current.has(key);
+      });
+
+      const newlyPerfectWeek = heatmapGrid.find(d => {
+        if (!d || !d.isPerfectWeek) return false;
+        const key = toLocalString(d.date);
+        return !prevPerfectDaysRef.current.has(key);
+      });
+
+      if (newlyPerfectWeek) {
+        triggerCelebration('week');
+      } else if (newlyPerfectDay) {
+        triggerCelebration('day');
+      }
+
+      prevPerfectDaysRef.current = currentPerfectDays;
+    }, [heatmapGrid, triggerCelebration]);
 
     // Calculate intensity (0-4) based on real max
     const maxCount = Math.max(...heatmapGrid.filter((d: { date: Date, count: number } | null) => d).map((d: any) => d.count), 1);
@@ -1188,7 +1227,8 @@ export const HabitView = () => {
                                     if (!data) return <div key={dayIndex} className="w-2.5 h-2.5" />; // Empty placeholder
 
                                     const isFuture = data.date > new Date();
-                                    const isPerfectDay = data.count > 0 && data.count >= habits.length;
+                                    const isPerfectDay = data.isPerfectDay;
+                                    const isPerfectWeekCell = data.isPerfectWeek;
 
                                     return (
                                         <div
@@ -1198,7 +1238,11 @@ export const HabitView = () => {
                                             className={cn(
                                                 "w-2.5 h-2.5 rounded-[2px] transition-all duration-300",
                                                 isFuture ? "bg-white/5 opacity-50 cursor-default" : "cursor-pointer hover:ring-1 hover:ring-white/40",
-                                                isPerfectDay ? "bg-yellow-500 shadow-[0_0_8px_rgba(234,179,8,0.5)]" : intensityColors[getIntensity(data.count)]
+                                                isPerfectWeekCell
+                                                    ? "bg-primary ring-2 ring-purple-400/60"
+                                                    : isPerfectDay
+                                                    ? "bg-primary shadow-[0_0_12px_var(--primary)]"
+                                                    : intensityColors[getIntensity(data.count)]
                                             )}
                                         />
                                     );
@@ -1217,6 +1261,8 @@ export const HabitView = () => {
                     onClose={() => setSelectedHabit(null)}
                 />
             )}
+
+            {overlay}
 
         </div>
     );
