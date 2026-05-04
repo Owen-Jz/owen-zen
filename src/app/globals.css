@@ -469,15 +469,6 @@
   --cc-warning: #f59e0b;
   --cc-error: #ff5555;
 }
-  --primary: #7aa2f7;
-  /* Soft blue */
-  --primary-rgb: 122, 162, 247;
-  --primary-light: #9ece6a;
-  /* Lime accent */
-  --surface: #16161e;
-  --surface-hover: #1f2335;
-  --border: #292e42;
-}
 
 [data-theme="noir"] {
   /* Noir - Pure Greyscale Dark */

@@ -60,7 +60,7 @@ export function CommandCenter() {
       try {
         const [
           taskRes, habitRes, financeRes, gymRes, foodRes,
-          courseRes, achRes, contentRes, leadRes, inboxRes,
+          courseRes, contentRes, leadRes, inboxRes,
           bucketRes, journalRes,
         ] = await Promise.all([
           fetch("/api/tasks", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
@@ -168,16 +168,6 @@ export function CommandCenter() {
           })));
         }
 
-        // Achievements
-        if (achRes.success) {
-          const earned = achRes.earned || [];
-          if (earned.length > 0) {
-            setLatestAchievement(`${earned.length} achievements earned`);
-          } else {
-            setLatestAchievement("0 achievements");
-          }
-        }
-
         // Content Calendar
         if (contentRes.success) {
           const posts = contentRes.data || [];
@@ -189,7 +179,7 @@ export function CommandCenter() {
             return d >= now && d <= endOfWeek;
           });
           setPostsThisWeek(thisWeek.length);
-          const days = thisWeek.map((p: any) => new Date(p.scheduledDate || p.date).getDay());
+          const days: number[] = thisWeek.map((p: any) => new Date(p.scheduledDate || p.date).getDay());
           setScheduledDays([...new Set(days)]);
         }
 
@@ -221,7 +211,7 @@ export function CommandCenter() {
           if (entries.length > 0) {
             let maxStreak = 0;
             let current = 0;
-            const sorted = entries.map((e: any) => new Date(e.date)).sort((a, b) => b.getTime() - a.getTime());
+            const sorted = entries.map((e: any) => new Date(e.date)).sort((a: Date, b: Date) => b.getTime() - a.getTime());
             for (let i = 0; i < sorted.length; i++) {
               if (i === 0) { current = 1; }
               else {
