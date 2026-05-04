@@ -136,6 +136,9 @@ const JournalView = dynamic(() => import("@/components/JournalView").then(mod =>
 const MarketingDashboard = dynamic(() => import("@/components/MarketingDashboard").then(mod => ({ default: mod.default })), {
   loading: () => <Loading />
 });
+const CoursesView = dynamic(() => import("@/components/CoursesView").then(mod => ({ default: mod.CoursesView })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -270,6 +273,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "leads", label: "Leads CRM", icon: Users },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
         { id: "courses", label: "Courses", icon: BookOpen },
+        { id: "command-center", label: "Life Command Center", icon: LayoutDashboard },
       ]
     },
     {
@@ -2836,6 +2840,7 @@ export default function Dashboard() {
           {activeTab === "prompts" && <PromptLibraryView />}
           {activeTab === "canvas" && <ZCanvas />}
           {activeTab === "marketing" && <MarketingDashboard />}
+          {activeTab === "courses" && <CoursesView />}
           </motion.div>
         </main>
 
