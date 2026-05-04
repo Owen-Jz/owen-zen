@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { BentoGrid } from "./BentoGrid";
@@ -55,26 +55,25 @@ export function CommandCenter() {
   const [journalStreak, setJournalStreak] = useState(0);
 
   useEffect(() => {
+    const controller = new AbortController();
     async function fetchAll() {
       try {
         const [
           taskRes, habitRes, financeRes, gymRes, foodRes,
           courseRes, achRes, contentRes, leadRes, inboxRes,
-          bucketRes, journalRes, weeklyRes,
+          bucketRes, journalRes,
         ] = await Promise.all([
-          fetch("/api/tasks").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/habits").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/finance/stats").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/gym-sessions").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/food").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/courses").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/achievements").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/content-calendar").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/leads").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/inbox").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/bucket-list").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/journal").then(r => r.json()).catch(() => ({ success: false })),
-          fetch("/api/weekly-goals").then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/tasks", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/habits", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/finance/stats", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/gym-sessions", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/food", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/courses", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/content-calendar", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/leads", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/inbox", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/bucket-list", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
+          fetch("/api/journal", { signal: controller.signal }).then(r => r.json()).catch(() => ({ success: false })),
         ]);
 
         // Tasks
@@ -128,7 +127,19 @@ export function CommandCenter() {
           startOfWeek.setDate(now.getDate() - now.getDay());
           const thisWeek = sessions.filter((s: any) => new Date(s.date) >= startOfWeek);
           setGymSessions(thisWeek.length);
-          setGymStreak(gymRes.streak || 0);
+          // Compute gym streak from session dates
+          const sortedSessions = (gymRes.data || []).sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          let gymStreakCalc = 0;
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          for (let i = 0; i < sortedSessions.length; i++) {
+            const sessionDate = new Date(sortedSessions[i].date);
+            sessionDate.setHours(0, 0, 0, 0);
+            const diff = (today.getTime() - sessionDate.getTime()) / (1000 * 60 * 60 * 24);
+            if (diff === i) gymStreakCalc++;
+            else break;
+          }
+          setGymStreak(gymStreakCalc);
         }
 
         // Food
@@ -232,11 +243,12 @@ export function CommandCenter() {
     }
 
     fetchAll();
+    return () => controller.abort();
   }, []);
 
-  const goTo = (tab: string) => {
+  const goTo = useCallback((tab: string) => {
     router.push(`/?tab=${tab}`);
-  };
+  }, [router]);
 
   const cards = loading
     ? [
