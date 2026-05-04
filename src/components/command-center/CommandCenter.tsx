@@ -157,6 +157,16 @@ export function CommandCenter() {
           })));
         }
 
+        // Achievements
+        if (achRes.success) {
+          const earned = achRes.earned || [];
+          if (earned.length > 0) {
+            setLatestAchievement(`${earned.length} achievements earned`);
+          } else {
+            setLatestAchievement("0 achievements");
+          }
+        }
+
         // Content Calendar
         if (contentRes.success) {
           const posts = contentRes.data || [];
