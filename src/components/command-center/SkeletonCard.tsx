@@ -16,10 +16,7 @@ export function SkeletonCard({ className }: SkeletonCardProps) {
         "rounded-xl border animate-pulse",
         className
       )}
-      style={{
-        backgroundColor: "var(--cc-card)",
-        borderColor: "var(--cc-border)",
-      }}
+      style={{ backgroundColor: "var(--cc-card)", borderColor: "var(--cc-border)" }}
     />
   );
 }

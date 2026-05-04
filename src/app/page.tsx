@@ -139,6 +139,9 @@ const MarketingDashboard = dynamic(() => import("@/components/MarketingDashboard
 const CoursesView = dynamic(() => import("@/components/CoursesView").then(mod => ({ default: mod.CoursesView })), {
   loading: () => <Loading />
 });
+const CommandCenter = dynamic(() => import("@/components/command-center/CommandCenter").then(mod => ({ default: mod.CommandCenter })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -2841,6 +2844,7 @@ export default function Dashboard() {
           {activeTab === "canvas" && <ZCanvas />}
           {activeTab === "marketing" && <MarketingDashboard />}
           {activeTab === "courses" && <CoursesView />}
+          {activeTab === "command-center" && <CommandCenter />}
           </motion.div>
         </main>
 

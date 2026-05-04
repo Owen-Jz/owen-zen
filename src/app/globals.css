@@ -125,19 +125,6 @@
 
 [data-theme="zen"] {
   /* Zen Dark - Deep Charcoal & Crimson */
-  --cc-bg: #030303;
-  --cc-card: #0a0a0a;
-  --cc-border: #262626;
-  --cc-text: #f5f5f5;
-  --cc-text-secondary: #9ca3af;
-  --cc-accent: #dc2626;
-  --cc-success: #22c55e;
-  --cc-warning: #f59e0b;
-  --cc-error: #ef4444;
-}
-
-[data-theme="zen"] {
-  /* Zen Dark - Deep Charcoal & Crimson */
   --background: #0a0a0a;
   --foreground: #f5f5f5;
   --primary: #dc2626;
@@ -146,6 +133,15 @@
   --surface: #141414;
   --surface-hover: #1a1a1a;
   --border: #262626;
+  --cc-bg: #0a0a0a;
+  --cc-card: #141414;
+  --cc-border: #262626;
+  --cc-text: #f5f5f5;
+  --cc-text-secondary: #737373;
+  --cc-accent: #dc2626;
+  --cc-success: #22c55e;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 [data-theme="cyberpunk"] {
@@ -153,14 +149,20 @@
   --background: #050508;
   --foreground: #e0f2fe;
   --primary: #d946ef;
-  /* Fuchsia */
   --primary-rgb: 217, 70, 239;
   --primary-light: #22d3ee;
-  /* Cyan */
   --surface: #0f172a;
-  /* Slate-900 */
   --surface-hover: #1e293b;
   --border: #334155;
+  --cc-bg: #050508;
+  --cc-card: #0f172a;
+  --cc-border: #334155;
+  --cc-text: #e0f2fe;
+  --cc-text-secondary: #94a3b8;
+  --cc-accent: #d946ef;
+  --cc-success: #22d3ee;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 [data-theme="matrix"] {
@@ -173,22 +175,36 @@
   --surface: #050505;
   --surface-hover: #0a0a0a;
   --border: #003b00;
+  --cc-bg: #000000;
+  --cc-card: #050505;
+  --cc-border: #003b00;
+  --cc-text: #00ff41;
+  --cc-text-secondary: #00cc33;
+  --cc-accent: #00ff41;
+  --cc-success: #00ff41;
+  --cc-warning: #f59e0b;
+  --cc-error: #ff4444;
 }
 
 [data-theme="sapphire"] {
   /* Sapphire - Deep Ocean Blue */
   --background: #020617;
-  /* Slate-950 */
   --foreground: #f8fafc;
   --primary: #3b82f6;
-  /* Blue-500 */
   --primary-rgb: 59, 130, 246;
   --primary-light: #60a5fa;
-  /* Blue-400 */
   --surface: #0f172a;
-  /* Slate-900 */
   --surface-hover: #1e293b;
   --border: #334155;
+  --cc-bg: #020617;
+  --cc-card: #0f172a;
+  --cc-border: #334155;
+  --cc-text: #f8fafc;
+  --cc-text-secondary: #94a3b8;
+  --cc-accent: #3b82f6;
+  --cc-success: #34d399;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 [data-theme="emerald"] {
@@ -205,6 +221,15 @@
   /* Emerald-900 */
   --surface-hover: #065f46;
   --border: #047857;
+  --cc-bg: #022c22;
+  --cc-card: #064e3b;
+  --cc-border: #047857;
+  --cc-text: #ecfdf5;
+  --cc-text-secondary: #6ee7b7;
+  --cc-accent: #10b981;
+  --cc-success: #34d399;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 [data-theme="sunset"] {
@@ -221,6 +246,15 @@
   /* Stone-900 */
   --surface-hover: #44403c;
   --border: #57534e;
+  --cc-bg: #1c1917;
+  --cc-card: #292524;
+  --cc-border: #57534e;
+  --cc-text: #fafaf9;
+  --cc-text-secondary: #a8a29e;
+  --cc-accent: #f59e0b;
+  --cc-success: #84cc16;
+  --cc-warning: #f97316;
+  --cc-error: #ef4444;
 }
 
 /* Midnight Theme */
@@ -236,6 +270,15 @@
   --surface: #0f0f2a;
   --surface-hover: #1a1a3d;
   --border: #2d2d5a;
+  --cc-bg: #0a0a1a;
+  --cc-card: #0f0f2a;
+  --cc-border: #2d2d5a;
+  --cc-text: #e0e7ff;
+  --cc-text-secondary: #a5b4fc;
+  --cc-accent: #6366f1;
+  --cc-success: #818cf8;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 /* Cherry Theme */
@@ -251,6 +294,15 @@
   --surface: #2d1020;
   --surface-hover: #3d1530;
   --border: #4a2040;
+  --cc-bg: #1a0a14;
+  --cc-card: #2d1020;
+  --cc-border: #4a2040;
+  --cc-text: #fce7f3;
+  --cc-text-secondary: #fda4af;
+  --cc-accent: #ec4899;
+  --cc-success: #fb7185;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 /* Forest Theme */
@@ -266,6 +318,15 @@
   --surface: #0a2d18;
   --surface-hover: #123d22;
   --border: #145230;
+  --cc-bg: #051a0d;
+  --cc-card: #0a2d18;
+  --cc-border: #145230;
+  --cc-text: #dcfce7;
+  --cc-text-secondary: #86efac;
+  --cc-accent: #22c55e;
+  --cc-success: #4ade80;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 /* Nord Theme */
@@ -286,6 +347,15 @@
   /* Polar Night 2 */
   --border: #4c566a;
   /* Polar Night 3 */
+  --cc-bg: #2e3440;
+  --cc-card: #3b4252;
+  --cc-border: #4c566a;
+  --cc-text: #e5e9f0;
+  --cc-text-secondary: #d8dee9;
+  --cc-accent: #88c0d0;
+  --cc-success: #a3d8d8;
+  --cc-warning: #ebcb8b;
+  --cc-error: #bf616a;
 }
 
 /* Dracula Theme */
@@ -302,6 +372,15 @@
   --surface-hover: #242442;
   --border: #44475a;
   /* Selection */
+  --cc-bg: #282a36;
+  --cc-card: #1e1f29;
+  --cc-border: #44475a;
+  --cc-text: #f8f8f2;
+  --cc-text-secondary: #d8dee9;
+  --cc-accent: #bd93f9;
+  --cc-success: #50fa7b;
+  --cc-warning: #f1fa8c;
+  --cc-error: #ff5555;
 }
 
 /* Chocolate Theme */
@@ -317,6 +396,15 @@
   --surface: #2a2622;
   --surface-hover: #3a2e24;
   --border: #4a4038;
+  --cc-bg: #1e1b18;
+  --cc-card: #2a2622;
+  --cc-border: #4a4038;
+  --cc-text: #f5f0e8;
+  --cc-text-secondary: #a89984;
+  --cc-accent: #cd853f;
+  --cc-success: #daa520;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 /* Arctic Theme - LIGHT */
@@ -331,6 +419,15 @@
   --surface: #ffffff;
   --surface-hover: #f0f0f0;
   --border: #d0d7de;
+  --cc-bg: #f6f8fa;
+  --cc-card: #ffffff;
+  --cc-border: #d0d7de;
+  --cc-text: #24292f;
+  --cc-text-secondary: #71717a;
+  --cc-accent: #0969da;
+  --cc-success: #22c55e;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 
   /* Invert white/black for light mode */
   --white: #18181b;
@@ -354,6 +451,24 @@
   /* Neon - Tokyo Night style */
   --background: #050505;
   --foreground: #c0caf5;
+  --primary: #7aa2f7;
+  /* Soft blue */
+  --primary-rgb: 122, 162, 247;
+  --primary-light: #9ece6a;
+  /* Lime accent */
+  --surface: #16161e;
+  --surface-hover: #1f2335;
+  --border: #292e42;
+  --cc-bg: #050505;
+  --cc-card: #16161e;
+  --cc-border: #292e42;
+  --cc-text: #c0caf5;
+  --cc-text-secondary: #7aa2f7;
+  --cc-accent: #7aa2f7;
+  --cc-success: #9ece6a;
+  --cc-warning: #f59e0b;
+  --cc-error: #ff5555;
+}
   --primary: #7aa2f7;
   /* Soft blue */
   --primary-rgb: 122, 162, 247;
@@ -388,6 +503,15 @@
 
   --white: #ffffff;
   --black: #000000;
+  --cc-bg: #0a0a0a;
+  --cc-card: #141414;
+  --cc-border: #262626;
+  --cc-text: #fafafa;
+  --cc-text-secondary: #a3a3a3;
+  --cc-accent: #e5e5e5;
+  --cc-success: #22c55e;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 [data-theme="light"] {
@@ -406,6 +530,15 @@
   /* Zinc-200 */
   --border: #d4d4d8;
   /* Zinc-300 */
+  --cc-bg: #ffffff;
+  --cc-card: #f4f4f5;
+  --cc-border: #d4d4d8;
+  --cc-text: #09090b;
+  --cc-text-secondary: #71717a;
+  --cc-accent: #3b82f6;
+  --cc-success: #22c55e;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 
   /* Invert white/black for light mode so all text-white and border-white/5 etc work perfectly */
   --white: #18181b;
@@ -437,6 +570,15 @@
   --surface: #251f33;
   --surface-hover: #2d2540;
   --border: #3d3555;
+  --cc-bg: #1a1625;
+  --cc-card: #251f33;
+  --cc-border: #3d3555;
+  --cc-text: #e9d5ff;
+  --cc-text-secondary: #c4b5fd;
+  --cc-accent: #8b5cf6;
+  --cc-success: #a78bfa;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 /* Rose Theme */
@@ -451,6 +593,15 @@
   --surface: #2a1f24;
   --surface-hover: #352a30;
   --border: #4a3540;
+  --cc-bg: #1a1518;
+  --cc-card: #2a1f24;
+  --cc-border: #4a3540;
+  --cc-text: #ffe4e6;
+  --cc-text-secondary: #fda4af;
+  --cc-accent: #f43f5e;
+  --cc-success: #fb7185;
+  --cc-warning: #f59e0b;
+  --cc-error: #ef4444;
 }
 
 /* Ocean Theme */
@@ -465,6 +616,15 @@
   --surface: #132f4c;
   --surface-hover: #173a5e;
   --border: #265d97;
+  --cc-bg: #0c1929;
+  --cc-card: #132f4c;
+  --cc-border: #265d97;
+  --cc-text: #b4e5f9;
+  --cc-text-secondary: #7dd3fc;
+  --cc-accent: #06b6d4;
+  --cc-success: #22d3ee;
+  --cc-warning: #f59e0b;
+  --cc-error: #f43f5e;
 }
 
 /* Force elements that MUST have actual white text regardless of the theme */
