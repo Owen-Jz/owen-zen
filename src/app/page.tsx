@@ -269,6 +269,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
+        { id: "courses", label: "Courses", icon: BookOpen },
       ]
     },
     {
