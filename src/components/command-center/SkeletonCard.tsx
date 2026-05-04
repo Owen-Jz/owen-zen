@@ -13,9 +13,13 @@ export function SkeletonCard({ className }: SkeletonCardProps) {
   return (
     <div
       className={cn(
-        "bg-white rounded-xl border border-[#E8E4DE] animate-pulse",
+        "rounded-xl border animate-pulse",
         className
       )}
+      style={{
+        backgroundColor: "var(--cc-card)",
+        borderColor: "var(--cc-border)",
+      }}
     />
   );
 }

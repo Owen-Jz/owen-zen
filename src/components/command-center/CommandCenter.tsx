@@ -299,18 +299,23 @@ export function CommandCenter() {
   return (
     <div
       className="min-h-screen py-8 px-4"
-      style={{ backgroundColor: "#F8F6F3" }}
+      style={{ backgroundColor: "var(--cc-bg)" }}
     >
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1
-            className="text-4xl font-heading font-semibold text-[#1A1A1A] mb-2"
-            style={{ fontFamily: "Cormorant Garamond, serif" }}
+            className="text-4xl font-semibold mb-2"
+            style={{
+              fontFamily: "Playfair Display, serif",
+              color: "var(--cc-text)",
+            }}
           >
             Life Command Center
           </h1>
-          <p className="text-sm text-[#6B6560]">Everything at a glance</p>
+          <p className="text-sm" style={{ color: "var(--cc-text-secondary)" }}>
+            Everything at a glance
+          </p>
         </div>
 
         {/* Bento Grid — col spans match spec: Today(2) Habit(3) Task(4) Finance(3) / Gym(4) Nutrition(4) Growth(4) / Content(6) Leads(3) Life(3) */}
