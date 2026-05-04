@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -107,6 +108,19 @@
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: #262626;
   --sidebar-ring: #dc2626;
+}
+
+[data-theme=""] {
+  /* Zen Minimal Command Center */
+  --cc-bg: #F8F6F3;
+  --cc-card: #FFFFFF;
+  --cc-border: #E8E4DE;
+  --cc-text: #1A1A1A;
+  --cc-text-secondary: #6B6560;
+  --cc-accent: #C4A882;
+  --cc-success: #7A9E7E;
+  --cc-warning: #D4915A;
+  --cc-error: #C46B6B;
 }
 
 [data-theme="zen"] {
@@ -683,6 +697,7 @@ select:focus-visible {
 /* Icon stroke weight: 1.5px standard, 2px for emphasis (e.g. bold checkmarks) */
 :root {
   --icon-stroke: 1.5;
+  --font-heading: "Cormorant Garamond", serif;
 }
 
 /* Print styles */
