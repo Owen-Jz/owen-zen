@@ -165,7 +165,10 @@ const CourseCard = ({
                 className="inline-flex items-center gap-1 mt-1 text-xs text-gray-500 hover:text-primary transition-colors"
               >
                 <ExternalLink size={11} />
-                {course.platform || new URL(course.url).hostname.replace("www.", "")}
+                {course.platform || (() => {
+                  try { return new URL(course.url).hostname.replace("www.", "") }
+                  catch { return course.url }
+                })()}
               </a>
             )}
           </div>
@@ -176,6 +179,7 @@ const CourseCard = ({
               onClick={() => onEdit(course)}
               className="p-2 text-gray-500 hover:text-primary transition-colors"
               title="Edit"
+              aria-label="Edit course"
             >
               <Edit2 size={15} />
             </button>
@@ -183,6 +187,7 @@ const CourseCard = ({
               onClick={() => onDelete(course._id)}
               className="p-2 text-gray-500 hover:text-red-500 transition-colors"
               title="Delete"
+              aria-label="Delete course"
             >
               <Trash2 size={15} />
             </button>
@@ -282,6 +287,7 @@ const CourseModal = ({
   const [progress, setProgress] = useState(course?.progress ?? 0);
   const [status, setStatus] = useState<CourseStatus>(course?.status || "watching");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState<string>("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -312,6 +318,7 @@ const CourseModal = ({
       }
     } catch (err) {
       console.error(err);
+      setSaveError("Failed to save. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -323,6 +330,9 @@ const CourseModal = ({
         <DialogHeader>
           <DialogTitle>{course ? "Edit Course" : "Add Course"}</DialogTitle>
         </DialogHeader>
+        {saveError && (
+          <p className="text-sm text-destructive px-1">{saveError}</p>
+        )}
 
         <form id="course-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Title */}
@@ -586,6 +596,7 @@ export const CoursesView = () => {
             <button
               key={f}
               onClick={() => setStatusFilter(f)}
+              aria-label={`${f === "all" ? "All" : STATUS_CONFIG[f].label} filter, ${counts[f]} courses`}
               className={cn(
                 "px-4 py-2 rounded-xl text-xs font-medium transition-all border",
                 statusFilter === f
@@ -605,7 +616,7 @@ export const CoursesView = () => {
             value={sortBy}
             onValueChange={(v) => setSortBy(v as SortOption)}
           >
-            <SelectTrigger className="w-36">
+            <SelectTrigger className="w-36" aria-label="Sort courses">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
