@@ -6,6 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
+import {
+  notifyGymSessionLogged,
+  notifyGymStreakAtRisk,
+} from "@/lib/notificationService";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -116,6 +120,29 @@ export const GymView = () => {
     fetchSessions();
   }, []);
 
+  // Check if gym streak is at risk
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    const todayStr = toLocalString(new Date());
+    const doneToday = sessions.some(s => s.date === todayStr);
+    // Compute current streak from sessions directly to avoid declaration order issue
+    const computeStreak = () => {
+      let s = 0;
+      for (let i = 0; i < 365; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - i);
+        const ds = toLocalString(d);
+        if (sessions.some(sess => sess.date === ds)) s++;
+        else if (i > 0) break;
+      }
+      return s;
+    };
+    const currentStreak = computeStreak();
+    if (!doneToday && currentStreak > 2) {
+      notifyGymStreakAtRisk(currentStreak);
+    }
+  }, [sessions.length]);
+
   const todaySession = useMemo(() => {
     const today = toLocalString(new Date());
     return sessions.find(s => s.date === today);
@@ -211,6 +238,9 @@ export const GymView = () => {
       setShowAddSession(false);
       setSessionExercises([]);
       setSessionNotes("");
+      // Compute the new streak and notify
+      const newStreak = sessions.length > 0 ? streak + 1 : 1;
+      notifyGymSessionLogged(sessions.length + 1, newStreak);
     }
   };
 

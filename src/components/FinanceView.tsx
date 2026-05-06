@@ -19,6 +19,7 @@ import {
     PredictionCard,
     AlertsCard,
 } from "./finance/AnalysisComponents";
+import { notifyBudgetAlert } from "@/lib/notificationService";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -322,6 +323,20 @@ export function FinanceView() {
             const res = await fetch(`/api/finance/analytics?month=${month}`);
             const json = await res.json();
             if (json.success) setAnalytics(json.analytics);
+            if (json.analytics?.alerts) {
+                const { isOverBudget, budgetWarning, unusualSpikes, spendingIncreased, increasePercentage } = json.analytics.alerts;
+                if (isOverBudget) {
+                    notifyBudgetAlert("Monthly", "over_budget");
+                } else if (budgetWarning) {
+                    notifyBudgetAlert("Monthly", "warning", increasePercentage);
+                }
+                if (unusualSpikes > 0) {
+                    notifyBudgetAlert("Spending", "spike");
+                }
+                if (spendingIncreased) {
+                    notifyBudgetAlert("Monthly", "warning", increasePercentage);
+                }
+            }
         } catch (e) {
             console.error("Error fetching analytics:", e);
         } finally {

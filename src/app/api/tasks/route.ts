@@ -56,10 +56,20 @@ export async function POST(req: Request) {
 }
 
 export async function PUT(req: Request) {
-  // Batch update for reordering
+  // Batch update for reordering or clearBoardId migration
   try {
     await dbConnect();
     const body = await req.json();
+
+    // Migration: clear boardId from all tasks (move everything to "All Tasks")
+    if (body.action === 'clearBoardId') {
+      await Task.updateMany(
+        { boardId: { $exists: true, $ne: null } },
+        { $set: { boardId: null } }
+      );
+      return NextResponse.json({ success: true, message: "All tasks moved to All Tasks" });
+    }
+
     const { tasks } = body;
 
     if (!Array.isArray(tasks)) {

@@ -1,5 +1,6 @@
 import dbConnect from "@/lib/db";
 import Lead from "@/models/Lead";
+import Notification from "@/models/Notification";
 import { NextResponse } from "next/server";
 
 // Telegram credentials from environment variables
@@ -65,6 +66,14 @@ export async function POST(req: Request) {
         status: "replied",
       });
     }
+
+    // Save in-app notification
+    await Notification.create({
+      title: "Lead Reply",
+      message: `${leadName} replied: "${snippet.slice(0, 80)}${textBody.length > 80 ? "…" : ""}"`,
+      type: "success",
+      link: "/?tab=leads",
+    });
 
     // Fire Telegram notification
     const tgMessage = [

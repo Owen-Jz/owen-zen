@@ -11,6 +11,12 @@ import { useSoundContext } from "@/components/SoundEffects";
 import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
 import { isPerfectDay, isPerfectWeek } from "@/lib/perfectDetection";
 import { useCelebration } from "@/hooks/useCelebration";
+import {
+  notifyOnHabitCompletion,
+  notifyHabitStreakAtRisk,
+  notifyWeeklyGoalsComplete,
+  notifyWeeklyStreakAtRisk,
+} from "@/lib/notificationService";
 
 // Lagos-aware Sunday rewind using Intl (consistent with toLocalString timezone)
 const LAGOS_WDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Lagos', weekday: 'short' });
@@ -272,6 +278,31 @@ export const HabitView = () => {
         checkAndSeed();
     }, []);
 
+    // Check for streak-at-risk habits once on mount and every hour
+    useEffect(() => {
+        const checkStreaksAtRisk = () => {
+            const todayStr = toLocalString(new Date());
+            habits.forEach(habit => {
+                if (habit.streak > 2) {
+                    const doneToday = habit.completedDates.some(d => toLocalString(d) === todayStr);
+                    if (!doneToday) {
+                        notifyHabitStreakAtRisk(habit.title, habit.streak);
+                    }
+                }
+            });
+        };
+
+        if (habits.length > 0) {
+            checkStreaksAtRisk();
+        }
+
+        const interval = setInterval(() => {
+            if (habits.length > 0) checkStreaksAtRisk();
+        }, 60 * 60 * 1000); // every hour
+
+        return () => clearInterval(interval);
+    }, [habits.length]);
+
     // Close dropdown when clicking outside
     useEffect(() => {
         const handleClickOutside = () => setOpenDropdownId(null);
@@ -335,6 +366,18 @@ export const HabitView = () => {
         });
 
         fetchHabits(); // Refresh for accurate streaks
+
+        // Fire notifications after the API call completes
+        if (isCompleting && habit) {
+            const updatedHabit = { ...habit };
+            const newStreak = updatedHabit.streak + 1;
+            const totalCompletions = updatedHabit.completedDates.length + 1;
+            const allDoneToday = habits.every(h => {
+                if (h._id === id) return true; // skip the one we just toggled
+                return h.completedDates.some(d => toLocalString(d) === targetDayStr);
+            });
+            notifyOnHabitCompletion(habit.title, habit._id, allDoneToday, newStreak, totalCompletions);
+        }
     };
 
     // --- Toggle All Daily Habits for a Specific Day (from heatmap) ---
@@ -538,6 +581,7 @@ export const HabitView = () => {
 
       if (newlyPerfectWeek) {
         triggerCelebration('week');
+        notifyWeeklyGoalsComplete(getCurrentWeekKey());
       } else if (newlyPerfectDay) {
         triggerCelebration('day');
       }

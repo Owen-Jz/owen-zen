@@ -48,7 +48,7 @@ const nextConfig: NextConfig = {
               "default-src 'self'",
               "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
               "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https://res.cloudinary.com blob:",
+              "img-src 'self' data: https://res.cloudinary.com https://i.pinimg.com blob:",
               "font-src 'self' data:",
               "connect-src 'self' https://api.minimaxi.chat https://api.twitter.com https://*.linkedin.com",
               "frame-src 'self'",

@@ -6,6 +6,14 @@ import { TrendingUp, CheckCircle, Activity, Calendar, Trophy, Flame, Target, Sta
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
+import {
+  ACHIEVEMENTS,
+  getEarnedIdsFromStats,
+  getNewAchievements,
+  type AchievementDef,
+  type UserStats,
+} from "@/lib/achievements";
+import { notifyAchievement } from "@/lib/notificationService";
 
 function cn(...inputs: (string | undefined | null | false)[]) {
   return twMerge(clsx(inputs));
@@ -86,6 +94,7 @@ export const AnalyticsView = () => {
   const [weeklyData, setWeeklyData] = useState<number[]>(Array(7).fill(0));
   const [dailyCompletion, setDailyCompletion] = useState<number[]>(Array(7).fill(0));
   const [categoryData, setCategoryData] = useState<{ name: string; count: number; color: string }[]>([]);
+  const [earnedIds, setEarnedIds] = useState<string[]>([]);
 
   const CATEGORY_COLORS: Record<string, string> = {
     development: "#3b82f6",
@@ -115,18 +124,20 @@ export const AnalyticsView = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [tasksRes, habitsRes] = await Promise.all([
+        const [tasksRes, habitsRes, gymRes] = await Promise.all([
           fetch("/api/tasks").then(r => r.json()),
-          fetch("/api/habits").then(r => r.json())
+          fetch("/api/habits").then(r => r.json()),
+          fetch("/api/gym-sessions").then(r => r.json()),
         ]);
 
         if (tasksRes.success && habitsRes.success) {
           const tasks = tasksRes.data;
           const habits = habitsRes.data;
+          const gymSessions = gymRes.success ? gymRes.data : [];
 
           const totalTasks = tasks.length;
           const completedTasks = tasks.filter((t: any) => t.status === 'completed').length;
-          const realTodayCompleted = completedTasks; // Simulating today based on overall for demo logic
+          const realTodayCompleted = completedTasks;
 
           let totalHabitReps = 0;
           let currentHighestStreak = 0;
@@ -136,7 +147,6 @@ export const AnalyticsView = () => {
             if (h.streak > currentHighestStreak) currentHighestStreak = h.streak;
           });
 
-          // Gamification XP Logic
           const totalXP = (completedTasks * 50) + (totalHabitReps * 20);
 
           let level = 1;
@@ -165,6 +175,45 @@ export const AnalyticsView = () => {
             totalXP,
             completionRate: totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0
           });
+
+          // Build user stats for achievement checking
+          const userStats: UserStats = {
+            completedTasks,
+            totalHabitReps,
+            currentHighestStreak,
+            level,
+            totalXP,
+            gymStreak: 0,
+            gymSessions: gymSessions.length,
+            financeStreak: 0,
+            weeklyPerfectWeeks: 0,
+            leadsConverted: 0,
+            postsPublished: 0,
+            routinesCompleted: 0,
+            contentIdeas: 0,
+          };
+
+          // Check and award any newly earned achievements via API
+          try {
+            const earnedRes = await fetch("/api/achievements");
+            const earnedJson = await earnedRes.json();
+            const previousEarned: string[] = earnedJson.earned ?? [];
+            const newOnes = getNewAchievements(userStats, previousEarned);
+            setEarnedIds(getEarnedIdsFromStats(userStats));
+            if (newOnes.length > 0) {
+              await fetch("/api/achievements", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stats: userStats, earned: previousEarned }),
+              });
+              for (const def of newOnes) {
+                await notifyAchievement(def.icon, def.title, def.description);
+              }
+              setEarnedIds(getEarnedIdsFromStats(userStats));
+            }
+          } catch (e) {
+            console.error("[Analytics] Achievement check failed:", e);
+          }
 
           // Mocking weekly XP variance for visual interest, anchoring today to actual task XP equivalent
           const mockWeekData = [120, 350, 200, 480, 150, 300, 220];
@@ -217,14 +266,12 @@ export const AnalyticsView = () => {
 
   const xpProgressPct = Math.min(100, (stats.currentLevelXP / stats.xpForNextLevel) * 100);
 
-  const badges = [
-    { name: "First Blood", desc: "Complete 1 Task", icon: <Sword size={24} />, unlocked: stats.completedTasks >= 1 },
-    { name: "Task Master", desc: "Complete 50 Tasks", icon: <Target size={24} />, unlocked: stats.completedTasks >= 50 },
-    { name: "Heating Up", desc: "3 Day Streak", icon: <Flame size={24} />, unlocked: stats.currentHighestStreak >= 3 },
-    { name: "Unbreakable", desc: "21 Day Streak", icon: <Shield size={24} />, unlocked: stats.currentHighestStreak >= 21 },
-    { name: "Habitual", desc: "100 Habit Reps", icon: <Zap size={24} />, unlocked: stats.totalHabitReps >= 100 },
-    { name: "Zen Achiever", desc: "Reach Level 10", icon: <Crown size={24} />, unlocked: stats.level >= 10 },
-  ];
+  const badges = ACHIEVEMENTS.map(def => ({
+    name: def.title,
+    desc: def.description,
+    icon: <span className="text-2xl">{def.icon}</span>,
+    unlocked: earnedIds.includes(def.id),
+  }));
 
   return (
     <div className="max-w-6xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
