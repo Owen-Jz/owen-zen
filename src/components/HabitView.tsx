@@ -561,6 +561,8 @@ export const HabitView = () => {
 
     // Detect newly perfect days/weeks and trigger celebration
     useEffect(() => {
+      const isSunday = new Date().getDay() === 0; // Only notify on Sundays (week end)
+
       const currentPerfectDays = new Set(
         (heatmapGrid as Array<NonNullable<typeof heatmapGrid[number]>>)
           .filter(d => d && d.isPerfectDay)
@@ -579,7 +581,7 @@ export const HabitView = () => {
         return !prevPerfectDaysRef.current.has(key);
       });
 
-      if (newlyPerfectWeek) {
+      if (newlyPerfectWeek && isSunday) {
         triggerCelebration('week');
         notifyWeeklyGoalsComplete(getCurrentWeekKey());
       } else if (newlyPerfectDay) {
