@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -120,19 +120,26 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
       exit={task.isTemp ? undefined : { opacity: 0, scale: 0.9, transition: { duration: 0.2 } }}
       transition={{ type: "spring", stiffness: 400, damping: 30 }}
       className={cn(
-        "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative shadow-lg hover:shadow-xl hover:-translate-y-1",
+        "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative",
+        "hover:shadow-[0_8px_30px_rgba(0,0,0,0.3),0_0_20px_rgba(var(--primary-rgb),0.1)]",
+        "hover:-translate-y-0.5 hover:border-white/10",
+        "active:translate-y-0 active:scale-[0.98]",
         task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]",
         isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
         isDragging && !isOverlay && "opacity-40 grayscale scale-95"
       )}
     >
-      {/* Sleek Priority Indicator on the left */}
-      <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-1 opacity-80 transition-all group-hover:w-1.5 rounded-l-2xl z-20",
-        task.priority === "high" ? "bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.8)]" :
-          task.priority === "medium" ? "bg-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.8)]" :
-            "bg-blue-500 shadow-[0_0_12px_rgba(59,130,246,0.8)]"
-      )} />
+      {/* Animated Priority Indicator */}
+      <motion.div
+        animate={{ width: [3, 4, 3] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+        className={cn(
+          "absolute left-0 top-0 bottom-0 rounded-l-2xl z-20",
+          task.priority === "high" ? "bg-red-500 shadow-[0_0_20px_rgba(239,68,68,0.9),0_0_40px_rgba(239,68,68,0.4)]" :
+            task.priority === "medium" ? "bg-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.9),0_0_40px_rgba(245,158,11,0.4)]" :
+              "bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.9),0_0_40px_rgba(59,130,246,0.4)]"
+        )}
+      />
 
       {/* Make Subtask Drop Zone */}
       {
@@ -251,13 +258,31 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
         {/* Subtasks Section */}
         {task.subtasks && task.subtasks.length > 0 && (
           <div className="mb-4 space-y-2.5">
-            {/* Progress Bar */}
+            {/* Progress Bar with shimmer */}
             <div className="flex items-center gap-3">
-              <Progress
-                value={(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}
-                className="flex-1 h-1"
-              />
-              <span className="text-[10px] text-gray-500 font-mono font-bold tracking-wider tabular-nums">
+              <div className="relative flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(task.subtasks.filter(s => s.completed).length / task.subtasks.length) * 100}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                  className={cn(
+                    "h-full rounded-full relative",
+                    (task.subtasks.filter(s => s.completed).length / task.subtasks.length) === 1
+                      ? "bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"
+                      : "bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]"
+                  )}
+                />
+                <motion.div
+                  className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                />
+              </div>
+              <span className={cn(
+                "text-[10px] font-mono font-bold tracking-wider tabular-nums",
+                (task.subtasks.filter(s => s.completed).length / task.subtasks.length) === 1
+                  ? "text-emerald-400" : "text-gray-500"
+              )}>
                 {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length}
               </span>
             </div>
@@ -484,12 +509,15 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
     <div
       ref={setNodeRef}
       className={cn(
-        "bg-black/20 backdrop-blur-sm p-4 md:p-5 rounded-3xl border border-white/5 min-h-[600px] flex flex-col transition-all duration-500",
-        isOver && "bg-white/5 border-primary/30 shadow-[0_0_40px_rgba(var(--primary-rgb),0.1)] scale-[1.02]"
+        "relative p-4 md:p-5 rounded-3xl border border-white/5 min-h-[600px] flex flex-col transition-all duration-500 overflow-hidden",
+        "before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent",
+        isOver && "bg-primary/5 border-primary/40 shadow-[0_0_50px_rgba(var(--primary-rgb),0.15)] scale-[1.02]"
       )}
     >
+      {/* Inner gradient overlay */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
-        <h3 className="text-xs font-black text-gray-400 uppercase tracking-[0.2em] flex items-center gap-2">
+        <h3 className="text-xs font-bold text-gray-400 uppercase tracking-[0.15em] flex items-center gap-2">
           {id === "pending" && <Circle size={14} className="text-gray-500" />}
           {id === "in-progress" && <Clock size={14} className="text-primary" />}
           {id === "completed" && <Check size={14} className="text-green-500" />}
@@ -537,6 +565,20 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               />
             ))}
           </AnimatePresence>
+          {/* Empty State */}
+          {tasks.length === 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex flex-col items-center justify-center py-12 text-center"
+            >
+              <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center">
+                <Plus size={24} className="text-gray-600" />
+              </div>
+              <p className="text-sm text-gray-500 font-medium mb-1">No tasks here</p>
+              <p className="text-xs text-gray-600">Drop a task or create one</p>
+            </motion.div>
+          )}
           {/* Invisible spacer */}
           <div className="h-10 w-full" />
         </div>

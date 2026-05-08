@@ -1,4 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -34,12 +33,12 @@
 }
 
 :root {
-  /* Zen Dark - Deep Charcoal & Crimson */
+  /* Zen Dark - Deep Charcoal & Indigo */
   --background: #0a0a0a;
   --foreground: #f5f5f5;
-  --primary: #dc2626;
-  --primary-rgb: 220, 38, 38;
-  --primary-light: #ef4444;
+  --primary: #6366f1;
+  --primary-rgb: 99, 102, 241;
+  --primary-light: #818cf8;
   --surface: #141414;
   --surface-hover: #1a1a1a;
   --border: #262626;
@@ -89,12 +88,12 @@
   --secondary-foreground: #f5f5f5;
   --muted: #262626;
   --muted-foreground: #a3a3a3;
-  --accent: #dc2626;
+  --accent: #6366f1;
   --accent-foreground: #ffffff;
   --destructive: #ef4444;
   --input: #262626;
-  --ring: #dc2626;
-  --chart-1: #dc2626;
+  --ring: #6366f1;
+  --chart-1: #6366f1;
   --chart-2: #f59e0b;
   --chart-3: #22c55e;
   --chart-4: #3b82f6;
@@ -102,12 +101,12 @@
   --radius: 0.625rem;
   --sidebar: #0a0a0a;
   --sidebar-foreground: #f5f5f5;
-  --sidebar-primary: #dc2626;
+  --sidebar-primary: #6366f1;
   --sidebar-primary-foreground: #ffffff;
   --sidebar-accent: #262626;
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: #262626;
-  --sidebar-ring: #dc2626;
+  --sidebar-ring: #6366f1;
 }
 
 [data-theme=""] {
@@ -124,12 +123,12 @@
 }
 
 [data-theme="zen"] {
-  /* Zen Dark - Deep Charcoal & Crimson */
+  /* Zen Dark - Deep Charcoal & Indigo */
   --background: #0a0a0a;
   --foreground: #f5f5f5;
-  --primary: #dc2626;
-  --primary-rgb: 220, 38, 38;
-  --primary-light: #ef4444;
+  --primary: #6366f1;
+  --primary-rgb: 99, 102, 241;
+  --primary-light: #818cf8;
   --surface: #141414;
   --surface-hover: #1a1a1a;
   --border: #262626;
@@ -138,7 +137,7 @@
   --cc-border: #262626;
   --cc-text: #f5f5f5;
   --cc-text-secondary: #737373;
-  --cc-accent: #dc2626;
+  --cc-accent: #6366f1;
   --cc-success: #22c55e;
   --cc-warning: #f59e0b;
   --cc-error: #ef4444;
@@ -377,10 +376,10 @@
   --cc-border: #44475a;
   --cc-text: #f8f8f2;
   --cc-text-secondary: #d8dee9;
-  --cc-accent: #bd93f9;
-  --cc-success: #50fa7b;
-  --cc-warning: #f1fa8c;
-  --cc-error: #ff5555;
+  --cc-accent: #6366f1;
+  --cc-success: #a3d8d8;
+  --cc-warning: #ebcb8b;
+  --cc-error: #bf616a;
 }
 
 /* Chocolate Theme */
@@ -861,7 +860,7 @@ select:focus-visible {
 /* Icon stroke weight: 1.5px standard, 2px for emphasis (e.g. bold checkmarks) */
 :root {
   --icon-stroke: 1.5;
-  --font-heading: "Cormorant Garamond", serif;
+  --font-heading: "Plus Jakarta Sans", system-ui, sans-serif;
 }
 
 /* Print styles */

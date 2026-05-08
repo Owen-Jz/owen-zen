@@ -1,5 +1,6 @@
 // --- Task Board Component ---
 import { useSoundContext } from "@/components/SoundEffects";
+import { useConfetti, Confetti } from "@/components/Confetti";
 import { useDroppable, DndContext, closestCenter, rectIntersection, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, pointerWithin, CollisionDetection } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -91,6 +92,7 @@ export const TaskBoard = ({
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
 
   const { playSound } = useSoundContext();
+  const { trigger, fire } = useConfetti();
 
   const handleArchiveAllCompleted = async () => {
     const completedIds = visibleTasks
@@ -176,6 +178,7 @@ export const TaskBoard = ({
       activeTask.status = newStatus;
       if (newStatus === "completed") {
         activeTask.completedAt = new Date().toISOString();
+        fire(); // Trigger confetti on task completion
       } else {
         activeTask.completedAt = undefined;
       }
@@ -239,13 +242,24 @@ export const TaskBoard = ({
             <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">Board Progress</span>
             <span className="text-xs font-mono font-bold text-primary">{progressPercent}%</span>
           </div>
-          <div className="h-2 w-full bg-white/5 rounded-full overflow-hidden flex">
+          <div className="h-3 w-full bg-white/5 rounded-full overflow-hidden relative">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${progressPercent}%` }}
               transition={{ duration: 1, ease: "easeOut" }}
-              className="h-full bg-primary shadow-[0_0_10px_rgba(var(--primary-rgb),0.8)]"
-            />
+              className={cn(
+                "h-full rounded-full relative",
+                progressPercent === 100
+                  ? "bg-gradient-to-r from-emerald-500 to-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.5)]"
+                  : "bg-gradient-to-r from-primary to-primary-light shadow-[0_0_15px_rgba(var(--primary-rgb),0.6)]"
+              )}
+            >
+              <motion.div
+                className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/40 to-transparent"
+                animate={{ x: ['-100%', '300%'] }}
+                transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </motion.div>
           </div>
         </div>
 
@@ -259,13 +273,13 @@ export const TaskBoard = ({
                 onClick={() => setPriorityFilter(filter)}
                 aria-pressed={priorityFilter === filter}
                 className={cn(
-                  "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
+                  "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border active:scale-95",
                   priorityFilter === filter
-                    ? filter === 'high' ? "bg-[var(--priority-high)]/20 text-[var(--priority-high)] border-[var(--priority-high)]/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]" :
-                      filter === 'medium' ? "bg-[var(--priority-medium)]/20 text-[var(--priority-medium)] border-[var(--priority-medium)]/50 shadow-[0_0_15px_rgba(245,158,11,0.2)]" :
-                        filter === 'low' ? "bg-[var(--priority-low)]/20 text-[var(--priority-low)] border-[var(--priority-low)]/50 shadow-[0_0_15px_rgba(59,130,246,0.2)]" :
-                          "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary),0.2)]"
-                    : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                    ? filter === 'high' ? "bg-red-500/20 text-red-400 border-red-500/40 shadow-[0_0_20px_rgba(239,68,68,0.3)]" :
+                      filter === 'medium' ? "bg-amber-500/20 text-amber-400 border-amber-500/40 shadow-[0_0_20px_rgba(245,158,11,0.3)]" :
+                        filter === 'low' ? "bg-blue-500/20 text-blue-400 border-blue-500/40 shadow-[0_0_20px_rgba(59,130,246,0.3)]" :
+                          "bg-primary/20 text-primary border-primary/40 shadow-[0_0_20px_rgba(var(--primary),0.3)]"
+                    : "bg-surface/50 text-gray-400 border-white/5 hover:bg-white/10 hover:text-gray-200 hover:border-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                 )}
               >
                 {filter}
@@ -281,10 +295,10 @@ export const TaskBoard = ({
                 onClick={() => setCategoryFilter(cat)}
                 aria-pressed={categoryFilter === cat}
                 className={cn(
-                  "px-3 py-1 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border",
+                  "px-4 py-1.5 rounded-xl text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap border active:scale-95",
                   categoryFilter === cat
-                    ? "bg-primary/20 text-primary border-primary/50 shadow-[0_0_15px_rgba(var(--primary-rgb),0.2)]"
-                    : "bg-surface/50 text-gray-500 border-white/5 hover:bg-white/5 hover:text-white"
+                    ? "bg-primary/20 text-primary border-primary/40 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)]"
+                    : "bg-surface/50 text-gray-400 border-white/5 hover:bg-white/10 hover:text-gray-200 hover:border-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.05)]"
                 )}
               >
                 {cat}
@@ -344,6 +358,7 @@ export const TaskBoard = ({
             })()
           ) : null}
         </DragOverlay>
+        <Confetti trigger={trigger} />
       </DndContext>
     </div>
   );

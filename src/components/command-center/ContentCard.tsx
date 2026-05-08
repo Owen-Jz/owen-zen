@@ -6,11 +6,33 @@ import { SkeletonCard } from "./SkeletonCard";
 interface ContentCardProps {
   postsThisWeek?: number;
   scheduledDays?: number[];
+  scheduledPosts?: Array<{
+    title: string;
+    scheduledDate: string; // ISO date string
+  }>;
 }
 
-export function ContentCard({ postsThisWeek = 0, scheduledDays = [] }: ContentCardProps) {
+function getRelativePostDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Tomorrow";
+
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const month = months[date.getMonth()];
+  const day = date.getDate();
+
+  return `${month} ${day}`;
+}
+
+export function ContentCard({ postsThisWeek = 0, scheduledDays = [], scheduledPosts = [] }: ContentCardProps) {
   const days = ["S", "M", "T", "W", "T", "F", "S"];
   const today = new Date().getDay();
+  const nextTwoPosts = scheduledPosts.slice(0, 2);
 
   return (
     <div className="rounded-xl border p-5 h-full min-h-[140px] hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
@@ -20,7 +42,7 @@ export function ContentCard({ postsThisWeek = 0, scheduledDays = [] }: ContentCa
         <span className="text-xl font-bold font-mono" style={{ color: "var(--cc-text)" }}>{postsThisWeek}</span>
         <span className="text-xs" style={{ color: "var(--cc-text-secondary)" }}>posts this week</span>
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         {days.map((d, i) => (
           <div key={i} className="flex flex-col items-center gap-1">
             <span className="text-[10px]" style={{ color: "var(--cc-text-secondary)" }}>{d}</span>
@@ -36,6 +58,17 @@ export function ContentCard({ postsThisWeek = 0, scheduledDays = [] }: ContentCa
           </div>
         ))}
       </div>
+      {nextTwoPosts.length > 0 ? (
+        <div className="space-y-1">
+          {nextTwoPosts.map((post, i) => (
+            <p key={i} className="text-xs truncate" style={{ color: "var(--cc-text-secondary)" }}>
+              {post.title} — <span style={{ color: "var(--cc-accent)" }}>{getRelativePostDate(post.scheduledDate)}</span>
+            </p>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs" style={{ color: "var(--cc-text-secondary)" }}>No posts scheduled</p>
+      )}
     </div>
   );
 }

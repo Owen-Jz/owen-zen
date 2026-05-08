@@ -106,13 +106,39 @@ export const FocusOverlay = ({
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden"
     >
-      {/* Atmospheric Background */}
+      {/* Atmospheric Background with animated orbs */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[600px] h-[600px] bg-primary/5 rounded-full blur-[150px] animate-pulse-slow" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[120px] animate-pulse-slow" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/2 right-1/3 w-[400px] h-[400px] bg-purple-500/3 rounded-full blur-[100px] animate-pulse-slow" style={{ animationDelay: '4s' }} />
+        {/* Primary gradient orb - slow floating animation */}
+        <motion.div
+          className="absolute w-[800px] h-[800px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)', filter: 'blur(80px)' }}
+          animate={{
+            x: [0, 150, 0],
+            y: [0, -80, 0],
+          }}
+          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Secondary orb - blue accent */}
+        <motion.div
+          className="absolute w-[600px] h-[600px] rounded-full opacity-10"
+          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', filter: 'blur(60px)' }}
+          animate={{
+            x: [0, -100, 0],
+            y: [0, 60, 0],
+          }}
+          transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Accent orb - purple */}
+        <motion.div
+          className="absolute w-[400px] h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, #8b5cf6 0%, transparent 70%)', filter: 'blur(50px)', opacity: 0.08 }}
+          animate={{
+            scale: [1, 1.15, 1],
+          }}
+          transition={{ duration: 8, repeat: Infinity }}
+        />
         {/* Subtle grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:50px_50px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px]" />
       </div>
       {/* Top Bar */}
       <div className="absolute top-6 left-6 right-6 flex items-center justify-between">
@@ -139,7 +165,7 @@ export const FocusOverlay = ({
             {task.activeTimer?.isActive ? formatTime(elapsedTime) : formatTime(task.totalTimeSpent || 0)}
           </div>
 
-          {/* Progress Ring */}
+          {/* Progress Ring - thicker with gradient and glow */}
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -z-10">
             <motion.svg
               className="w-[300px] h-[300px] md:w-[400px] md:h-[400px] -rotate-90"
@@ -147,30 +173,41 @@ export const FocusOverlay = ({
               animate={{ opacity: 1 }}
               transition={{ delay: 0.3 }}
             >
+              {/* Gradient definition */}
+              <defs>
+                <linearGradient id="progressGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                  <stop offset="0%" stopColor="var(--primary)" />
+                  <stop offset="100%" stopColor="var(--primary-light)" />
+                </linearGradient>
+              </defs>
+              {/* Background track */}
               <circle
                 cx="50%"
                 cy="50%"
                 r="45%"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                className="text-white/5"
+                stroke="rgba(255,255,255,0.05)"
+                strokeWidth="8"
               />
+              {/* Progress arc - animated with gradient */}
               <motion.circle
                 cx="50%"
                 cy="50%"
                 r="45%"
                 fill="none"
-                stroke="currentColor"
-                strokeWidth="4"
+                stroke="url(#progressGradient)"
+                strokeWidth="8"
                 strokeLinecap="round"
                 strokeDasharray={PROGRESS_RING_CIRCUMFERENCE}
                 initial={{ strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE }}
-                animate={{ strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE - (progress / 100) * PROGRESS_RING_CIRCUMFERENCE }}
+                animate={{
+                  strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE - (progress / 100) * PROGRESS_RING_CIRCUMFERENCE,
+                }}
                 transition={{ duration: 0.7, ease: "easeOut" }}
-                className={cn(
-                  task.activeTimer?.isActive ? "text-primary drop-shadow-[0_0_10px_rgba(220,38,38,0.5)]" : "text-white/20"
-                )}
+                style={{
+                  filter: task.activeTimer?.isActive ? 'drop-shadow(0 0 15px rgba(var(--primary-rgb),0.7))' : 'none',
+                  opacity: task.activeTimer?.isActive ? 1 : 0.4
+                }}
               />
             </motion.svg>
           </div>
@@ -288,16 +325,31 @@ export const FocusOverlay = ({
             </AnimatePresence>
           </div>
 
-          {/* Complete Task Button */}
-          <button
+          {/* Complete Task Button - celebratory style */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
             onClick={() => {
               onCompleteTask(task._id);
               onClose();
             }}
-            className="text-gray-500 hover:text-primary transition-colors text-sm font-medium flex items-center justify-center gap-2 mx-auto mt-8"
+            className="group flex items-center justify-center gap-2 mx-auto mt-8 px-6 py-3 rounded-full border border-white/10 bg-white/5 text-gray-400 hover:text-primary hover:border-primary/30 hover:bg-primary/10 transition-all font-medium"
           >
-            <CheckCircle2 size={18} /> Mark Task as Done & Exit
-          </button>
+            <motion.div
+              animate={{ rotate: [0, -10, 10, -10, 0] }}
+              transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
+            >
+              <CheckCircle2 size={18} />
+            </motion.div>
+            <span>Mark Task as Done & Exit</span>
+            <motion.span
+              className="opacity-0 group-hover:opacity-100 ml-1"
+              animate={{ x: [0, 5, 0] }}
+              transition={{ duration: 1, repeat: Infinity }}
+            >
+              ✨
+            </motion.span>
+          </motion.button>
         </div>
       </div>
 

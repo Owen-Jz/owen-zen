@@ -9,6 +9,10 @@ interface NutritionCardProps {
   protein?: number;
   carbs?: number;
   fat?: number;
+  recentMeals?: Array<{
+    name: string;
+    time: string;
+  }>;
 }
 
 function MacroRing({ label, value, max, color }: { label: string; value: number; max: number; color: string }) {
@@ -27,7 +31,10 @@ function MacroRing({ label, value, max, color }: { label: string; value: number;
   );
 }
 
-export function NutritionCard({ mealsLogged = 0, mealsGoal = 3, protein = 0, carbs = 0, fat = 0 }: NutritionCardProps) {
+export function NutritionCard({ mealsLogged = 0, mealsGoal = 3, protein = 0, carbs = 0, fat = 0, recentMeals = [] }: NutritionCardProps) {
+  const calories = Math.round(protein * 4 + carbs * 4 + fat * 9);
+  const displayMeals = recentMeals.slice(-3);
+
   return (
     <div className="rounded-xl border p-5 h-full min-h-[140px] hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
       <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--cc-text-secondary)" }}>Nutrition</p>
@@ -35,11 +42,33 @@ export function NutritionCard({ mealsLogged = 0, mealsGoal = 3, protein = 0, car
         <Utensils size={16} style={{ color: "var(--cc-accent)" }} />
         <span className="text-sm font-semibold" style={{ color: "var(--cc-text)" }}>{mealsLogged}/{mealsGoal} meals</span>
       </div>
-      <div className="flex items-center gap-4 justify-center">
+      {/* Mini progress bar */}
+      <div className="h-1.5 rounded-full mb-3 bg-[var(--cc-border)] overflow-hidden">
+        <div
+          className="h-full rounded-full transition-all duration-300"
+          style={{ width: `${mealsGoal > 0 ? Math.min((mealsLogged / mealsGoal) * 100, 100) : 0}%`, backgroundColor: "var(--cc-accent)" }}
+        />
+      </div>
+      <div className="flex items-center gap-4 justify-center mb-3">
         <MacroRing label="protein" value={protein} max={150} color="var(--cc-accent)" />
         <MacroRing label="carbs" value={carbs} max={200} color="var(--cc-success)" />
         <MacroRing label="fat" value={fat} max={60} color="var(--cc-warning)" />
       </div>
+      {/* Calorie estimate */}
+      <p className="text-xs text-center font-mono" style={{ color: "var(--cc-text-secondary)" }}>
+        ~{calories} kcal
+      </p>
+      {/* Last 3 meals */}
+      {displayMeals.length > 0 && (
+        <div className="mt-3 pt-3 border-t" style={{ borderColor: "var(--cc-border)" }}>
+          {displayMeals.map((meal, i) => (
+            <div key={i} className="flex justify-between text-xs py-1">
+              <span style={{ color: "var(--cc-text)" }}>{meal.name}</span>
+              <span style={{ color: "var(--cc-text-secondary)" }}>{meal.time}</span>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

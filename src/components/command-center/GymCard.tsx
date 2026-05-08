@@ -8,6 +8,33 @@ interface GymCardProps {
   sessionsGoal?: number;
   streak?: number;
   nextWorkout?: string;
+  recentSessions?: Array<{
+    date: string;
+    type?: string;
+    sets?: number;
+    reps?: number;
+  }>;
+}
+
+function getWorkoutColor(type?: string): string {
+  if (!type) return "var(--cc-text-secondary)";
+  const lowerType = type.toLowerCase();
+  if (lowerType === "chest" || lowerType === "push") return "var(--cc-error)";
+  if (lowerType === "back" || lowerType === "pull") return "var(--cc-accent)";
+  if (lowerType === "legs" || lowerType === "squats") return "var(--cc-success)";
+  return "var(--cc-text-secondary)";
+}
+
+function getRelativeDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffTime = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  if (diffDays === 0) return "today";
+  if (diffDays === 1) return "1d ago";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 14) return "1w ago";
+  return `${Math.floor(diffDays / 7)}w ago`;
 }
 
 export function GymCard({
@@ -15,8 +42,10 @@ export function GymCard({
   sessionsGoal = 4,
   streak = 0,
   nextWorkout = "",
+  recentSessions = [],
 }: GymCardProps) {
   const progress = sessionsGoal > 0 ? (sessionsThisWeek / sessionsGoal) * 100 : 0;
+  const displaySessions = recentSessions.slice(0, 3);
 
   return (
     <div className="rounded-xl border p-5 h-full min-h-[140px] hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
@@ -34,7 +63,7 @@ export function GymCard({
           style={{ width: `${Math.min(progress, 100)}%`, backgroundColor: "var(--cc-accent)" }}
         />
       </div>
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between mb-3">
         {streak > 0 && (
           <div className="flex items-center gap-1">
             <Flame size={14} style={{ color: "var(--cc-accent)" }} />
@@ -48,6 +77,27 @@ export function GymCard({
           </div>
         )}
       </div>
+      {displaySessions.length > 0 && (
+        <div className="space-y-1.5 pt-2 border-t" style={{ borderColor: "var(--cc-border)" }}>
+          {displaySessions.map((session, index) => (
+            <div key={index} className="flex items-center gap-2 text-xs">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: getWorkoutColor(session.type) }}
+              />
+              <span className="flex-shrink-0" style={{ color: "var(--cc-text-secondary)" }}>
+                {getRelativeDate(session.date)}
+              </span>
+              <span style={{ color: "var(--cc-text)" }}>{session.type || "Workout"}</span>
+              {session.sets != null && session.reps != null && (
+                <span className="ml-auto font-mono" style={{ color: "var(--cc-text-secondary)" }}>
+                  {session.sets}×{session.reps}
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

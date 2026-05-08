@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
-import { Manrope, Geist } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import { Toaster } from "sonner";
 
-const manrope = Manrope({
-  variable: "--font-manrope",
+const plusJakartaSans = Plus_Jakarta_Sans({
+  variable: "--font-sans",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 export const viewport: Viewport = {
@@ -51,8 +52,6 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { Providers } from "@/components/Providers";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
-
 
 export default function RootLayout({
   children,
@@ -60,8 +59,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="zen" className={cn("font-sans", geist.variable)}>
-      <body className={`${manrope.variable} antialiased min-h-screen relative`}>
+    <html lang="en" data-theme="zen" className={cn("font-sans", plusJakartaSans.variable)}>
+      <body className="antialiased min-h-screen relative">
         <a href="#main-content" className="skip-link">
           Skip to main content
         </a>
