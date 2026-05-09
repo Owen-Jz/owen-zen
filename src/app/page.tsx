@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Bank } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -34,6 +34,7 @@ import { TaskBoard } from "@/components/TaskBoard";
 import { NotificationBell } from "@/components/NotificationBell";
 import { Loading } from "@/components/Loading";
 import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
+import { TaskBankView } from "@/components/TaskBankView";
 import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { DailyWordWidget } from "@/components/DailyWordWidget";
@@ -291,6 +292,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "watch", label: "Watch Later", icon: Circle },
         { id: "brainstorming", label: "Brainstorming", icon: Play },
         { id: "notes", label: "Notes", icon: FileText },
+        { id: "bank", label: "Task Bank", icon: Bank },
         { id: "archive", label: "Archive", icon: Archive },
         { id: "settings", label: "Settings", icon: Settings },
       ]
@@ -1741,6 +1743,24 @@ export default function Dashboard() {
     }
   };
 
+  const bankTask = async (id: string) => {
+    await fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isBanked: true, status: "pending" }),
+    });
+    setTasks(tasks.map(t => t._id === id ? { ...t, isBanked: true } : t));
+  };
+
+  const unbankTask = async (id: string) => {
+    await fetch(`/api/tasks/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isBanked: false, status: "pending" }),
+    });
+    setTasks(tasks.map(t => t._id === id ? { ...t, isBanked: false } : t));
+  };
+
   const deleteTask = async (id: string) => {
     const oldTasks = [...tasks];
     const deletedTask = tasks.find(t => t._id === id);
@@ -2782,6 +2802,7 @@ export default function Dashboard() {
                   onDelete={deleteTask}
                   onEdit={setEditingTask}
                   onArchive={archiveTask}
+                  onBank={bankTask}
                   onToggleSubtask={toggleTaskSubtask}
                   onPromoteSubtask={promoteSubtaskToMain}
                   onUpdatePriority={updateTaskPriority}
@@ -2826,6 +2847,7 @@ export default function Dashboard() {
           {activeTab === "watch" && <WatchLaterView />}
           {activeTab === "brainstorming" && <BrainstormingView />}
           {activeTab === "archive" && <ArchiveView tasks={tasks} onRestore={restoreTask} onDelete={deleteTask} />}
+          {activeTab === "bank" && <TaskBankView tasks={tasks} onRestore={unbankTask} onDelete={deleteTask} />}
           {activeTab === "notes" && <NotesView />}
           {activeTab === "sniper" && <SniperView />}
           {activeTab === "leads" && <LeadsView />}
