@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Bank } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -40,6 +40,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onStartTimer?: (id: string, sessionTitle?: string) => void;
   onStopTimer?: (id: string, note?: string) => void;
   onFocus?: (task: Task) => void;
+  onBank?: (id: string) => void;
   style?: React.CSSProperties;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: any;
@@ -60,6 +61,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onStartTimer,
   onStopTimer,
   onFocus,
+  onBank,
   style,
   attributes,
   listeners,
@@ -174,10 +176,16 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
             <button {...attributes} {...listeners} className={cn("p-2 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")} aria-label="Drag to reorder task">
               <GripVertical size={16} />
             </button>
-            <h4 className={cn(
-              "text-base font-semibold leading-tight break-words flex-1 mt-1 text-gray-100",
-              task.status === "completed" && "text-gray-500 line-through"
-            )}>
+            <h4
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit?.(task);
+              }}
+              className={cn(
+                "text-base font-semibold leading-tight break-words flex-1 mt-1 text-gray-100 cursor-pointer hover:text-primary transition-colors",
+                task.status === "completed" && "text-gray-500 line-through"
+              )}
+            >
               {task.title}
             </h4>
           </div>
@@ -239,6 +247,9 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onUpdateStatus?.(task._id, "mind-map")} className="cursor-pointer">
                     <Sparkles size={14} className="mr-2" /> Mind Map
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBank?.(task._id)} className="cursor-pointer">
+                    <Bank size={14} className="mr-2" /> Move to Bank
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {task.status === "completed" && (
@@ -429,6 +440,7 @@ export const SortableTaskItem = ({
   onStartTimer,
   onStopTimer,
   onFocus,
+  onBank,
   activeId
 }: {
   task: Task;
@@ -442,6 +454,7 @@ export const SortableTaskItem = ({
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
   onFocus: (task: Task) => void;
+  onBank: (id: string) => void;
   activeId?: string | null;
 }) => {
   const {
@@ -475,6 +488,7 @@ export const SortableTaskItem = ({
       onStartTimer={onStartTimer}
       onStopTimer={onStopTimer}
       onFocus={onFocus}
+      onBank={onBank}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
@@ -484,7 +498,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, activeId }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, activeId }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -499,6 +513,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onStopTimer: (id: string, note?: string) => void,
   onFocus: (task: Task) => void,
   onArchiveAll?: () => void,
+  onBank: (id: string) => void,
   activeId?: string | null
 }) => {
   const { setNodeRef, isOver } = useDroppable({
@@ -561,6 +576,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onStartTimer={onStartTimer}
                 onStopTimer={onStopTimer}
                 onFocus={onFocus}
+                onBank={onBank}
                 activeId={activeId}
               />
             ))}
