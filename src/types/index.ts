@@ -48,6 +48,7 @@ export interface Task {
     overdueNotified?: boolean;
     category?: string;
     completedAt?: string;
+    isBanked?: boolean;
 }
 
 export interface ProjectDeliverable {
