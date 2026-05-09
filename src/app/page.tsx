@@ -190,7 +190,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
     Routines: true,
     Planning: true,
     Tools: true,
-    System: false
+    System: true
   });
 
   const toggleSection = (title: string) => {
