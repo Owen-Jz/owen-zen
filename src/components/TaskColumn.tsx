@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Bank } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Landmark } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
@@ -249,7 +249,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                     <Sparkles size={14} className="mr-2" /> Mind Map
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => onBank?.(task._id)} className="cursor-pointer">
-                    <Bank size={14} className="mr-2" /> Move to Bank
+                    <Landmark size={14} className="mr-2" /> Move to Bank
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   {task.status === "completed" && (
@@ -454,7 +454,7 @@ export const SortableTaskItem = ({
   onStartTimer: (id: string, sessionTitle?: string) => void;
   onStopTimer: (id: string, note?: string) => void;
   onFocus: (task: Task) => void;
-  onBank: (id: string) => void;
+  onBank?: (id: string) => void;
   activeId?: string | null;
 }) => {
   const {
@@ -513,7 +513,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onStopTimer: (id: string, note?: string) => void,
   onFocus: (task: Task) => void,
   onArchiveAll?: () => void,
-  onBank: (id: string) => void,
+  onBank?: (id: string) => void,
   activeId?: string | null
 }) => {
   const { setNodeRef, isOver } = useDroppable({

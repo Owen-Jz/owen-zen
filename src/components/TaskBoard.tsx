@@ -55,7 +55,8 @@ export const TaskBoard = ({
   onBulkArchive,
   onBulkRestore,
   onBulkUpdateStatus,
-  onBulkUpdatePriority
+  onBulkUpdatePriority,
+  onBank
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -78,7 +79,8 @@ export const TaskBoard = ({
   onBulkArchive?: (ids: string[]) => void | Promise<void>,
   onBulkRestore?: (ids: string[]) => void | Promise<void>,
   onBulkUpdateStatus?: (ids: string[], status: TaskStatus) => void | Promise<void>,
-  onBulkUpdatePriority?: (ids: string[], priority: TaskPriority) => void | Promise<void>
+  onBulkUpdatePriority?: (ids: string[], priority: TaskPriority) => void | Promise<void>,
+  onBank?: (id: string) => void
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -339,6 +341,7 @@ export const TaskBoard = ({
                   onStartTimer={onStartTimer}
                   onStopTimer={onStopTimer}
                   onFocus={onFocus}
+                  onBank={onBank}
                   onArchiveAll={col.id === "completed" ? handleArchiveAllCompleted : undefined}
                   activeId={activeId}
                 />
