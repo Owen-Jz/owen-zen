@@ -79,8 +79,15 @@ const TaskSchema = new mongoose.Schema({
   isMIT: { type: Boolean, default: false },
   mitDate: { type: Date }, // To track which day it was assigned as MIT
   overdueNotified: { type: Boolean, default: false }, // Track if overdue email has been sent
-  completedAt: { type: Date }
+  completedAt: { type: Date },
+  isBanked: {
+    type: Boolean,
+    default: false,
+  },
 });
+
+// Index for Task Bank queries
+TaskSchema.index({ isBanked: 1 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
 
