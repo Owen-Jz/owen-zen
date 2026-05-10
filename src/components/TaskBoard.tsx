@@ -223,9 +223,10 @@ export const TaskBoard = ({
     { id: "mind-map", title: "Mind Map" }
   ];
 
-  // Only show non-archived tasks and apply filters
+  // Only show non-archived, non-banked tasks and apply filters
   const visibleTasks = tasks.filter(t =>
     !t.isArchived &&
+    !t.isBanked &&
     (priorityFilter === "all" || t.priority === priorityFilter) &&
     (categoryFilter === "all" || t.category === categoryFilter)
   );
