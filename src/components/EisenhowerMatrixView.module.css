@@ -1,0 +1,16 @@
+.eisenhowerMatrix {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+}
+
+.eisenhowerMatrix > div:nth-child(1),
+.eisenhowerMatrix > div:nth-child(3) {
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.eisenhowerMatrix > div:nth-child(1),
+.eisenhowerMatrix > div:nth-child(2) {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
