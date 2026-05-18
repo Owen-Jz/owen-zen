@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -35,6 +35,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { Loading } from "@/components/Loading";
 import { WeeklySummaryModal } from "@/components/WeeklySummaryModal";
 import { TaskBankView } from "@/components/TaskBankView";
+import { EisenhowerMatrixView } from "@/components/EisenhowerMatrixView";
 import { LockScreen } from "@/components/LockScreen";
 import { PomodoroWidget } from "@/components/PomodoroWidget";
 import { DailyWordWidget } from "@/components/DailyWordWidget";
@@ -95,6 +96,9 @@ const ProjectView = dynamic(() => import("@/components/ProjectView").then(mod =>
 const FinanceView = dynamic(() => import("@/components/FinanceView").then(mod => ({ default: mod.FinanceView })), {
   loading: () => <Loading />
 });
+const SubscriptionsView = dynamic(() => import("@/components/SubscriptionsView").then(mod => ({ default: mod.SubscriptionsView })), {
+  loading: () => <Loading />
+});
 const WeeklyGoalsView = dynamic(() => import("@/components/WeeklyGoalsView").then(mod => ({ default: mod.WeeklyGoalsView })), {
   loading: () => <Loading />
 });
@@ -141,6 +145,9 @@ const CoursesView = dynamic(() => import("@/components/CoursesView").then(mod =>
   loading: () => <Loading />
 });
 const CommandCenter = dynamic(() => import("@/components/command-center/CommandCenter").then(mod => ({ default: mod.CommandCenter })), {
+  loading: () => <Loading />
+});
+const AffirmationsView = dynamic(() => import("@/components/AffirmationsView").then(mod => ({ default: mod.AffirmationsView })), {
   loading: () => <Loading />
 });
 
@@ -239,6 +246,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
         { id: "journal", label: "Journal", icon: BookOpen },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
+        { id: "affirmations", label: "Affirmations", icon: Sparkles },
       ]
     },
     {
@@ -275,6 +283,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
+        { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
         { id: "courses", label: "Courses", icon: BookOpen },
         { id: "command-center", label: "Life Command Center", icon: LayoutDashboard },
@@ -401,10 +410,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                               {link.label}
                             </span>
                             {isActive && (
-                              <motion.div
-                                layoutId="active-pill"
-                                className="absolute left-0 w-1 h-5 bg-primary rounded-r-full md:left-1"
-                              />
+                              <div className="active-indicator" />
                             )}
                           </motion.button>
                         );
@@ -2648,6 +2654,7 @@ export default function Dashboard() {
                   setTasks={setTasks}
                   onUpdateStatus={(id, status) => updateTaskStatus(id, status as TaskStatus)}
                   onToggleMIT={toggleMIT}
+                  onEditTask={setEditingTask}
                 />
               </motion.div>
 
@@ -2841,6 +2848,7 @@ export default function Dashboard() {
             </motion.div>
           )}
           {activeTab === "weekly" && <WeeklyGoalsView />}
+          {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} />}
           {activeTab === "vision" && <VisionBoardView />}
           {activeTab === "reality" && <RealityView />}
           {activeTab === "roadmap" && <RoadmapView />}
@@ -2853,6 +2861,7 @@ export default function Dashboard() {
           {activeTab === "leads" && <LeadsView />}
           {activeTab === "inbox" && <InboxView />}
           {activeTab === "finance" && <FinanceView />}
+          {activeTab === "subscriptions" && <SubscriptionsView />}
           {activeTab === "bucket" && <BucketListView />}
           {activeTab === "projects" && <ProjectView />}
           {activeTab === "settings" && <SettingsView />}
@@ -2867,6 +2876,7 @@ export default function Dashboard() {
           {activeTab === "marketing" && <MarketingDashboard />}
           {activeTab === "courses" && <CoursesView />}
           {activeTab === "command-center" && <CommandCenter />}
+          {activeTab === "affirmations" && <AffirmationsView />}
           </motion.div>
         </main>
 

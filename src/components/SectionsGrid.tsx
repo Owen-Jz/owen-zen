@@ -2,13 +2,14 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
 import {
   LayoutDashboard, LayoutTemplate, TrendingUp, Trophy, BarChart2, Shield,
   Dumbbell, UtensilsCrossed, Utensils,
   Target, Palette, Eye, Star, Calendar, Inbox,
   Crosshair, Wallet, Users, MessageSquare,
   Circle, FileText, Archive, Settings,
-  BookOpen, Search,
+  BookOpen, Search, Grid3x3,
 } from "lucide-react";
 interface ViewItem {
   id: string;
@@ -63,6 +64,7 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
         { id: "bucket", label: "2026 Bucket List", icon: Star },
         { id: "calendar", label: "Calendar", icon: Calendar },
         { id: "post-bucket", label: "Post Bucket", icon: Inbox },
+        { id: "eisenhower", label: "Eisenhower Matrix", icon: Grid3x3 },
       ]
     },
     {
@@ -188,7 +190,11 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: -20 }}
           transition={{ duration: 0.15 }}
-          className="relative w-full max-w-4xl max-h-[85vh] bg-surface border border-white/10 rounded-2xl shadow-2xl p-6 overflow-y-auto"
+          className="relative w-full max-w-4xl max-h-[85vh] rounded-2xl shadow-2xl p-6 overflow-y-auto scrollbar-hide"
+          style={{
+            backgroundColor: "var(--surface)",
+            border: "1px solid var(--border)",
+          }}
           onClick={e => e.stopPropagation()}
         >
           <div className="flex items-center gap-3 mb-6 px-2">
@@ -231,11 +237,22 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
                             onSelect(item.id);
                             onClose();
                           }}
-                          className={`w-full flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all duration-150 bg-white/5 hover:bg-white/10 focus:outline-none ${
-                            isFocused ? "ring-2 ring-primary scale-105 bg-white/10" : ""
-                          }`}
+                          className={cn(
+                            "w-full flex flex-col items-center gap-2 p-3 rounded-xl text-center transition-all duration-150 focus:outline-none",
+                            isFocused
+                              ? "ring-2 ring-primary scale-105"
+                              : "hover:scale-105 hover:bg-white/10"
+                          )}
+                          style={{
+                            backgroundColor: isFocused ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.03)",
+                          }}
                         >
-                          <Icon size={20} className={isFocused ? "text-primary" : "text-gray-400"} />
+                          <div className={cn(
+                            "p-2 rounded-lg transition-all duration-150",
+                            isFocused ? "bg-primary/20 text-primary" : "text-gray-500"
+                          )}>
+                            <Icon size={20} />
+                          </div>
                           <span className="text-xs text-gray-300 truncate w-full">{item.label}</span>
                         </button>
                       );
