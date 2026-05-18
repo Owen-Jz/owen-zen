@@ -8,11 +8,23 @@ export async function GET(req: Request) {
     const boardId = searchParams.get('boardId');
     const projectId = searchParams.get('projectId');
     const status = searchParams.get('status');
-    console.log("Attributes: GET /api/tasks called", boardId ? `for board ${boardId}` : "for all tasks (or default)");
+    const quadrant = searchParams.get('quadrant');
+    const pool = searchParams.get('pool');
+
     await dbConnect();
 
     let query: Record<string, any>;
-    if (projectId) {
+    if (pool === 'true') {
+      // Pool = tasks with no quadrant, not banked, not archived, not completed
+      query = {
+        quadrant: null,
+        isBanked: { $ne: true },
+        isArchived: { $ne: true },
+        status: { $ne: 'completed' },
+      };
+    } else if (quadrant) {
+      query = { quadrant };
+    } else if (projectId) {
       query = { projectId };
     } else if (boardId) {
       query = { boardId };
@@ -22,12 +34,10 @@ export async function GET(req: Request) {
       query = { $or: [{ boardId: null }, { boardId: { $exists: false } }] };
     }
 
-    // Sort by createdAt descending — newest tasks appear first
     const tasks = await Task.find(query).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: tasks });
   } catch (error) {
-    console.error("Attributes: GET /api/tasks error:", error);
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error }, { status: 400 });
   }
 }
 
@@ -84,11 +94,12 @@ export async function PUT(req: Request) {
           $set: {
             order: task.order,
             status: task.status,
-            priority: task.priority, // Allow priority updates
-            title: task.title,       // Allow title updates
-            isArchived: task.isArchived, // Allow archiving
-            completedAt: task.completedAt, // Allow date logging
-            isBanked: task.isBanked, // Allow bank status updates
+            priority: task.priority,
+            title: task.title,
+            isArchived: task.isArchived,
+            completedAt: task.completedAt,
+            isBanked: task.isBanked,
+            quadrant: task.quadrant,
           }
         }
       }
