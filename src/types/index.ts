@@ -49,6 +49,7 @@ export interface Task {
     category?: string;
     completedAt?: string;
     isBanked?: boolean;
+    quadrant?: 'q1' | 'q2' | 'q3' | 'q4' | null;
 }
 
 export interface ProjectDeliverable {

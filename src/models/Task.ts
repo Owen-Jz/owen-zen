@@ -84,10 +84,16 @@ const TaskSchema = new mongoose.Schema({
     type: Boolean,
     default: false,
   },
+  quadrant: {
+    type: String,
+    enum: ['q1', 'q2', 'q3', 'q4', null],
+    default: null,
+  },
 });
 
 // Index for Task Bank queries
 TaskSchema.index({ isBanked: 1 });
+TaskSchema.index({ quadrant: 1 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
 
