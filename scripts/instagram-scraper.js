@@ -9,13 +9,26 @@ const INSTAGRAM_USERNAME = 'closetfullofcoco_';
 const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_USERNAME}/`;
 const OUTPUT_FILE = 'instagram-posts.csv';
 
-const MAX_SCROLLS = 100;
-const MAX_CONSECUTIVE_EMPTY_SCROLLS = 3;
+const ANTI_BAN = {
+  MIN_SCROLL_DELAY_MS: 4000,
+  MAX_SCROLL_DELAY_MS: 8000,
+  MIN_SCROLL_STEPS: 5,
+  MAX_SCROLL_STEPS: 10,
+  POST_NAVIGATE_DELAY_MS: 2500,
+  COOKIE_TO_NAVIGATE_DELAY_MS: 1500,
+  MAX_SCROLLS: 100,
+  MAX_CONSECUTIVE_EMPTY_SCROLLS: 3,
+};
+
 const MAX_RETRIES = 3;
 const RETRY_BACKOFF_MS = 3000;
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function randomBetween(min, max) {
+  return Math.floor(Math.random() * (max - min + 1)) + min;
 }
 
 async function withRetry(fn, description) {
@@ -35,22 +48,90 @@ async function withRetry(fn, description) {
   throw lastError;
 }
 
+async function humanScroll(page) {
+  const scrollSteps = randomBetween(ANTI_BAN.MIN_SCROLL_STEPS, ANTI_BAN.MAX_SCROLL_STEPS);
+  const totalHeight = await page.evaluate(() => document.body.scrollHeight);
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+
+  for (let i = 1; i <= scrollSteps; i++) {
+    const progress = i / scrollSteps;
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const targetY = Math.floor(totalHeight * 0.3 * eased + viewportHeight * (1 - eased * 0.3));
+    await page.evaluate((y) => window.scrollTo(0, y), targetY);
+    await sleep(100 + Math.floor(Math.random() * 300));
+  }
+  await sleep(200 + Math.floor(Math.random() * 400));
+}
+
+function checkRateLimit(pageText) {
+  const rateLimitPhrases = [
+    'Too Many Requests',
+    'Please wait a few minutes',
+    'Try again later',
+  ];
+  for (const phrase of rateLimitPhrases) {
+    if (pageText.includes(phrase)) {
+      return phrase;
+    }
+  }
+  return null;
+}
+
 async function main() {
   console.log('Launching headless Chromium...');
   const browser = await withRetry(async () => {
     return await chromium.launch({ headless: true });
   }, 'browser launch');
 
-  const context = await browser.newContext();
+  // Randomized viewport dimensions
+  const viewportWidth = 1280 + Math.floor(Math.random() * 200 - 100);
+  const viewportHeight = 800 + Math.floor(Math.random() * 200 - 100);
+  const context = await browser.newContext({
+    viewport: { width: viewportWidth, height: viewportHeight },
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  });
   const page = await context.newPage();
 
-  // Set a realistic user agent
+  // WebDriver stealth - must run before any page interaction
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'webdriver', { get: () => false });
+    window.chrome = {
+      runtime: { onConnect: { addListener: () => {} } },
+      loadTimes: () => {},
+      csi: () => {},
+    };
+    Object.defineProperty(navigator, 'plugins', {
+      get: () => [
+        { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+        { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaejoof' },
+        { name: 'Native Client', filename: 'internal-nacl-plugin' },
+      ],
+    });
+    Object.defineProperty(navigator, 'languages', {
+      get: () => ['en-US', 'en', 'en-GB'],
+    });
+    const originalQuery = window.navigator.permissions.query;
+    window.navigator.permissions.query = (parameters) =>
+      parameters.name === 'notifications'
+        ? Promise.resolve({ state: Notification.permission })
+        : originalQuery(parameters);
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+    delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+  });
+
+  // Realistic HTTP headers
   await page.setExtraHTTPHeaders({
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+    'Accept-Language': 'en-US,en;q=0.9',
+    'Accept-Encoding': 'gzip, deflate, br',
+    'DNT': '1',
+    'Connection': 'keep-alive',
+    'Upgrade-Insecure-Requests': '1',
   });
 
   console.log('Injecting session cookies...');
-  await page.context().addCookies([
+  await context.addCookies([
     {
       name: 'sessionid',
       value: SESSION_ID,
@@ -77,6 +158,14 @@ async function main() {
     },
   ]);
 
+  // Staggered delay after cookie injection before navigation
+  const cookieToNavigateDelay = randomBetween(
+    ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS,
+    ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS * 2 + 500
+  );
+  console.log(`Waiting ${cookieToNavigateDelay}ms before navigating...`);
+  await sleep(cookieToNavigateDelay);
+
   console.log(`Navigating to ${INSTAGRAM_URL}...`);
   const response = await withRetry(async () => {
     return await page.goto(INSTAGRAM_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
@@ -99,8 +188,13 @@ async function main() {
     process.exit(1);
   }
 
-  // Wait a bit for JS to bootstrap
-  await sleep(3000);
+  // Staggered delay after page load before first scroll
+  const postNavigateDelay = randomBetween(
+    ANTI_BAN.POST_NAVIGATE_DELAY_MS,
+    ANTI_BAN.POST_NAVIGATE_DELAY_MS + 2000
+  );
+  console.log(`Waiting ${postNavigateDelay}ms for JS bootstrap...`);
+  await sleep(postNavigateDelay);
 
   // Check for special "not found" text on page
   const pageText = await page.textContent('body').catch(() => '');
@@ -110,16 +204,21 @@ async function main() {
     process.exit(1);
   }
 
+  // Rate limit detection
+  const matchedRateLimit = checkRateLimit(pageText);
+  if (matchedRateLimit) {
+    await browser.close();
+    console.error(`ERROR: Rate limit detected — Instagram returned "${matchedRateLimit}". Exiting safely to avoid further restrictions.`);
+    process.exit(1);
+  }
+
   console.log('Scrolling through posts...');
   const seenPostUrls = new Set();
   let consecutiveEmptyScrolls = 0;
 
-  for (let scrollNum = 1; scrollNum <= MAX_SCROLLS; scrollNum++) {
-    // Scroll to bottom
-    await page.evaluate(() => {
-      window.scrollTo(0, document.body.scrollHeight);
-    });
-    await sleep(2000);
+  for (let scrollNum = 1; scrollNum <= ANTI_BAN.MAX_SCROLLS; scrollNum++) {
+    // Human-like stepped scroll
+    await humanScroll(page);
 
     // Extract post URLs from the grid (look for links matching /p/[ID]/)
     const postLinks = await page.$$eval('a[href*="/p/"]', links =>
@@ -140,7 +239,7 @@ async function main() {
       }
     }
 
-    console.log(`Scroll ${scrollNum}/${MAX_SCROLLS}: found ${seenPostUrls.size} unique posts (${newPostsFound} new this scroll)`);
+    console.log(`Scroll ${scrollNum}/${ANTI_BAN.MAX_SCROLLS}: found ${seenPostUrls.size} unique posts (${newPostsFound} new this scroll)`);
 
     // Track consecutive empty scrolls
     if (newPostsFound === 0) {
@@ -150,8 +249,8 @@ async function main() {
     }
 
     // Stop after 3 consecutive scrolls with no new posts
-    if (consecutiveEmptyScrolls >= MAX_CONSECUTIVE_EMPTY_SCROLLS) {
-      console.log(`Stopping: ${MAX_CONSECUTIVE_EMPTY_SCROLLS} consecutive scrolls with no new posts.`);
+    if (consecutiveEmptyScrolls >= ANTI_BAN.MAX_CONSECUTIVE_EMPTY_SCROLLS) {
+      console.log(`Stopping: ${ANTI_BAN.MAX_CONSECUTIVE_EMPTY_SCROLLS} consecutive scrolls with no new posts.`);
       break;
     }
 
@@ -160,6 +259,12 @@ async function main() {
       await browser.close();
       console.error(`ERROR: Empty profile — no posts found for "${INSTAGRAM_USERNAME}". The profile may have no posts or be private.`);
       process.exit(1);
+    }
+
+    // Variable delay between scrolls (4-8 seconds)
+    if (scrollNum < ANTI_BAN.MAX_SCROLLS) {
+      const scrollDelay = randomBetween(ANTI_BAN.MIN_SCROLL_DELAY_MS, ANTI_BAN.MAX_SCROLL_DELAY_MS);
+      await sleep(scrollDelay);
     }
   }
 
