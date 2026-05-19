@@ -18,7 +18,8 @@
     "backup": "node scripts/backup-db.ts local",
     "backup:s3": "node scripts/backup-db.ts s3",
     "backup:verify": "node scripts/backup-db.ts verify",
-    "backup:list": "node scripts/backup-db.ts list"
+    "backup:list": "node scripts/backup-db.ts list",
+    "instagram:scrape": "node scripts/instagram-scraper.js"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.0",
