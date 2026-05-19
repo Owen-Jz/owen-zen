@@ -2,8 +2,8 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const SESSION_ID = process.env.INSTAGRAM_SESSION_ID || '54003903307%3AJdz6NWVSESaxos%3A29%3AAYg0wCNPvWI2zhF93SkQCmFnzIAjzZ5BHlP9MjCm3A';
-const CSRF_TOKEN = process.env.INSTAGRAM_CSRF_TOKEN || 'xWAxQhvHf4rNuWUEoUstC7DDozTP0xsm';
+const SESSION_ID = process.env.INSTAGRAM_SESSION_ID || '54003903307%3AJdz6NWVSESaxos%3A29%3AAYher7eD_nqkQiDUyyWgXQYGyhqMOJ-t5Z8k5XpJVw';
+const CSRF_TOKEN = process.env.INSTAGRAM_CSRFTOKEN || 'xWAxQhvHf4rNuWUEoUstC7DDozTP0xsm';
 const DS_USER_ID = process.env.INSTAGRAM_DS_USER_ID || '54003903307';
 const INSTAGRAM_USERNAME = process.env.INSTAGRAM_USERNAME || 'closetfullofcoco_';
 const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_USERNAME}/`;
@@ -14,8 +14,8 @@ const ANTI_BAN = {
   MAX_SCROLL_DELAY_MS: 8000,
   MIN_SCROLL_STEPS: 5,
   MAX_SCROLL_STEPS: 10,
-  POST_NAVIGATE_DELAY_MS: 2500,
-  COOKIE_TO_NAVIGATE_DELAY_MS: 1500,
+  POST_NAVIGATE_DELAY_MS: 3000,
+  COOKIE_TO_NAVIGATE_DELAY_MS: 2000,
   MAX_SCROLLS: 100,
   MAX_CONSECUTIVE_EMPTY_SCROLLS: 3,
 };
@@ -38,10 +38,11 @@ async function withRetry(fn, description) {
       return await fn();
     } catch (err) {
       lastError = err;
-      console.error(`Attempt ${attempt}/${MAX_RETRIES} failed for ${description}: ${err.message}`);
+      console.error(`Attempt ${attempt}/${MAX_RETRIES} for "${description}": ${err.message}`);
       if (attempt < MAX_RETRIES) {
-        console.error(`Retrying in ${RETRY_BACKOFF_MS}ms...`);
-        await sleep(RETRY_BACKOFF_MS);
+        const delay = RETRY_BACKOFF_MS * attempt;
+        console.error(`Retrying in ${delay}ms...`);
+        await sleep(delay);
       }
     }
   }
@@ -71,15 +72,8 @@ async function humanScroll(page) {
 }
 
 function checkRateLimit(pageText) {
-  const rateLimitPhrases = [
-    'Too Many Requests',
-    'Please wait a few minutes',
-    'Try again later',
-  ];
-  for (const phrase of rateLimitPhrases) {
-    if (pageText.includes(phrase)) {
-      return phrase;
-    }
+  for (const phrase of ['Too Many Requests', 'Please wait a few minutes', 'Try again later']) {
+    if (pageText.includes(phrase)) return phrase;
   }
   return null;
 }
@@ -90,18 +84,18 @@ async function main() {
     return await chromium.launch({ headless: true });
   }, 'browser launch');
 
+  const viewportWidth = 1280 + Math.floor(Math.random() * 200 - 100);
+  const viewportHeight = 800 + Math.floor(Math.random() * 200 - 100);
   const context = await browser.newContext({
-    viewport: { width: 1920, height: 1080 },
+    viewport: { width: viewportWidth, height: viewportHeight },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   });
   const page = await context.newPage();
 
-  // WebDriver stealth - must run before any page interaction
+  // WebDriver stealth
   await page.addInitScript(() => {
     Object.defineProperty(navigator, 'webdriver', { get: () => false });
-    window.chrome = {
-      runtime: { onConnect: { addListener: () => {} } },
-    };
+    window.chrome = { runtime: { onConnect: { addListener: () => {} } } };
     Object.defineProperty(navigator, 'plugins', {
       get: () => [
         { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
@@ -109,9 +103,7 @@ async function main() {
         { name: 'Native Client', filename: 'internal-nacl-plugin' },
       ],
     });
-    Object.defineProperty(navigator, 'languages', {
-      get: () => ['en-US', 'en', 'en-GB'],
-    });
+    Object.defineProperty(navigator, 'languages', { get: () => ['en-US', 'en', 'en-GB'] });
     const originalQuery = window.navigator.permissions.query;
     window.navigator.permissions.query = (parameters) =>
       parameters.name === 'notifications'
@@ -134,106 +126,99 @@ async function main() {
 
   console.log('Injecting session cookies...');
   await context.addCookies([
-    {
-      name: 'sessionid',
-      value: SESSION_ID,
-      domain: '.instagram.com',
-      path: '/',
-      httpOnly: true,
-      secure: true,
-    },
-    {
-      name: 'csrftoken',
-      value: CSRF_TOKEN,
-      domain: '.instagram.com',
-      path: '/',
-      httpOnly: false,
-      secure: true,
-    },
-    {
-      name: 'ds_user_id',
-      value: DS_USER_ID,
-      domain: '.instagram.com',
-      path: '/',
-      httpOnly: false,
-      secure: true,
-    },
+    { name: 'sessionid', value: SESSION_ID, domain: '.instagram.com', path: '/', httpOnly: true, secure: true },
+    { name: 'csrftoken', value: CSRF_TOKEN, domain: '.instagram.com', path: '/', httpOnly: false, secure: true },
+    { name: 'ds_user_id', value: DS_USER_ID, domain: '.instagram.com', path: '/', httpOnly: false, secure: true },
   ]);
 
-  // Staggered delay after cookie injection before navigation
-  const cookieToNavigateDelay = randomBetween(
-    ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS,
-    ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS * 2 + 500
-  );
-  console.log(`Waiting ${cookieToNavigateDelay}ms before navigating...`);
-  await sleep(cookieToNavigateDelay);
+  const cookieDelay = randomBetween(ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS, ANTI_BAN.COOKIE_TO_NAVIGATE_DELAY_MS + 1000);
+  console.log(`Waiting ${cookieDelay}ms before navigating...`);
+  await sleep(cookieDelay);
 
   console.log(`Navigating to ${INSTAGRAM_URL}...`);
-  const response = await withRetry(async () => {
-    return await page.goto(INSTAGRAM_URL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-  }, 'page navigation');
+  let response;
+  try {
+    response = await page.goto(INSTAGRAM_URL, { waitUntil: 'networkidle', timeout: 60000 });
+  } catch (navErr) {
+    await browser.close();
+    console.error(`Navigation failed: ${navErr.message}`);
+    process.exit(1);
+  }
 
   const finalUrl = page.url();
-  console.log(`Final URL after navigation: ${finalUrl}`);
+  console.log(`Final URL: ${finalUrl}`);
 
-  // Check for session expiry (redirected to login)
   if (finalUrl.includes('login') || finalUrl.includes('accounts/login')) {
     await browser.close();
-    console.error('ERROR: Session expired — Instagram redirected to login page. Please refresh your session cookies and try again.');
+    console.error('ERROR: Session expired. Please refresh your Instagram session cookies.');
     process.exit(1);
   }
 
-  // Check for profile not found (404)
   if (response && response.status() === 404) {
     await browser.close();
-    console.error(`ERROR: Profile not found (404) for username "${INSTAGRAM_USERNAME}". Please check the username and try again.`);
+    console.error(`ERROR: Profile not found (404) for "${INSTAGRAM_USERNAME}".`);
     process.exit(1);
   }
 
-  // Staggered delay after page load before first scroll
-  const postNavigateDelay = randomBetween(
-    ANTI_BAN.POST_NAVIGATE_DELAY_MS,
-    ANTI_BAN.POST_NAVIGATE_DELAY_MS + 2000
-  );
-  console.log(`Waiting ${postNavigateDelay}ms for JS bootstrap...`);
-  await sleep(postNavigateDelay);
+  const postNavDelay = randomBetween(ANTI_BAN.POST_NAVIGATE_DELAY_MS, ANTI_BAN.POST_NAVIGATE_DELAY_MS + 2000);
+  console.log(`Waiting ${postNavDelay}ms for JS bootstrap...`);
+  await sleep(postNavDelay);
 
-  // Check for special "not found" text on page
   const pageText = await page.textContent('body').catch(() => '');
   if (pageText.includes('Sorry, this page') || pageText.includes('Page Not Found') || pageText.includes('no longer available')) {
     await browser.close();
-    console.error(`ERROR: Profile not found — Instagram shows "Sorry, this page" for "${INSTAGRAM_USERNAME}".`);
+    console.error('ERROR: Profile not found — Instagram shows "Sorry, this page".');
     process.exit(1);
   }
 
-  // Rate limit detection
-  const matchedRateLimit = checkRateLimit(pageText);
-  if (matchedRateLimit) {
+  const rateLimit = checkRateLimit(pageText);
+  if (rateLimit) {
     await browser.close();
-    console.error(`ERROR: Rate limit detected — Instagram returned "${matchedRateLimit}". Exiting safely to avoid further restrictions.`);
+    console.error(`ERROR: Rate limit detected ("${rateLimit}"). Exiting to protect your account.`);
+    process.exit(1);
+  }
+
+  // Poll for post grid to appear (up to 60s)
+  console.log('Waiting for post grid to appear...');
+  let postGridFound = false;
+  for (let i = 1; i <= 30; i++) {
+    const links = await page.$$eval('a[href*="/p/"]', els => els.slice(0, 3).map(e => e.getAttribute('href'))).catch(() => []);
+    if (links.length > 0) {
+      console.log(`Post grid found after ${i} checks (${links.length} initial links)`);
+      postGridFound = true;
+      break;
+    }
+    if (i % 5 === 0) console.log(`Still waiting... ${i}/30 checks done`);
+    await sleep(2000);
+  }
+
+  if (!postGridFound) {
+    await browser.close();
+    console.error('ERROR: Post grid never appeared. The profile may be private or Instagram is blocking this session.');
     process.exit(1);
   }
 
   console.log('Scrolling through posts...');
   const seenPostUrls = new Set();
-  let consecutiveEmptyScrolls = 0;
+  let prevTotal = 0;
+  // Track how many consecutive scrolls failed to add ANY new posts to the set
+  let scrollsWithNoGrowth = 0;
+  // Stop only when the TOTAL collected count hasn't grown for 5 consecutive scrolls
+  // (not just when a single scroll finds 0 new posts)
+  const NO_GROWTH_THRESHOLD = 5;
 
   for (let scrollNum = 1; scrollNum <= ANTI_BAN.MAX_SCROLLS; scrollNum++) {
-    // Human-like stepped scroll
     await humanScroll(page);
 
-    // Extract post URLs from the grid (look for links matching /p/[ID]/)
     const postLinks = await page.$$eval('a[href*="/p/"]', links =>
       links.map(link => link.getAttribute('href'))
     ).catch(() => []);
 
     let newPostsFound = 0;
     for (const href of postLinks) {
-      // Match /p/[ID]/ pattern
       const match = href.match(/\/p\/([A-Za-z0-9_-]+)\//);
       if (match) {
-        const postId = match[1];
-        const fullUrl = `https://www.instagram.com/p/${postId}/`;
+        const fullUrl = `https://www.instagram.com/p/${match[1]}/`;
         if (!seenPostUrls.has(fullUrl)) {
           seenPostUrls.add(fullUrl);
           newPostsFound++;
@@ -241,29 +226,21 @@ async function main() {
       }
     }
 
-    console.log(`Scroll ${scrollNum}/${ANTI_BAN.MAX_SCROLLS}: found ${seenPostUrls.size} unique posts (${newPostsFound} new this scroll)`);
+    console.log(`Scroll ${scrollNum}/${ANTI_BAN.MAX_SCROLLS}: ${seenPostUrls.size} unique posts (${newPostsFound} new)`);
 
-    // Track consecutive empty scrolls
-    if (newPostsFound === 0) {
-      consecutiveEmptyScrolls++;
+    if (seenPostUrls.size === prevTotal) {
+      scrollsWithNoGrowth++;
     } else {
-      consecutiveEmptyScrolls = 0;
+      scrollsWithNoGrowth = 0;
     }
+    prevTotal = seenPostUrls.size;
 
-    // Stop after 3 consecutive scrolls with no new posts
-    if (consecutiveEmptyScrolls >= ANTI_BAN.MAX_CONSECUTIVE_EMPTY_SCROLLS) {
-      console.log(`Stopping: ${ANTI_BAN.MAX_CONSECUTIVE_EMPTY_SCROLLS} consecutive scrolls with no new posts.`);
+    // Only stop when the total count hasn't grown for NO_GROWTH_THRESHOLD scrolls in a row
+    if (scrollsWithNoGrowth >= NO_GROWTH_THRESHOLD) {
+      console.log(`Stopping: No growth for ${NO_GROWTH_THRESHOLD} consecutive scrolls (total: ${seenPostUrls.size}).`);
       break;
     }
 
-    // Quick check: if no post links at all and we've scrolled at least once, we might be at an empty/private profile
-    if (postLinks.length === 0 && seenPostUrls.size === 0 && scrollNum >= 3) {
-      await browser.close();
-      console.error(`ERROR: Empty profile — no posts found for "${INSTAGRAM_USERNAME}". The profile may have no posts or be private.`);
-      process.exit(1);
-    }
-
-    // Variable delay between scrolls (4-8 seconds)
     if (scrollNum < ANTI_BAN.MAX_SCROLLS) {
       const scrollDelay = randomBetween(ANTI_BAN.MIN_SCROLL_DELAY_MS, ANTI_BAN.MAX_SCROLL_DELAY_MS);
       await sleep(scrollDelay);
@@ -273,15 +250,12 @@ async function main() {
   await browser.close();
 
   if (seenPostUrls.size === 0) {
-    console.error(`ERROR: No posts extracted from "${INSTAGRAM_USERNAME}". The profile may be empty or private.`);
+    console.error(`ERROR: No posts extracted. Profile may be empty or private.`);
     process.exit(1);
   }
 
-  // Write CSV
   const sortedUrls = Array.from(seenPostUrls).sort();
-  const csvLines = ['post_url', ...sortedUrls];
-  const csvContent = csvLines.join('\n');
-
+  const csvContent = ['post_url', ...sortedUrls].join('\n');
   const outputPath = path.join(process.cwd(), OUTPUT_FILE);
   fs.writeFileSync(outputPath, csvContent, 'utf8');
 
@@ -290,6 +264,6 @@ async function main() {
 }
 
 main().catch(err => {
-  console.error('Unhandled error:', err);
+  console.error('Unhandled error:', err.message);
   process.exit(1);
 });
