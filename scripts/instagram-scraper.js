@@ -2,10 +2,10 @@ const { chromium } = require('playwright');
 const fs = require('fs');
 const path = require('path');
 
-const SESSION_ID = '54003903307%3AJdz6NWVSESaxos%3A29%3AAYg0wCNPvWI2zhF93SkQCmFnzIAjzZ5BHlP9MjCm3A';
-const CSRF_TOKEN = 'xWAxQhvHf4rNuWUEoUstC7DDozTP0xsm';
-const DS_USER_ID = '54003903307';
-const INSTAGRAM_USERNAME = 'closetfullofcoco_';
+const SESSION_ID = process.env.INSTAGRAM_SESSION_ID || '54003903307%3AJdz6NWVSESaxos%3A29%3AAYg0wCNPvWI2zhF93SkQCmFnzIAjzZ5BHlP9MjCm3A';
+const CSRF_TOKEN = process.env.INSTAGRAM_CSRF_TOKEN || 'xWAxQhvHf4rNuWUEoUstC7DDozTP0xsm';
+const DS_USER_ID = process.env.INSTAGRAM_DS_USER_ID || '54003903307';
+const INSTAGRAM_USERNAME = process.env.INSTAGRAM_USERNAME || 'closetfullofcoco_';
 const INSTAGRAM_URL = `https://www.instagram.com/${INSTAGRAM_USERNAME}/`;
 const OUTPUT_FILE = 'instagram-posts.csv';
 
@@ -48,16 +48,23 @@ async function withRetry(fn, description) {
   throw lastError;
 }
 
+async function evaluateWithTimeout(page, fn, timeoutMs = 5000) {
+  return Promise.race([
+    page.evaluate(fn),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('evaluate timeout')), timeoutMs)),
+  ]);
+}
+
 async function humanScroll(page) {
   const scrollSteps = randomBetween(ANTI_BAN.MIN_SCROLL_STEPS, ANTI_BAN.MAX_SCROLL_STEPS);
-  const totalHeight = await page.evaluate(() => document.body.scrollHeight);
-  const viewportHeight = await page.evaluate(() => window.innerHeight);
+  const totalHeight = await evaluateWithTimeout(page, () => document.body.scrollHeight);
+  const viewportHeight = await evaluateWithTimeout(page, () => window.innerHeight);
 
   for (let i = 1; i <= scrollSteps; i++) {
     const progress = i / scrollSteps;
     const eased = 1 - Math.pow(1 - progress, 3);
     const targetY = Math.floor(totalHeight * 0.3 * eased + viewportHeight * (1 - eased * 0.3));
-    await page.evaluate((y) => window.scrollTo(0, y), targetY);
+    await evaluateWithTimeout(page, (y) => window.scrollTo(0, y), targetY);
     await sleep(100 + Math.floor(Math.random() * 300));
   }
   await sleep(200 + Math.floor(Math.random() * 400));
@@ -83,11 +90,8 @@ async function main() {
     return await chromium.launch({ headless: true });
   }, 'browser launch');
 
-  // Randomized viewport dimensions
-  const viewportWidth = 1280 + Math.floor(Math.random() * 200 - 100);
-  const viewportHeight = 800 + Math.floor(Math.random() * 200 - 100);
   const context = await browser.newContext({
-    viewport: { width: viewportWidth, height: viewportHeight },
+    viewport: { width: 1920, height: 1080 },
     userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
   });
   const page = await context.newPage();
@@ -97,8 +101,6 @@ async function main() {
     Object.defineProperty(navigator, 'webdriver', { get: () => false });
     window.chrome = {
       runtime: { onConnect: { addListener: () => {} } },
-      loadTimes: () => {},
-      csi: () => {},
     };
     Object.defineProperty(navigator, 'plugins', {
       get: () => [
