@@ -343,12 +343,214 @@ EOF
 
 ---
 
+## Task 2: Harden scraper with anti-ban measures
+
+**Files:**
+- Modify: `scripts/instagram-scraper.js` (overwrite with anti-ban version)
+- Modify: `package.json` (no changes needed — same script name)
+
+- [ ] **Step 1: Rewrite the scraper with full anti-ban hardening**
+
+The current `scripts/instagram-scraper.js` was implemented without proper anti-ban measures. Overwrite it completely with an anti-ban hardened version that includes ALL of the following:
+
+**A. WebDriver Stealth (mandatory — without this Instagram detects headless Chrome immediately)**
+
+```javascript
+// Execute before any page interaction — hide automation flags
+await page.addInitScript(() => {
+  // Hide navigator.webdriver
+  Object.defineProperty(navigator, 'webdriver', { get: () => false });
+
+  // Fake Chrome runtime object
+  window.chrome = {
+    runtime: { onConnect: { addListener: () => {} } },
+    loadTimes: () => {},
+   .csi: () => {},
+  };
+
+  // Randomize navigator.plugins (make it look like a real browser)
+  Object.defineProperty(navigator, 'plugins', {
+    get: () => [
+      { name: 'Chrome PDF Plugin', filename: 'internal-pdf-viewer' },
+      { name: 'Chrome PDF Viewer', filename: 'mhjfbmdgcfjbbpaejoof' },
+      { name: 'Native Client', filename: 'internal-nacl-plugin' },
+    ],
+  });
+
+  // Randomize languages
+  Object.defineProperty(navigator, 'languages', {
+    get: () => ['en-US', 'en', 'en-GB'],
+  });
+
+  // Remove automation-controlled permission
+  const originalQuery = window.navigator.permissions.query;
+  window.navigator.permissions.query = (parameters) =>
+    parameters.name === 'notifications'
+      ? Promise.resolve({ state: Notification.permission })
+      : originalQuery(parameters);
+
+  // Clear automation-related getters
+  delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+  delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+  delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+});
+```
+
+**B. Realistic Request Headers**
+
+```javascript
+await page.setExtraHTTPHeaders({
+  'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
+  'DNT': '1',
+  'Connection': 'keep-alive',
+  'Upgrade-Insecure-Requests': '1',
+});
+```
+
+**C. Human-like Scroll Behavior (variable, not fixed)**
+
+```javascript
+async function humanScroll(page) {
+  // Scroll in steps with variable speed, mimicking human behavior
+  const scrollSteps = 5 + Math.floor(Math.random() * 5); // 5-10 steps per scroll
+  const totalHeight = await page.evaluate(() => document.body.scrollHeight);
+  const viewportHeight = await page.evaluate(() => window.innerHeight);
+
+  for (let i = 1; i <= scrollSteps; i++) {
+    const progress = i / scrollSteps;
+    // Ease out — fast start, slow end (human scrolling)
+    const eased = 1 - Math.pow(1 - progress, 3);
+    const targetY = Math.floor(totalHeight * 0.3 * eased + viewportHeight * (1 - eased * 0.3));
+    await page.evaluate((y) => window.scrollTo(0, y), targetY);
+    // Random pause between scroll steps (100-400ms)
+    await sleep(100 + Math.floor(Math.random() * 300));
+  }
+  // Brief pause at bottom before next scroll cycle
+  await sleep(200 + Math.floor(Math.random() * 400));
+}
+```
+
+**D. Variable Delay Between Scrolls**
+
+```javascript
+// Between each scroll cycle — 4-8 seconds randomly
+const scrollDelay = 4000 + Math.floor(Math.random() * 4000);
+await sleep(scrollDelay);
+```
+
+**E. Staggered Startup Delays**
+
+```javascript
+// After cookie injection, wait before navigating (mimics human typing URL)
+await sleep(1500 + Math.floor(Math.random() * 2000));
+
+// After page load, wait before first scroll
+await sleep(2500 + Math.floor(Math.random() * 2000));
+```
+
+**F. Respectful Rate Limiting**
+
+```javascript
+// If we hit a rate limit signal, stop and back off
+const bodyText = await page.textContent('body').catch(() => '');
+if (bodyText.includes('Too Many Requests') || bodyText.includes('Please wait a few minutes')) {
+  await browser.close();
+  error('Rate limited by Instagram. Stopping to protect your account. Try again in a few hours.');
+  process.exit(1);
+}
+```
+
+**G. Randomized Viewport**
+
+```javascript
+const viewportWidth = 1280 + Math.floor(Math.random() * 200 - 100); // 1180-1380
+const viewportHeight = 800 + Math.floor(Math.random() * 200 - 100); // 700-900
+const context = await browser.newContext({
+  viewport: { width: viewportWidth, height: viewportHeight },
+  userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+});
+```
+
+**H. Anti-ban delay constants (all values configurable at top)**
+
+```javascript
+const ANTI_BAN = {
+  WEBDRIVER_STEALTH: true,         // Hide automation flags
+  MIN_SCROLL_DELAY_MS: 4000,       // Minimum delay BETWEEN scroll cycles
+  MAX_SCROLL_DELAY_MS: 8000,       // Maximum delay BETWEEN scroll cycles
+  MIN_SCROLL_STEPS: 5,             // Human-like scroll: number of steps
+  MAX_SCROLL_STEPS: 10,
+  POST_NAVIGATE_DELAY_MS: 2500,    // After page load before first scroll
+  COOKIE_TO_NAVIGATE_DELAY_MS: 1500, // After cookie injection before navigation
+  MAX_SCROLLS: 100,
+  MAX_CONSECUTIVE_EMPTY_SCROLLS: 3,
+};
+```
+
+**Full anti-ban script structure:**
+
+```
+scripts/instagram-scraper.js
+  ├── ANTI_BAN config constants
+  ├── WebDriver stealth (addInitScript)
+  ├── Realistic headers
+  ├── Randomized viewport dimensions
+  ├── Cookie injection + delayed navigation (1500-3500ms random)
+  ├── Wait for grid + delayed first scroll (2500-4500ms random)
+  ├── humanScroll() — stepped, eased, variable speed
+  ├── Variable scroll delay (4-8s random between cycles)
+  ├── Rate limit detection (page text check)
+  ├── 3-empty-scroll stop condition
+  ├── Final extraction + CSV write
+  └── Full error handling (session expiry, 404, empty, network)
+```
+
+- [ ] **Step 2: Verify syntax**
+
+Run: `node --check scripts/instagram-scraper.js`
+Expected: No output (exit code 0)
+
+- [ ] **Step 3: Run the hardened scraper**
+
+Run: `npm run instagram:scrape`
+Expected: Same output (213 posts) but with visible variable delays between scrolls (logs should show different millisecond values each scroll)
+
+- [ ] **Step 4: Verify CSV output**
+
+Run: `head -5 instagram-posts.csv` and `wc -l instagram-posts.csv`
+Expected: Valid URLs + same 213 posts (or more if any were missed due to the new scroll behavior)
+
+- [ ] **Step 5: Commit**
+
+```bash
+git add scripts/instagram-scraper.js
+git commit -m "$(cat <<'EOF'
+feat(instagram): harden scraper with anti-ban measures
+
+- WebDriver stealth to hide automation flags
+- Human-like stepped scroll with variable speed and easing
+- Randomized 4-8s delays between scroll cycles
+- Staggered startup delays after cookie injection and page load
+- Randomized viewport dimensions
+- Rate limit detection with safe exit
+- Realistic HTTP headers
+
+Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+EOF
+)"
+```
+
+---
+
 ## Self-Review Checklist
 
 - [ ] **Spec coverage:** Every requirement in `docs/superpowers/specs/2026-05-19-instagram-scraper-design.md` is implemented in the script
 - [ ] **No placeholders:** No TBD, TODO, "add appropriate error handling" — all branches have concrete code
 - [ ] **Cookie values:** Hardcoded values match what the user provided; environment variable override is available
 - [ ] **Output format:** CSV with `post_url` header, deduplicated URLs
-- [ ] **Error handling:** Session expired, profile not found, network errors, empty profile all covered
+- [ ] **Error handling:** Session expired, profile not found, network errors, empty profile, rate limiting all covered
 - [ ] **Scrolling logic:** Infinite scroll with consecutive-failure detection (3 strikes) and max scroll cap
 - [ ] **Post URL normalization:** Extracts `/p/[ID]/` from hrefs and deduplicates
+- [ ] **Anti-ban:** WebDriver stealth, human-like scroll, variable delays, rate limit detection, randomized viewport
