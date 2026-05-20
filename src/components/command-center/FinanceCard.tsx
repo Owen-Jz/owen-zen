@@ -1,7 +1,7 @@
 "use client";
 
-import { Wallet, TrendingUp } from "lucide-react";
-import { SkeletonCard } from "./SkeletonCard";
+import { Wallet, TrendingUp, ArrowUpRight } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface FinanceCardProps {
   balance?: number;
@@ -9,16 +9,6 @@ interface FinanceCardProps {
   topCategory?: string;
   topCategoryAmount?: number;
   recentTransactions?: Array<{ description: string; amount: number; date: string }>;
-}
-
-function getRelativeDate(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffTime = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  if (diffDays < 0) return "upcoming";
-  if (diffDays === 0) return "today";
-  return `${diffDays}d ago`;
 }
 
 function formatCurrency(amount: number): string {
@@ -29,18 +19,46 @@ function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-function truncateText(str: string, maxLen: number): string {
-  return str.length > maxLen ? str.slice(0, maxLen) + "..." : str;
-}
-
 function BudgetBar({ percent }: { percent: number }) {
-  const color = percent > 100 ? "var(--cc-error)" : percent > 80 ? "var(--cc-warning)" : "var(--cc-success)";
+  const color =
+    percent > 100 ? "var(--cc-error)" :
+    percent > 80 ? "var(--cc-warning)" :
+    "var(--cc-success)";
+  const isOverBudget = percent > 100;
+  const displayPercent = Math.min(percent, 100);
+
   return (
-    <div className="w-full rounded-full h-2 overflow-hidden bg-[var(--cc-border)]">
-      <div
-        className="h-full rounded-full transition-all duration-500"
-        style={{ width: `${Math.min(percent, 100)}%`, backgroundColor: color }}
+    <div className="w-full rounded-full h-2 overflow-hidden bg-[var(--cc-border)] relative">
+      <motion.div
+        className="h-full rounded-full"
+        style={{ backgroundColor: color }}
+        initial={{ width: 0 }}
+        animate={{ width: `${displayPercent}%` }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
       />
+      {isOverBudget && (
+        <>
+          <motion.div
+            className="absolute top-0 right-0 h-full rounded-r-full"
+            initial={{ width: 0 }}
+            animate={{ width: `${Math.min(percent - 100, 100)}%` }}
+            transition={{ duration: 0.5, delay: 0.3, ease: "easeOut" }}
+            style={{
+              backgroundColor: "var(--cc-error)",
+              opacity: 0.7,
+            }}
+          />
+          <motion.div
+            className="absolute top-0 right-0 h-full rounded-r-full"
+            animate={{ opacity: [0.4, 0.7, 0.4] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            style={{
+              width: `${Math.min(percent - 100, 100)}%`,
+              backgroundColor: "var(--cc-error)",
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }
@@ -55,52 +73,131 @@ export function FinanceCard({
   const formatted = formatCurrency(balance);
 
   return (
-    <div className="rounded-xl border p-5 h-full min-h-[140px] hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--cc-text-secondary)" }}>Finance</p>
-      <div className="flex items-center gap-2 mb-3">
-        <Wallet size={16} style={{ color: "var(--cc-accent)" }} />
-        <span className="text-xl font-bold font-mono" style={{ color: "var(--cc-text)" }}>{formatted}</span>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      whileHover={{ scale: 1.01, boxShadow: "0 4px 20px rgba(212,168,83,0.15)" }}
+      className="rounded-2xl border p-5 h-full min-h-[200px] flex flex-col gap-3"
+      style={{
+        backgroundColor: "var(--cc-card)",
+        borderColor: "var(--cc-border)",
+        transition: "box-shadow 200ms ease",
+      }}
+    >
+      <div className="flex items-center justify-between">
+        <motion.p
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: "var(--cc-text-secondary)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          Finance
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15, duration: 0.3 }}
+        >
+          <Wallet size={14} style={{ color: "var(--cc-accent)" }} />
+        </motion.div>
       </div>
-      <div className="mb-2">
+
+      {/* Hero: balance */}
+      <motion.div
+        className="flex items-baseline gap-1"
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+      >
+        <span className="text-2xl font-extrabold" style={{ fontFamily: "var(--font-heading)", color: "var(--cc-text)" }}>
+          {formatted}
+        </span>
+      </motion.div>
+
+      {/* Budget progress */}
+      <motion.div
+        initial={{ opacity: 0, y: 4 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+      >
         <div className="flex justify-between text-[10px] mb-1" style={{ color: "var(--cc-text-secondary)" }}>
           <span>Budget used</span>
-          <span>{Math.round(budgetUsed)}%</span>
+          <span className="font-mono">{Math.round(budgetUsed)}%</span>
         </div>
         <BudgetBar percent={budgetUsed} />
-      </div>
+      </motion.div>
+
+      {/* Top spending category */}
       {topCategory && (
-        <div className="flex items-center gap-1 text-xs mb-2" style={{ color: "var(--cc-text-secondary)" }}>
-          <TrendingUp size={12} />
-          <span>{topCategory} — {formatCurrency(topCategoryAmount)}</span>
-        </div>
+        <motion.div
+          className="flex items-center gap-1 text-xs"
+          style={{ color: "var(--cc-text-secondary)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.3 }}
+        >
+          <TrendingUp size={11} />
+          <span>{topCategory}</span>
+          <ArrowUpRight size={10} />
+          <span className="font-mono" style={{ color: "var(--cc-accent)" }}>{formatCurrency(topCategoryAmount)}</span>
+        </motion.div>
       )}
-      {recentTransactions.length > 0 && (
-        <div className="mt-2 pt-2 border-t" style={{ borderColor: "var(--cc-border)" }}>
-          <p className="text-[10px] font-bold uppercase tracking-widest mb-1" style={{ color: "var(--cc-text-secondary)" }}>Recent</p>
-          {recentTransactions.slice(0, 3).map((tx, i) => (
-            <div key={i} className="flex justify-between items-center text-xs py-0.5">
-              <span style={{ color: "var(--cc-text)" }}>{truncateText(tx.description, 20)}</span>
-              <span className="font-mono" style={{ color: "var(--cc-text-secondary)" }}>
-                {formatCurrency(tx.amount)}
+
+      {/* Recent transactions */}
+      {recentTransactions.length > 0 ? (
+        <motion.div
+          className="pt-2 border-t space-y-1"
+          style={{ borderColor: "var(--cc-border)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          {recentTransactions.slice(0, 2).map((tx, i) => (
+            <motion.div
+              key={i}
+              className="flex justify-between items-center text-[11px]"
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.4 + i * 0.08 }}
+            >
+              <span className="truncate max-w-[120px]" style={{ color: "var(--cc-text)" }}>
+                {tx.description.length > 18 ? `${tx.description.slice(0, 18)}...` : tx.description}
               </span>
-              <span className="text-[10px]" style={{ color: "var(--cc-text-secondary)" }}>
-                {getRelativeDate(tx.date)}
+              <span className="font-mono flex-shrink-0" style={{ color: tx.amount >= 0 ? "var(--cc-success)" : "var(--cc-text-secondary)" }}>
+                {tx.amount >= 0 ? "+" : ""}{formatCurrency(tx.amount)}
               </span>
-            </div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
+      ) : (
+        <motion.div
+          className="pt-2 border-t text-[11px] italic"
+          style={{ color: "var(--cc-text-secondary)", borderColor: "var(--cc-border)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          No transactions yet
+        </motion.div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
 export function FinanceCardSkeleton() {
   return (
-    <div className="rounded-xl border p-5 min-h-[140px] bg-[var(--cc-card)] border-[var(--cc-border)]">
-      <SkeletonCard className="h-3 w-14 mb-3" />
-      <SkeletonCard className="h-8 w-28 mb-3" />
-      <SkeletonCard className="h-2 w-full mb-2" />
-      <SkeletonCard className="h-3 w-32" />
-    </div>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="rounded-2xl border p-5 min-h-[200px]"
+      style={{ backgroundColor: "var(--cc-card)", borderColor: "var(--cc-border)" }}
+    >
+      <div className="h-3 w-14 rounded mb-4" style={{ backgroundColor: "var(--cc-bg)" }} />
+      <div className="h-8 w-32 rounded mb-3" style={{ backgroundColor: "var(--cc-bg)" }} />
+      <div className="h-2 w-full rounded mb-3" style={{ backgroundColor: "var(--cc-bg)" }} />
+      <div className="h-3 w-24 rounded" style={{ backgroundColor: "var(--cc-bg)" }} />
+    </motion.div>
   );
 }

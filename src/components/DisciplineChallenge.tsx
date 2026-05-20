@@ -3,12 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Flame, Trophy, Target, Zap, Sunrise, Mountain, Link2, Sparkles, Crown, AlertTriangle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface Habit {
     _id: string;

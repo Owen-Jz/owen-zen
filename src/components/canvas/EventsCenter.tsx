@@ -2,14 +2,9 @@
 'use client';
 
 import { useQuery } from '@tanstack/react-query';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
 import { Calendar, RefreshCw, ExternalLink } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface CalendarEvent {
   id: string;

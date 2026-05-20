@@ -2,8 +2,7 @@
 
 import { UtensilsCrossed, Flame, Target, ChevronDown } from "lucide-react";
 import { useState } from "react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 
 interface Meal {
   name: string;
@@ -390,8 +389,4 @@ export function MealPlanView() {
       </div>
     </div>
   );
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
 }

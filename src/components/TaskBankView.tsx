@@ -2,14 +2,9 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, Landmark, RotateCcw, Trash2, CheckSquare, Square } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { Search, X, Landmark, RotateCcw, Trash2, CheckSquare, Square, LayoutGrid, List } from "lucide-react";
 import { Task } from "@/types";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 const priorityColors = {
   high: "border-l-4 border-red-500",
@@ -35,6 +30,7 @@ export const TaskBankView = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
 
   const bankedTasks = tasks.filter(t => t.isBanked && t.title.toLowerCase().includes(searchQuery.toLowerCase()));
 
@@ -87,6 +83,29 @@ export const TaskBankView = ({
             className="w-full bg-surface-hover border border-white/5 rounded-xl pl-10 pr-4 py-2 text-sm text-gray-200 placeholder-gray-500 focus:outline-none focus:border-primary/50 transition-colors"
           />
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+        </div>
+
+        <div className="flex items-center gap-1 bg-surface-hover border border-white/5 rounded-xl p-1">
+          <button
+            onClick={() => setViewMode("list")}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              viewMode === "list" ? "bg-primary/20 text-primary" : "text-gray-500 hover:text-white"
+            )}
+            title="List view"
+          >
+            <List size={16} />
+          </button>
+          <button
+            onClick={() => setViewMode("grid")}
+            className={cn(
+              "p-2 rounded-lg transition-colors",
+              viewMode === "grid" ? "bg-primary/20 text-primary" : "text-gray-500 hover:text-white"
+            )}
+            title="Grid view"
+          >
+            <LayoutGrid size={16} />
+          </button>
         </div>
       </div>
 
@@ -167,6 +186,55 @@ export const TaskBankView = ({
           <Landmark size={40} className="mx-auto text-gray-600 mb-3" />
           <p className="text-gray-500 font-medium">No tasks in the bank</p>
           <p className="text-sm text-gray-600 mt-1">Move tasks here when they're not relevant right now</p>
+        </div>
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {bankedTasks.map(task => (
+            <motion.div
+              key={task._id}
+              layout
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className={cn(
+                "p-4 bg-surface/40 border border-white/5 rounded-2xl hover:bg-surface/60 transition-all group cursor-pointer",
+                priorityColors[task.priority],
+                selectedTasks.has(task._id) && "border-primary/50 bg-primary/5"
+              )}
+              onClick={() => handleSelect(task._id, !selectedTasks.has(task._id))}
+            >
+              <div className="flex items-start justify-between gap-2 mb-3">
+                <span className={cn(
+                  "text-xs font-bold px-2 py-0.5 rounded uppercase tracking-wider",
+                  priorityBg[task.priority]
+                )}>
+                  {task.priority}
+                </span>
+                {selectedTasks.has(task._id) && (
+                  <CheckSquare size={16} className="text-primary shrink-0" />
+                )}
+              </div>
+              <p className="text-gray-200 font-medium mb-2 line-clamp-2">{task.title}</p>
+              {task.subtasks && task.subtasks.length > 0 && (
+                <p className="text-xs text-gray-500">
+                  {task.subtasks.filter(s => s.completed).length}/{task.subtasks.length} subtasks
+                </p>
+              )}
+              <div className="flex items-center gap-2 mt-3 pt-3 border-t border-white/5 opacity-0 group-hover:opacity-100 transition-opacity">
+                <button
+                  onClick={(e) => { e.stopPropagation(); onRestore(task._id); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-bold text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                >
+                  <RotateCcw size={12} /> Restore
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDelete(task._id); }}
+                  className="flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                >
+                  <Trash2 size={12} /> Delete
+                </button>
+              </div>
+            </motion.div>
+          ))}
         </div>
       ) : (
         <div className="space-y-3">

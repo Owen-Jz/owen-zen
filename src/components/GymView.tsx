@@ -3,44 +3,11 @@
 import { useState, useEffect, useMemo } from "react";
 import { Plus, Dumbbell, Flame, Calendar, TrendingUp, Check, X, Trash2, Edit2, Save, ChevronDown, Target } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
-import {
-  notifyGymSessionLogged,
-  notifyGymStreakAtRisk,
-} from "@/lib/notificationService";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
-
-const SkeletonCard = ({ className }: { className?: string }) => (
-  <div className={cn("bg-surface/50 animate-pulse rounded-xl", className)} />
-);
-
-const SkeletonStats = () => (
-  <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-    {[1, 2, 3, 4].map((i) => (
-      <div key={i} className="bg-surface border border-border rounded-2xl p-5">
-        <div className="flex items-center gap-3 mb-2">
-          <SkeletonCard className="w-9 h-9 rounded-lg" />
-          <SkeletonCard className="w-20 h-4" />
-        </div>
-        <SkeletonCard className="w-24 h-8" />
-      </div>
-    ))}
-  </div>
-);
-
-const SkeletonContent = () => (
-  <div className="space-y-4">
-    <SkeletonCard className="h-12 w-48" />
-    <div className="bg-surface border border-border rounded-2xl p-6">
-      <SkeletonCard className="h-48 w-full" />
-    </div>
-  </div>
-);
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SkeletonCard, SkeletonStats, SkeletonContent } from "@/components/ui/SkeletonCard";
+import { cn } from "@/lib/utils";
+import { notifyGymStreakAtRisk, notifyGymSessionLogged } from "@/lib/notificationService";
 
 interface Exercise {
   _id: string;
@@ -151,7 +118,7 @@ export const GymView = () => {
   const thisWeekSessions = useMemo(() => {
     const now = new Date();
     const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
     return sessions.filter(s => {
       const sessionDate = new Date(s.date);
       return sessionDate >= startOfWeek;
@@ -273,50 +240,109 @@ export const GymView = () => {
         </>
       ) : (
         <>
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-orange-500/20 rounded-lg">
-              <Flame className="w-5 h-5 text-orange-500" />
+      <motion.div
+        className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0 },
+          visible: { opacity: 1, transition: { staggerChildren: 0.08, delayChildren: 0.1 } }
+        }}
+      >
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+          }}
+          className="bg-surface border border-border rounded-2xl p-5 hover:border-orange-500/30 transition-all relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-orange-500/20 rounded-lg">
+                <motion.div
+                  animate={streak > 0 ? { scale: [1, 1.1, 1] } : {}}
+                  transition={{ duration: 1.5, repeat: Infinity }}
+                >
+                  <Flame className="w-5 h-5 text-orange-500" />
+                </motion.div>
+              </div>
+              <span className="text-gray-400 text-sm">Current Streak</span>
             </div>
-            <span className="text-gray-400 text-sm">Current Streak</span>
+            <motion.p
+              className="text-3xl font-bold"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              {streak} <span className="text-lg text-gray-500 font-normal">days</span>
+            </motion.p>
           </div>
-          <p className="text-3xl font-bold">{streak} <span className="text-lg text-gray-500 font-normal">days</span></p>
-        </div>
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-green-500/20 rounded-lg">
-              <Calendar className="w-5 h-5 text-green-500" />
+        </motion.div>
+
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+          }}
+          className="bg-surface border border-border rounded-2xl p-5 hover:border-green-500/30 transition-all relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-green-500/20 rounded-lg">
+                <Calendar className="w-5 h-5 text-green-500" />
+              </div>
+              <span className="text-gray-400 text-sm">This Week</span>
             </div>
-            <span className="text-gray-400 text-sm">This Week</span>
+            <p className="text-3xl font-bold">{thisWeekSessions.length} <span className="text-lg text-gray-500 font-normal">sessions</span></p>
           </div>
-          <p className="text-3xl font-bold">{thisWeekSessions.length} <span className="text-lg text-gray-500 font-normal">sessions</span></p>
-        </div>
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-blue-500/20 rounded-lg">
-              <Dumbbell className="w-5 h-5 text-blue-500" />
+        </motion.div>
+
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+          }}
+          className="bg-surface border border-border rounded-2xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-blue-500/20 rounded-lg">
+                <Dumbbell className="w-5 h-5 text-blue-500" />
+              </div>
+              <span className="text-gray-400 text-sm">Total Workouts</span>
             </div>
-            <span className="text-gray-400 text-sm">Total Workouts</span>
+            <p className="text-3xl font-bold">{totalWorkouts}</p>
           </div>
-          <p className="text-3xl font-bold">{totalWorkouts}</p>
-        </div>
-        <div className="bg-surface border border-border rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-purple-500/20 rounded-lg">
-              <TrendingUp className="w-5 h-5 text-purple-500" />
+        </motion.div>
+
+        <motion.div
+          variants={{
+            hidden: { opacity: 0, y: 20 },
+            visible: { opacity: 1, y: 0, transition: { duration: 0.3 } }
+          }}
+          className="bg-surface border border-border rounded-2xl p-5 hover:border-purple-500/30 transition-all relative overflow-hidden group"
+        >
+          <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-purple-500/20 rounded-lg">
+                <TrendingUp className="w-5 h-5 text-purple-500" />
+              </div>
+              <span className="text-gray-400 text-sm">This Month</span>
             </div>
-            <span className="text-gray-400 text-sm">This Month</span>
+            <p className="text-3xl font-bold">
+              {sessions.filter(s => {
+                const d = new Date(s.date);
+                const now = new Date();
+                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+              }).length}
+            </p>
           </div>
-          <p className="text-3xl font-bold">
-            {sessions.filter(s => {
-              const d = new Date(s.date);
-              const now = new Date();
-              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-            }).length}
-          </p>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
 
       <div className="flex items-center gap-2 mb-6">
         <button
@@ -356,19 +382,13 @@ export const GymView = () => {
             exit={{ opacity: 0, y: -20 }}
           >
             {!showAddSession && !todaySession ? (
-              <div className="bg-surface border border-border rounded-2xl p-12 text-center">
-                <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Dumbbell className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold mb-2">No workout logged today</h3>
-                <p className="text-gray-400 mb-6">Ready to crush it? Log your gym session.</p>
-                <button
-                  onClick={() => setShowAddSession(true)}
-                  className="px-6 py-3 bg-primary text-white rounded-xl font-medium hover:bg-primary/90 transition-all"
-                >
-                  Start Workout
-                </button>
-              </div>
+              <EmptyState
+                icon={Dumbbell}
+                title="No workout logged today"
+                description="Ready to crush it? Log your gym session."
+                actionLabel="Start Workout"
+                onAction={() => setShowAddSession(true)}
+              />
             ) : todaySession ? (
               <div className="bg-surface border border-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -612,18 +632,19 @@ export const GymView = () => {
                         {exerciseCount > 0 ? `${exerciseCount} exercises` : 'Rest day'}
                       </div>
                       <motion.div
-                        initial={{ height: 0 }}
-                        animate={{ height: `${height}%` }}
-                        transition={{ duration: 0.3, delay: i * 0.02 }}
-                        className={cn(
-                          "w-full rounded-t-md transition-all group-hover:brightness-125",
-                          exerciseCount > 0 
-                            ? isToday 
-                              ? "bg-gradient-to-t from-primary/30 via-primary to-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]"
-                              : "bg-gradient-to-t from-green-600/40 to-green-500"
-                            : "bg-gray-800/50"
-                        )}
-                      />
+                      initial={{ height: 0 }}
+                      animate={{ height: `${height}%` }}
+                      transition={{ duration: 0.5, delay: i * 0.02, ease: [0.0, 0.0, 0.2, 1] }}
+                      className={cn(
+                        "w-full rounded-t-md transition-all group-hover:brightness-125",
+                        exerciseCount > 0
+                          ? isToday
+                            ? "bg-gradient-to-t from-primary/30 via-primary to-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.4)]"
+                            : "bg-gradient-to-t from-green-600/40 to-green-500"
+                          : "bg-gray-800/50"
+                      )}
+                      whileHover={{ scaleX: 1.05 }}
+                    />
                     </div>
                   );
                 })}
@@ -641,15 +662,33 @@ export const GymView = () => {
                   const hasWorkout = sessions.some(s => s.date === date);
                   const dayName = new Date(date).toLocaleDateString('en-US', { weekday: 'short' });
                   return (
-                    <div key={date} className="text-center">
+                    <motion.div
+                      key={date}
+                      className="text-center"
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: last7Days.indexOf(date) * 0.05 }}
+                    >
                       <p className="text-xs text-gray-500 mb-2">{dayName}</p>
-                      <div className={cn(
-                        "w-full aspect-square rounded-xl flex items-center justify-center",
-                        hasWorkout ? "bg-green-500/20" : "bg-background/50"
-                      )}>
-                        {hasWorkout && <Check className="w-5 h-5 text-green-500" />}
-                      </div>
-                    </div>
+                      <motion.div
+                        className={cn(
+                          "w-full aspect-square rounded-xl flex items-center justify-center",
+                          hasWorkout ? "bg-green-500/20" : "bg-background/50"
+                        )}
+                        animate={hasWorkout ? { scale: [0.8, 1.1, 1] } : {}}
+                        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                      >
+                        {hasWorkout && (
+                          <motion.div
+                            initial={{ scale: 0, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                          >
+                            <Check className="w-5 h-5 text-green-500" />
+                          </motion.div>
+                        )}
+                      </motion.div>
+                    </motion.div>
                   );
                 })}
               </div>

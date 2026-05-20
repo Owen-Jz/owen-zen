@@ -9,7 +9,7 @@ import {
   Target, Palette, Eye, Star, Calendar, Inbox,
   Crosshair, Wallet, Users, MessageSquare,
   Circle, FileText, Archive, Settings,
-  BookOpen, Search, Grid3x3,
+  BookOpen, Search, Grid3x3, Landmark,
 } from "lucide-react";
 interface ViewItem {
   id: string;
@@ -80,6 +80,7 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
     {
       title: "System",
       links: [
+        { id: "bank", label: "Task Bank", icon: Landmark },
         { id: "watch", label: "Watch Later", icon: Circle },
         { id: "notes", label: "Notes", icon: FileText },
         { id: "archive", label: "Archive", icon: Archive },

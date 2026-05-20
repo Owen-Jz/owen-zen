@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp, CheckCircle, Activity, Calendar, Trophy, Flame, Target, Star, Shield, Zap, Sword, Crown, Lock, Award } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
+import { cn } from "@/lib/utils";
 import {
   ACHIEVEMENTS,
   getEarnedIdsFromStats,
@@ -15,9 +14,6 @@ import {
 } from "@/lib/achievements";
 import { notifyAchievement } from "@/lib/notificationService";
 
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 
 const ProgressRing = ({ percentage, day, isToday }: { percentage: number, day: string, isToday: boolean }) => {
   const radius = 30;
@@ -65,7 +61,7 @@ const BarChart = ({ data }: { data: number[] }) => {
     <div className="h-48 flex items-end justify-between gap-1 sm:gap-3 w-full">
       {data.map((val, i) => {
         const height = (val / max) * 100;
-        const isToday = i === new Date().getDay();
+        const isToday = i === (new Date().getDay() + 6) % 7;
         return (
           <div key={i} className="w-full flex flex-col justify-end gap-1 group relative h-full pt-4">
             <div className="absolute top-0 left-1/2 -translate-x-1/2 bg-gray-900 border border-white/10 text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 font-bold text-white shadow-xl pointer-events-none">
@@ -118,8 +114,8 @@ export const AnalyticsView = () => {
     completionRate: 0
   });
 
-  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const todayIndex = new Date().getDay();
+  const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+  const todayIndex = (new Date().getDay() + 6) % 7;
 
   useEffect(() => {
     const fetchData = async () => {
@@ -235,7 +231,7 @@ export const AnalyticsView = () => {
 
           const today = new Date();
           const startOfWeek = new Date(today);
-          startOfWeek.setDate(today.getDate() - today.getDay());
+          startOfWeek.setDate(today.getDate() - ((today.getDay() + 6) % 7));
 
           const weekCompletion = days.map((_, i) => {
             const d = new Date(startOfWeek);

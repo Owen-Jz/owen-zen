@@ -8,6 +8,7 @@ import {
   Check, AlertCircle, ChevronDown, Edit2, Save
 } from "lucide-react";
 import { Note } from "@/types";
+import { cn } from "@/lib/utils";
 
 // ── Constants ─────────────────────────────────────────────────────────────────────
 const MAX_CONTENT_LENGTH = 5000;
@@ -54,10 +55,6 @@ function formatDate(dateStr: string): string {
     day: "numeric",
     year: date.getFullYear() !== now.getFullYear() ? "numeric" : undefined
   });
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return inputs.filter(Boolean).join(" ");
 }
 
 // ── Debounce Hook ───────────────────────────────────────────────────────────────

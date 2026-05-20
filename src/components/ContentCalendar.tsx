@@ -25,12 +25,7 @@ import {
   PlusCircle,
   XCircle,
 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 // Types
 type Network = "instagram" | "twitter" | "linkedin";
@@ -221,7 +216,7 @@ export const ContentCalendar = () => {
     const lastDay = new Date(year, month + 1, 0);
 
     const startDate = new Date(firstDay);
-    startDate.setDate(firstDay.getDate() - firstDay.getDay());
+    startDate.setDate(firstDay.getDate() - ((firstDay.getDay() + 6) % 7)); // go back to Monday
 
     const days: Date[] = [];
     let current = new Date(startDate);

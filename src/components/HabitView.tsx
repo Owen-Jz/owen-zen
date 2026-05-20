@@ -1,16 +1,15 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, Circle, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap, Target, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
 import { HabitDetailModal } from "./habit/HabitDetailModal";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { useSoundContext } from "@/components/SoundEffects";
 import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
 import { isPerfectDay, isPerfectWeek } from "@/lib/perfectDetection";
 import { useCelebration } from "@/hooks/useCelebration";
+import { cn } from "@/lib/utils";
 import {
   notifyOnHabitCompletion,
   notifyHabitStreakAtRisk,
@@ -20,7 +19,6 @@ import {
 
 // Lagos-aware Sunday rewind using Intl (consistent with toLocalString timezone)
 const LAGOS_WDAY = new Intl.DateTimeFormat('en-US', { timeZone: 'Africa/Lagos', weekday: 'short' });
-const SUNDAY_LAGOS_IDX = 0; // 'Sun' is at index 0 in our table
 const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'] as const;
 
 function rewindToSundayLagos(date: Date): Date {
@@ -31,15 +29,19 @@ function rewindToSundayLagos(date: Date): Date {
     return d;
 }
 
+function rewindToMondayLagos(date: Date): Date {
+    const d = new Date(date);
+    const LagosDayName = LAGOS_WDAY.format(d);
+    const LagosDayIdx = DAY_NAMES.indexOf(LagosDayName as typeof DAY_NAMES[number]);
+    d.setDate(d.getDate() - (LagosDayIdx + 6) % 7);
+    return d;
+}
+
 function toLagosKey(date: Date): string {
     const parts = new Intl.DateTimeFormat('en-US', {
         timeZone: 'Africa/Lagos', year: 'numeric', month: '2-digit', day: '2-digit'
     }).formatToParts(date);
     return `${parts.find(p => p.type === 'year')!.value}-${parts.find(p => p.type === 'month')!.value}-${parts.find(p => p.type === 'day')!.value}`;
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
 }
 
 interface Habit {
@@ -183,7 +185,6 @@ export const HabitView = () => {
 
     // Check and seed weekly habits on mount
     useEffect(() => {
-        fetchWeeklyHabits();
         const checkAndSeedWeekly = async () => {
             const res = await fetch("/api/weekly-habits");
             const json = await res.json();
@@ -262,7 +263,6 @@ export const HabitView = () => {
     };
 
     useEffect(() => {
-        fetchHabits();
         // Check if we need to seed (simple check for empty array on mount)
         // Note: In a real app, we'd check server side count, but this works for client-init
         const checkAndSeed = async () => {
@@ -543,13 +543,13 @@ export const HabitView = () => {
             }, 0);
             const dateObj = new Date(date);
             const isPDay = perfectDays.has(dateKey);
-            const isPSat = dateObj.getDay() === 6;
-            const isPWeek = isPSat
+            const isPSun = dateObj.getDay() === 0;
+            const isPWeek = isPSun
                 ? (() => {
-                    const sunday = rewindToSundayLagos(dateObj);
+                    const monday = rewindToMondayLagos(dateObj);
                     for (let i = 0; i < 7; i++) {
-                        const dow = new Date(sunday);
-                        dow.setDate(sunday.getDate() + i);
+                        const dow = new Date(monday);
+                        dow.setDate(monday.getDate() + i);
                         if (!perfectDays.has(toLagosKey(dow))) return false;
                     }
                     return true;
@@ -561,7 +561,7 @@ export const HabitView = () => {
 
     // Detect newly perfect days/weeks and trigger celebration
     useEffect(() => {
-      const isSunday = new Date().getDay() === 0; // Only notify on Sundays (week end)
+      const isMonday = new Date().getDay() === 1; // Only notify on Mondays (week start / kickoff)
 
       const currentPerfectDays = new Set(
         (heatmapGrid as Array<NonNullable<typeof heatmapGrid[number]>>)
@@ -581,7 +581,7 @@ export const HabitView = () => {
         return !prevPerfectDaysRef.current.has(key);
       });
 
-      if (newlyPerfectWeek && isSunday) {
+      if (newlyPerfectWeek && isMonday) {
         triggerCelebration('week');
         notifyWeeklyGoalsComplete(getCurrentWeekKey());
       } else if (newlyPerfectDay) {
@@ -663,9 +663,26 @@ export const HabitView = () => {
         <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500 pb-20">
 
             {/* --- Advanced Stats --- */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <motion.div
+              className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.08, delayChildren: 0.1 }
+                }
+              }}
+            >
                 {/* Today's Progress */}
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-primary/30 transition-all relative overflow-hidden group">
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.0, 0.0, 0.2, 1] } }
+                  }}
+                  className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-primary/30 transition-all relative overflow-hidden group"
+                >
                     <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
@@ -679,13 +696,24 @@ export const HabitView = () => {
                         </div>
                     </div>
                     <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
-                        <div className="bg-primary h-2 rounded-full transition-all duration-500" style={{ width: `${todayRate}%` }} />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${todayRate}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.2 }}
+                          className="h-full bg-primary rounded-full shadow-[0_0_10px_rgba(var(--primary-rgb),0.4)]"
+                        />
                     </div>
                     <div className="relative z-10 text-right mt-2 text-xs text-primary font-bold">{todayRate}% Complete</div>
-                </div>
+                </motion.div>
 
                 {/* 7-Day Consistency */}
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden group">
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.0, 0.0, 0.2, 1] } }
+                  }}
+                  className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-blue-500/30 transition-all relative overflow-hidden group"
+                >
                     <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
@@ -699,13 +727,24 @@ export const HabitView = () => {
                         </div>
                     </div>
                     <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
-                        <div className="bg-blue-500 h-2 rounded-full transition-all duration-500" style={{ width: `${last7Rate}%` }} />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${last7Rate}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.3 }}
+                          className="h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.4)]"
+                        />
                     </div>
                     <div className="relative z-10 text-right mt-2 text-xs text-blue-500 font-bold">{last7Completions} Reps this week</div>
-                </div>
+                </motion.div>
 
                 {/* 30-Day Consistency */}
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-purple-500/30 transition-all relative overflow-hidden group">
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.0, 0.0, 0.2, 1] } }
+                  }}
+                  className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-purple-500/30 transition-all relative overflow-hidden group"
+                >
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <div className="relative z-10 flex justify-between items-start mb-4">
                         <div>
@@ -719,22 +758,42 @@ export const HabitView = () => {
                         </div>
                     </div>
                     <div className="relative z-10 w-full bg-black/40 rounded-full h-2">
-                        <div className="bg-purple-500 h-2 rounded-full transition-all duration-500" style={{ width: `${last30Rate}%` }} />
+                        <motion.div
+                          initial={{ width: 0 }}
+                          animate={{ width: `${last30Rate}%` }}
+                          transition={{ duration: 0.8, ease: "easeOut", delay: 0.4 }}
+                          className="h-full bg-purple-500 rounded-full shadow-[0_0_10px_rgba(168,85,247,0.4)]"
+                        />
                     </div>
                     <div className="relative z-10 text-right mt-2 text-xs text-purple-500 font-bold">{last30Completions} Reps this month</div>
-                </div>
+                </motion.div>
 
                 {/* Best Streak & Total Reps */}
-                <div className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-orange-500/30 transition-all relative overflow-hidden group flex flex-col justify-between">
+                <motion.div
+                  variants={{
+                    hidden: { opacity: 0, y: 20 },
+                    visible: { opacity: 1, y: 0, transition: { duration: 0.3, ease: [0.0, 0.0, 0.2, 1] } }
+                  }}
+                  className="bg-surface/40 backdrop-blur-md border border-white/5 rounded-xl p-5 hover:border-orange-500/30 transition-all relative overflow-hidden group flex flex-col justify-between"
+                >
                     <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                    <div className="relative z-10 flex justify-between items-center bg-white/5 p-3 rounded-xl mb-3 border border-white/5">
+                    <motion.div
+                      className="relative z-10 flex justify-between items-center bg-white/5 p-3 rounded-xl mb-3 border border-white/5"
+                      animate={maxCurrentStreak > 3 ? { scale: [1, 1.02, 1] } : {}}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
                         <div>
                             <div className="text-xs text-gray-400 font-medium">Active Streak</div>
                             <div className="text-lg font-bold text-white">{maxCurrentStreak} <span className="text-xs text-gray-500 font-normal">days</span></div>
                         </div>
-                        <Flame size={24} className="text-orange-500" />
-                    </div>
+                        <motion.div
+                          animate={maxCurrentStreak > 0 ? { scale: [1, 1.1, 1] } : {}}
+                          transition={{ duration: 1.5, repeat: Infinity }}
+                        >
+                            <Flame size={24} className="text-orange-500 drop-shadow-[0_0_8px_rgba(249,115,22,0.5)]" />
+                        </motion.div>
+                    </motion.div>
 
                     <div className="relative z-10 flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/5">
                         <div>
@@ -743,8 +802,8 @@ export const HabitView = () => {
                         </div>
                         <Trophy size={20} className="text-yellow-500" />
                     </div>
-                </div>
-            </div>
+                </motion.div>
+            </motion.div>
 
             {/* --- Weekly Stats Cards --- */}
             {(() => {
@@ -866,33 +925,40 @@ export const HabitView = () => {
                         {/* Week Navigation */}
                         <div className="flex items-center gap-2">
                             {dailyWeekOffset !== 0 && (
-                                <button
+                                <motion.button
+                                  whileHover={{ scale: 1.05 }}
+                                  whileTap={{ scale: 0.95 }}
                                     onClick={() => setDailyWeekOffset(0)}
                                     className="text-xs text-gray-500 hover:text-gray-300 underline"
                                     title="Back to current week"
                                 >
                                     {dailyWeekOffset > 0 ? "Today" : `Week of ${weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                                </button>
+                                </motion.button>
                             )}
                             {dailyWeekOffset === 0 && (
                                 <span className="text-xs text-gray-600 hidden sm:inline">
                                     Week of {weekDays[0].toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                                 </span>
                             )}
-                            <button
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
                                 onClick={() => setDailyWeekOffset(dailyWeekOffset - 1)}
                                 className="p-1 text-gray-500 hover:text-white transition-colors"
                                 title="Previous week"
                             >
                                 <ChevronLeft size={18} />
-                            </button>
-                            <button
-                                onClick={() => setDailyWeekOffset(dailyWeekOffset + 1)}
+                            </motion.button>
+                            <motion.button
+                              whileHover={{ scale: 1.1 }}
+                              whileTap={{ scale: 0.9 }}
+                                onClick={() => setDailyWeekOffset(Math.min(dailyWeekOffset + 1, 0))}
                                 className="p-1 text-gray-500 hover:text-white transition-colors"
                                 title="Next week"
+                                disabled={dailyWeekOffset === 0}
                             >
                                 <ChevronRight size={18} />
-                            </button>
+                            </motion.button>
                         </div>
                         <h2 className="text-xl font-bold text-white whitespace-nowrap">Daily Non-Negotiables</h2>
                         {totalHabits > 0 && completedToday === totalHabits && dailyWeekOffset === 0 && (
@@ -954,19 +1020,26 @@ export const HabitView = () => {
                                     }}
                                 >
                                     {/* Major Checkbox */}
-                                    <button
-                                        data-no-modal="true"
-                                        onClick={() => toggleHabit(habit._id)}
-                                        className={cn(
-                                            "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-10",
-                                            isDoneToday
-                                                ? "bg-primary border-primary text-white shadow-[0_0_10px_rgba(220,38,38,0.4)] scale-110"
-                                                : "border-gray-600 text-transparent hover:border-primary hover:scale-105"
-                                        )}
-                                        aria-label={isDoneToday ? `Mark ${habit.title} as incomplete` : `Mark ${habit.title} as complete`}
+                                    <motion.button
+                                      data-no-modal="true"
+                                      onClick={() => toggleHabit(habit._id)}
+                                      className={cn(
+                                          "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all flex-shrink-0 z-10",
+                                          isDoneToday
+                                              ? "bg-primary border-primary text-white shadow-[0_0_10px_rgba(220,38,38,0.4)]"
+                                              : "border-gray-600 text-transparent hover:border-primary hover:scale-105"
+                                      )}
+                                      whileTap={{ scale: isDoneToday ? 0.9 : 1.1 }}
+                                      aria-label={isDoneToday ? `Mark ${habit.title} as incomplete` : `Mark ${habit.title} as complete`}
                                     >
-                                        <Check size={14} strokeWidth={4} />
-                                    </button>
+                                        <motion.span
+                                          initial={false}
+                                          animate={isDoneToday ? { scale: [0, 1.2, 1], opacity: [0, 1, 1] } : { scale: 0, opacity: 0 }}
+                                          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                                        >
+                                          <Check size={14} strokeWidth={4} />
+                                        </motion.span>
+                                    </motion.button>
 
                                     {/* Dropdown for Intention */}
                                     <div className="relative">
@@ -1329,24 +1402,50 @@ export const HabitView = () => {
                                     if (!data) return <div key={dayIndex} className="w-2.5 h-2.5" />; // Empty placeholder
 
                                     const isFuture = data.date > new Date();
-                                    const isPerfectDay = data.isPerfectDay;
+                                    const isPerfectDayCell = data.isPerfectDay;
                                     const isPerfectWeekCell = data.isPerfectWeek;
 
                                     return (
+                                      <motion.div
+                                        key={dayIndex}
+                                        onClick={() => !isFuture && toggleAllHabitsForDay(data.date)}
+                                        title={`${data.date.toDateString()}: ${data.count} completions${isFuture ? '' : ' (click to toggle)'}`}
+                                        className={cn(
+                                            "w-2.5 h-2.5 rounded-[2px] transition-all duration-300 cursor-pointer",
+                                            isFuture ? "bg-white/5 opacity-50 cursor-default" : "hover:ring-1 hover:ring-white/40"
+                                        )}
+                                        whileHover={{ scale: 1.2 }}
+                                        whileTap={{ scale: 0.9 }}
+                                        animate={isPerfectWeekCell ? {
+                                          boxShadow: [
+                                            "0 0 0px var(--primary)",
+                                            "0 0 8px var(--primary)",
+                                            "0 0 0px var(--primary)"
+                                          ]
+                                        } : isPerfectDayCell ? {
+                                          boxShadow: [
+                                            "0 0 4px var(--primary)",
+                                            "0 0 12px var(--primary)",
+                                            "0 0 4px var(--primary)"
+                                          ]
+                                        } : {}}
+                                        transition={{ duration: 2, repeat: Infinity }}
+                                        style={{
+                                          backgroundColor: isFuture ? undefined : undefined,
+                                        }}
+                                      >
                                         <div
-                                            key={dayIndex}
-                                            onClick={() => !isFuture && toggleAllHabitsForDay(data.date)}
-                                            title={`${data.date.toDateString()}: ${data.count} completions${isFuture ? '' : ' (click to toggle)'}`}
-                                            className={cn(
-                                                "w-2.5 h-2.5 rounded-[2px] transition-all duration-300",
-                                                isFuture ? "bg-white/5 opacity-50 cursor-default" : "cursor-pointer hover:ring-1 hover:ring-white/40",
-                                                isPerfectWeekCell
-                                                    ? "bg-primary ring-2 ring-purple-400/60"
-                                                    : isPerfectDay
-                                                    ? "bg-primary shadow-[0_0_12px_var(--primary)]"
-                                                    : intensityColors[getIntensity(data.count)]
-                                            )}
+                                          className={cn(
+                                              "w-full h-full rounded-[2px] transition-all",
+                                              isFuture ? "" : "",
+                                              isPerfectWeekCell
+                                                  ? "bg-primary ring-2 ring-purple-400/60"
+                                                  : isPerfectDayCell
+                                                  ? "bg-primary shadow-[0_0_12px_var(--primary)]"
+                                                  : intensityColors[getIntensity(data.count)]
+                                          )}
                                         />
+                                      </motion.div>
                                     );
                                 })}
                             </div>

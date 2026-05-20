@@ -3,14 +3,9 @@
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Search, BookOpen, Plus, Calendar } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { JournalHeatmap } from "./journal/JournalHeatmap";
 import { JournalEntryModal } from "./journal/JournalEntryModal";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface Entry {
   _id: string;

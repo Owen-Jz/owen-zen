@@ -5,12 +5,7 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon, Clock, X } from "lucide-react";
 import { DndContext, useDraggable, useDroppable, DragOverlay } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 // Reusing types
 interface Task {
@@ -63,26 +58,44 @@ const CalendarDay = ({ date, tasks, isToday, onDrop, isCurrentMonth }: any) => {
   });
 
   return (
-    <div
+    <motion.div
       ref={setNodeRef}
       className={cn(
-        "min-h-[100px] border border-border/30 p-2 transition-all flex flex-col hover:bg-surface/10",
+        "min-h-[100px] border border-border/30 p-2 transition-all flex flex-col",
         isToday && "bg-primary/5 ring-1 ring-primary/30",
-        isOver && "bg-primary/10 ring-2 ring-primary inset-0 z-10",
+        isOver && "bg-primary/10 ring-2 ring-primary z-10",
         !isCurrentMonth && "opacity-30 grayscale bg-black/20"
       )}
+      whileHover={{ backgroundColor: isCurrentMonth ? "rgba(255,255,255,0.03)" : undefined }}
+      animate={isOver ? {
+        boxShadow: [
+          "inset 0 0 0 2px rgba(var(--primary-rgb),0.3)",
+          "inset 0 0 20px rgba(var(--primary-rgb),0.2)",
+          "inset 0 0 0 2px rgba(var(--primary-rgb),0.3)"
+        ]
+      } : {}}
+      transition={{ duration: 0.5, repeat: isOver ? Infinity : 0 }}
     >
-      <div className={cn("text-right text-xs font-mono mb-1", isToday ? "text-primary font-bold" : "text-gray-500")}>
+      <motion.div
+        className={cn("text-right text-xs font-mono mb-1", isToday ? "text-primary font-bold" : "text-gray-500")}
+        whileHover={{ scale: 1.1 }}
+        transition={{ duration: 0.15 }}
+      >
         {date.getDate()}
-      </div>
+      </motion.div>
       <div className="flex-1 space-y-1 overflow-y-auto max-h-[80px] custom-scrollbar">
         {tasks.map((task: Task) => (
-          <div key={task._id} className="bg-primary/20 text-primary border border-primary/30 p-1 rounded text-[10px] truncate cursor-pointer hover:bg-primary/30">
+          <motion.div
+            key={task._id}
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-primary/20 text-primary border border-primary/30 p-1 rounded text-[10px] truncate cursor-pointer hover:bg-primary/30 transition-colors"
+          >
             {task.title}
-          </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -91,6 +104,7 @@ export const CalendarView = () => {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeDragTask, setActiveDragTask] = useState<Task | null>(null);
+  const [direction, setDirection] = useState(1); // 1 for forward, -1 for backward
 
   // Time Selection Modal State
   const [isTimeModalOpen, setIsTimeModalOpen] = useState(false);
@@ -122,14 +136,14 @@ export const CalendarView = () => {
     // Last day of the month
     const lastDay = new Date(year, month + 1, 0);
 
-    // Start date for the grid (go back to Sunday)
+    // Start date for the grid (anchor to Monday)
     const startDate = new Date(firstDay);
-    startDate.setDate(firstDay.getDate() - firstDay.getDay());
+    startDate.setDate(firstDay.getDate() - ((firstDay.getDay() + 6) % 7));
 
-    // End date for the grid (go forward to Saturday to complete the grid)
+    // End date for the grid (forward to Sunday to complete the grid)
     const endDate = new Date(lastDay);
-    if (endDate.getDay() !== 6) {
-      endDate.setDate(endDate.getDate() + (6 - endDate.getDay()));
+    if (endDate.getDay() !== 0) {
+      endDate.setDate(endDate.getDate() + (7 - endDate.getDay()));
     }
 
     const days = [];
@@ -227,12 +241,14 @@ export const CalendarView = () => {
   };
 
   const nextMonth = () => {
+    setDirection(1);
     const next = new Date(currentDate);
     next.setMonth(next.getMonth() + 1);
     setCurrentDate(next);
   };
 
   const prevMonth = () => {
+    setDirection(-1);
     const prev = new Date(currentDate);
     prev.setMonth(prev.getMonth() - 1);
     setCurrentDate(prev);
@@ -240,10 +256,15 @@ export const CalendarView = () => {
 
   return (
     <DndContext onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className="max-w-[1600px] mx-auto h-[calc(100vh-140px)] flex gap-6 animate-in fade-in duration-500 relative">
+      <div className="max-w-[1600px] mx-auto h-[calc(100vh-140px)] flex gap-6 relative">
 
         {/* Sidebar: Unscheduled Tasks */}
-        <div className="w-64 flex flex-col bg-surface/30 border border-border rounded-xl overflow-hidden shrink-0">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3 }}
+          className="w-64 flex flex-col bg-surface/30 border border-border rounded-xl overflow-hidden shrink-0"
+        >
           <div className="p-4 border-b border-border bg-surface/50 backdrop-blur-sm">
             <h3 className="font-bold text-gray-200 flex items-center gap-2 text-sm uppercase tracking-wider">
               <Clock size={14} /> Backlog
@@ -257,10 +278,17 @@ export const CalendarView = () => {
               <div className="text-center text-gray-500 text-xs py-10">All active tasks scheduled!</div>
             )}
           </div>
-        </div>
+        </motion.div>
 
         {/* Main Calendar Grid */}
-        <div className="flex-1 flex flex-col bg-surface/10 border border-border rounded-xl overflow-hidden">
+        <motion.div
+          key={currentDate.toISOString()}
+          initial={{ opacity: 0, x: direction * 50 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: direction * -50 }}
+          transition={{ duration: 0.3, ease: [0.0, 0.0, 0.2, 1] }}
+          className="flex-1 flex flex-col bg-surface/10 border border-border rounded-xl overflow-hidden"
+        >
           {/* Header */}
           <div className="p-4 border-b border-border flex justify-between items-center bg-surface/50 backdrop-blur-sm">
             <div className="flex items-center gap-4">
@@ -304,14 +332,19 @@ export const CalendarView = () => {
               );
             })}
           </div>
-        </div>
+        </motion.div>
       </div>
 
-      <DragOverlay>
+      <DragOverlay dropAnimation={null}>
         {activeDragTask ? (
-          <div className="bg-surface border border-primary p-3 rounded-lg shadow-2xl w-56 rotate-2 cursor-grabbing opacity-90 backdrop-blur-md">
+          <motion.div
+            initial={{ scale: 1, rotate: 0 }}
+            animate={{ scale: 1.05, rotate: 2 }}
+            whileDrag={{ scale: 1.1, rotate: 3 }}
+            className="bg-surface border border-primary p-3 rounded-lg shadow-2xl w-56 cursor-grabbing backdrop-blur-md"
+          >
             <div className="font-medium text-white text-sm">{activeDragTask.title}</div>
-          </div>
+          </motion.div>
         ) : null}
       </DragOverlay>
 

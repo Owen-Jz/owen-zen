@@ -20,6 +20,8 @@ import {
     AlertsCard,
 } from "./finance/AnalysisComponents";
 import { notifyBudgetAlert } from "@/lib/notificationService";
+import { Button } from "./ui/button";
+import { EmptyState } from "./ui/EmptyState";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -483,29 +485,24 @@ export function FinanceView() {
 
                 <div className="flex items-center gap-2 flex-wrap">
                     {/* Month Navigator */}
-                    <div className="flex items-center gap-1 bg-surface border border-border rounded-xl px-3 py-2">
-                        <button onClick={() => setMonth(navigateMonth(month, -1))}
-                            className="p-1 text-gray-400 hover:text-white transition-colors rounded">
+                    <div className="flex items-center gap-1 bg-[var(--color-surface)] border border-[var(--color-border)] rounded-xl px-3 py-2">
+                        <Button variant="ghost" size="sm" onClick={() => setMonth(navigateMonth(month, -1))} className="p-1">
                             <ChevronLeft size={16} />
-                        </button>
-                        <span className="text-sm font-semibold text-white px-2 whitespace-nowrap">
+                        </Button>
+                        <span className="text-sm font-semibold text-[var(--color-text-primary)] px-2 whitespace-nowrap">
                             {getMonthLabel(month)}
                         </span>
-                        <button onClick={() => setMonth(navigateMonth(month, 1))}
-                            className="p-1 text-gray-400 hover:text-white transition-colors rounded"
-                            disabled={month >= currentMonth()}>
+                        <Button variant="ghost" size="sm" onClick={() => setMonth(navigateMonth(month, 1))} className="p-1" disabled={month >= currentMonth()}>
                             <ChevronRight size={16} />
-                        </button>
+                        </Button>
                     </div>
 
-                    <button onClick={() => setModal("income")}
-                        className="flex items-center gap-1.5 bg-[var(--status-income)]/20 border border-[var(--status-income)]/30 text-[var(--status-income)] hover:bg-[var(--status-income)]/30 px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+                    <Button variant="secondary" size="sm" onClick={() => setModal("income")} className="flex items-center gap-1.5 text-[var(--color-success)]">
                         <ArrowUpCircle size={15} /> Add Income
-                    </button>
-                    <button onClick={() => setModal("expense")}
-                        className="flex items-center gap-1.5 bg-primary/20 border border-primary/30 text-primary hover:bg-primary/30 px-4 py-2 rounded-xl text-sm font-semibold transition-all">
+                    </Button>
+                    <Button variant="primary" size="sm" onClick={() => setModal("expense")} className="flex items-center gap-1.5">
                         <ArrowDownCircle size={15} /> Add Expense
-                    </button>
+                    </Button>
                 </div>
             </div>
 
@@ -580,8 +577,8 @@ export function FinanceView() {
                                 {/* Category Breakdown + Donut */}
                                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                     {/* Category list */}
-                                    <div className="bg-surface border border-border rounded-2xl p-6">
-                                        <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">
+                                    <div className="bg-[var(--color-surface)] border border-[var(--color-border)] rounded-2xl p-6">
+                                        <h3 className="text-sm font-semibold text-[var(--color-text-secondary)] uppercase tracking-widest mb-4">
                                             Spending by Category
                                         </h3>
                                         {stats?.categoryBreakdown && stats.categoryBreakdown.length > 0 ? (
@@ -591,14 +588,14 @@ export function FinanceView() {
                                                         <div className="flex items-center justify-between text-sm">
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-base">{cat.icon}</span>
-                                                                <span className="text-gray-300 font-medium">{cat.name}</span>
+                                                                <span className="text-[var(--color-text-primary)] font-medium">{cat.name}</span>
                                                             </div>
                                                             <div className="flex items-center gap-2">
-                                                                <span className="text-gray-500 text-xs">{cat.percentage.toFixed(0)}%</span>
-                                                                <span className="text-white font-semibold">{fmt(cat.amount)}</span>
+                                                                <span className="text-[var(--color-text-muted)] text-xs">{cat.percentage.toFixed(0)}%</span>
+                                                                <span className="text-[var(--color-text-primary)] font-semibold">{fmt(cat.amount)}</span>
                                                             </div>
                                                         </div>
-                                                        <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                                        <div className="h-1.5 bg-[var(--color-surface-muted)] rounded-full overflow-hidden">
                                                             <motion.div
                                                                 initial={{ width: 0 }}
                                                                 animate={{ width: `${cat.percentage}%` }}
@@ -611,9 +608,13 @@ export function FinanceView() {
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-center text-gray-600 py-8">
-                                                No expenses yet this month
-                                            </div>
+                                            <EmptyState
+                                                icon={Wallet}
+                                                title="No expenses yet"
+                                                description="Add your first expense to see category breakdown"
+                                                actionLabel="Add Expense"
+                                                onAction={() => setModal("expense")}
+                                            />
                                         )}
                                     </div>
 
@@ -743,9 +744,13 @@ export function FinanceView() {
 
                                         {/* List */}
                                         {filteredTx.length === 0 ? (
-                                            <div className="text-center text-gray-600 py-16 border border-dashed border-border rounded-2xl">
-                                                No transactions yet — add your first one!
-                                            </div>
+                                            <EmptyState
+                                                icon={Wallet}
+                                                title="No transactions yet"
+                                                description="Start tracking your income and expenses"
+                                                actionLabel="Add Expense"
+                                                onAction={() => setModal("expense")}
+                                            />
                                         ) : (
                                             <div className="space-y-2">
                                                 {filteredTx.map((tx) => {
@@ -925,10 +930,9 @@ export function FinanceView() {
                                             </h3>
                                             <p className="text-xs text-gray-500 mt-0.5">Global spending limit for {getMonthLabel(month)}</p>
                                         </div>
-                                        <button onClick={() => { setBudgetCat(""); setModal("budget"); }}
-                                            className="px-3 py-1.5 bg-primary/20 border border-primary/30 text-primary rounded-lg text-xs font-semibold hover:bg-primary/30 transition-all">
+                                        <Button variant="outline" size="sm" onClick={() => { setBudgetCat(""); setModal("budget"); }}>
                                             {s?.budget ? "Edit" : "Set Budget"}
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     {s?.budget ? (
@@ -971,11 +975,9 @@ export function FinanceView() {
                                         <h3 className="font-semibold text-white flex items-center gap-2">
                                             <Tag size={16} className="text-primary" /> Category Budgets
                                         </h3>
-                                        <button
-                                            onClick={() => setModal("budget")}
-                                            className="px-3 py-1.5 bg-primary/20 border border-primary/30 text-primary rounded-lg text-xs font-semibold hover:bg-primary/30 transition-all flex items-center gap-1">
+                                        <Button variant="primary" size="sm" onClick={() => setModal("budget")} className="flex items-center gap-1">
                                             <Plus size={12} /> Add
-                                        </button>
+                                        </Button>
                                     </div>
 
                                     {stats?.categoryBreakdown && stats.categoryBreakdown.length > 0 ? (
@@ -995,11 +997,9 @@ export function FinanceView() {
                                         <h3 className="font-semibold text-white flex items-center gap-2">
                                             <Tag size={16} className="text-primary" /> Manage Categories
                                         </h3>
-                                        <button
-                                            onClick={() => setModal("category")}
-                                            className="px-3 py-1.5 bg-primary/20 border border-primary/30 text-primary rounded-lg text-xs font-semibold hover:bg-primary/30 transition-all flex items-center gap-1">
+                                        <Button variant="primary" size="sm" onClick={() => setModal("category")} className="flex items-center gap-1">
                                             <Plus size={12} /> New Category
-                                        </button>
+                                        </Button>
                                     </div>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                                         {categories.map((cat) => (

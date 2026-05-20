@@ -210,7 +210,7 @@ export const getHabitDayOfWeekData = (
   habit: Habit,
   daysBack: number
 ): { dayName: string; count: number }[] => {
-  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const counts = new Array(7).fill(0);
   const now = new Date();
   const cutoff = new Date(now);
@@ -223,7 +223,7 @@ export const getHabitDayOfWeekData = (
     }
   });
 
-  return dayNames.map((name, i) => ({ dayName: name, count: counts[i] }));
+  return dayNames.map((name, i) => ({ dayName: name, count: counts[(i + 1) % 7] }));
 };
 
 // Get streak timeline for a single habit
@@ -971,7 +971,7 @@ export const getTrendData = (
           const d = new Date(dateStr2);
           if (period === 'weekly') {
             const weekStart = new Date(date);
-            weekStart.setDate(date.getDate() - date.getDay());
+            weekStart.setDate(date.getDate() - ((date.getDay() + 6) % 7));
             const weekEnd = new Date(weekStart);
             weekEnd.setDate(weekStart.getDate() + 7);
             if (d >= weekStart && d < weekEnd) completions++;

@@ -1,7 +1,8 @@
 "use client";
 
-import { BookOpen, Award, Plus } from "lucide-react";
-import { SkeletonCard } from "./SkeletonCard";
+import { useEffect, useState } from "react";
+import { BookOpen, Award } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface CourseProgress {
   title: string;
@@ -24,71 +25,159 @@ interface GrowthCardProps {
   xpForNext?: number;
 }
 
-export function GrowthCard({ courses = [], latestAchievement = "", nextAchievement, level = 1, currentLevel, xp = 0, xpForNext = 100 }: GrowthCardProps) {
-  const displayLevel = currentLevel ?? level;
+export function GrowthCard({
+  courses = [],
+  latestAchievement = "",
+  nextAchievement,
+  level = 1,
+  currentLevel,
+  xp = 0,
+  xpForNext = 100,
+}: GrowthCardProps) {
+  const [displayLevel, setDisplayLevel] = useState(currentLevel ?? level);
+
+  useEffect(() => {
+    setDisplayLevel(currentLevel ?? level);
+  }, [currentLevel, level]);
+
+  const displayCourse = courses[0];
+  const xpProgress = xpForNext > 0 ? (xp / xpForNext) * 100 : 0;
+
   return (
-    <div className="rounded-xl border p-5 h-full min-h-[140px] hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
-      <p className="text-xs font-bold uppercase tracking-widest mb-3" style={{ color: "var(--cc-text-secondary)" }}>Growth</p>
-      <div className="space-y-2 mb-3">
-        {courses.length === 0 ? (
-          <div className="flex items-center gap-2 py-1">
-            <Plus size={14} style={{ color: "var(--cc-text-secondary)" }} />
-            <span className="text-xs" style={{ color: "var(--cc-text-secondary)" }}>No active courses</span>
-          </div>
-        ) : (
-          courses.slice(0, 3).map((course, i) => (
-            <div key={i}>
-              <div className="flex justify-between text-xs mb-0.5">
-                <span className="font-medium truncate pr-2" style={{ color: "var(--cc-text)" }}>{course.title}{course.level !== undefined ? ` — Level ${course.level}` : ""} • {Math.round(course.progress)}%</span>
-              </div>
-              <div className="w-full rounded-full h-1 bg-[var(--cc-border)]">
-                <div
-                  className="h-full rounded-full transition-all duration-500"
-                  style={{ width: `${course.progress}%`, backgroundColor: "var(--cc-accent)" }}
-                />
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      whileHover={{ scale: 1.01, boxShadow: "0 4px 20px rgba(212,168,83,0.15)" }}
+      className="rounded-2xl border p-5 h-full min-h-[200px] flex flex-col gap-3"
+      style={{
+        backgroundColor: "var(--cc-card)",
+        borderColor: "var(--cc-border)",
+        transition: "box-shadow 200ms ease",
+      }}
+    >
       <div className="flex items-center justify-between">
-        {nextAchievement ? (
-          <div className="flex items-center gap-1.5">
-            <Award size={14} style={{ color: "var(--cc-accent)" }} />
-            <span className="text-xs truncate" style={{ color: "var(--cc-text-secondary)" }}>{nextAchievement.title}</span>
-          </div>
-        ) : latestAchievement ? (
-          <div className="flex items-center gap-1.5">
-            <Award size={14} style={{ color: "var(--cc-accent)" }} />
-            <span className="text-xs truncate" style={{ color: "var(--cc-text-secondary)" }}>{latestAchievement}</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-1.5">
-            <BookOpen size={14} style={{ color: "var(--cc-text-secondary)" }} />
-            <span className="text-xs" style={{ color: "var(--cc-text-secondary)" }}>Level {displayLevel}</span>
-          </div>
-        )}
-        <div className="flex items-center gap-2">
-          {nextAchievement && (
-            <div className="text-[10px] font-mono" style={{ color: "var(--cc-text-secondary)" }}>+{nextAchievement.xpNeeded} XP</div>
-          )}
-          <div className="text-[10px] font-mono" style={{ color: "var(--cc-text-secondary)" }}>{xp}/{xpForNext} XP</div>
-        </div>
+        <motion.p
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: "var(--cc-text-secondary)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
+          Growth
+        </motion.p>
+        <motion.div
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.15, duration: 0.3 }}
+        >
+          <BookOpen size={14} style={{ color: "var(--cc-accent)" }} />
+        </motion.div>
       </div>
-    </div>
+
+      {/* Hero: Level number + XP progress bar */}
+      <motion.div
+        className="flex items-center gap-4"
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ delay: 0.2, duration: 0.3 }}
+      >
+        <motion.div
+          className="flex flex-col items-center justify-center"
+          animate={{ scale: [1, 1.08, 1] }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <span
+            className="text-3xl font-extrabold"
+            style={{ fontFamily: "var(--font-heading)", color: "var(--cc-accent)" }}
+          >
+            {displayLevel}
+          </span>
+          <span className="text-[10px] uppercase" style={{ color: "var(--cc-text-secondary)" }}>Level</span>
+        </motion.div>
+        <div className="flex-1 flex flex-col gap-1">
+          <div className="h-2 rounded-full bg-[var(--cc-border)] overflow-hidden">
+            <motion.div
+              className="h-full rounded-full"
+              style={{ backgroundColor: "var(--cc-accent)" }}
+              initial={{ width: 0 }}
+              animate={{ width: `${Math.min(xpProgress, 100)}%` }}
+              transition={{ duration: 0.8, delay: 0.25, ease: "easeOut" }}
+            />
+          </div>
+          <span className="text-[10px] font-mono" style={{ color: "var(--cc-text-secondary)" }}>
+            {xp} / {xpForNext} XP
+          </span>
+        </div>
+      </motion.div>
+
+      {/* Current course title */}
+      {displayCourse && (
+        <motion.div
+          className="text-xs pt-2 border-t"
+          style={{ borderColor: "var(--cc-border)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.35 }}
+        >
+          <span className="truncate block" style={{ color: "var(--cc-text)" }}>
+            {displayCourse.title}
+          </span>
+          <div className="flex items-center gap-1 mt-0.5">
+            <div className="h-1 flex-1 rounded-full bg-[var(--cc-border)] overflow-hidden">
+              <motion.div
+                className="h-full rounded-full"
+                style={{ backgroundColor: "var(--cc-accent)" }}
+                initial={{ width: 0 }}
+                animate={{ width: `${displayCourse.progress}%` }}
+                transition={{ duration: 0.6, delay: 0.4, ease: "easeOut" }}
+              />
+            </div>
+            <span className="text-[10px] font-mono" style={{ color: "var(--cc-text-secondary)" }}>
+              {Math.round(displayCourse.progress)}%
+            </span>
+          </div>
+        </motion.div>
+      )}
+
+      {/* Next achievement + XP needed */}
+      {nextAchievement && (
+        <motion.div
+          className="flex items-center gap-1.5 text-xs"
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.45 }}
+        >
+          <Award size={12} style={{ color: "var(--cc-accent)" }} className="drop-shadow-[0_0_4px_rgba(212,168,83,0.5)]" />
+          <span className="truncate flex-1" style={{ color: "var(--cc-text)" }}>
+            {nextAchievement.title}
+          </span>
+          <span className="text-[10px] font-mono" style={{ color: "var(--cc-text-secondary)" }}>
+            +{nextAchievement.xpNeeded} XP
+          </span>
+        </motion.div>
+      )}
+    </motion.div>
   );
 }
 
 export function GrowthCardSkeleton() {
   return (
-    <div className="rounded-xl border p-5 min-h-[140px] bg-[var(--cc-card)] border-[var(--cc-border)]">
-      <SkeletonCard className="h-3 w-14 mb-3" />
-      <div className="space-y-2 mb-3">
-        <SkeletonCard className="h-3 w-full" />
-        <SkeletonCard className="h-3 w-full" />
-        <SkeletonCard className="h-3 w-3/4" />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="rounded-2xl border p-5 min-h-[200px]"
+      style={{ backgroundColor: "var(--cc-card)", borderColor: "var(--cc-border)" }}
+    >
+      <div className="h-3 w-12 rounded mb-4" style={{ backgroundColor: "var(--cc-bg)" }} />
+      <div className="flex gap-4 mb-3">
+        <div className="h-12 w-12 rounded-full" style={{ backgroundColor: "var(--cc-bg)" }} />
+        <div className="flex-1 flex flex-col gap-2 justify-center">
+          <div className="h-2 w-full rounded" style={{ backgroundColor: "var(--cc-bg)" }} />
+          <div className="h-3 w-20 rounded" style={{ backgroundColor: "var(--cc-bg)" }} />
+        </div>
       </div>
-      <SkeletonCard className="h-3 w-32" />
-    </div>
+      <div className="h-3 w-full rounded" style={{ backgroundColor: "var(--cc-bg)" }} />
+    </motion.div>
   );
 }

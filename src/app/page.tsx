@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard, Grid3x3 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -274,6 +274,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "calendar", label: "Calendar", icon: Calendar },
         { id: "post-bucket", label: "Post Bucket", icon: Inbox },
         { id: "canvas", label: "Mind Map", icon: LayoutGrid },
+        { id: "eisenhower", label: "Eisenhower Matrix", icon: Grid3x3 },
       ]
     },
     {
@@ -1562,7 +1563,7 @@ export default function Dashboard() {
     }
   }, [tasks]);
 
-  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string) => {
+  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => {
     // Optimistic UI
     const tempId = crypto.randomUUID();
     const tempTask: Task = {
@@ -1579,6 +1580,7 @@ export default function Dashboard() {
       isArchived: false,
       isTemp: true,
       category,
+      quadrant,
     };
 
     const previousTasks = [...tasks];
@@ -1589,7 +1591,7 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, priority, subtasks, dueDate, isMIT, category
+          title, description, priority, subtasks, dueDate, isMIT, category, quadrant
         }),
       });
       const json = await res.json();
@@ -1756,6 +1758,20 @@ export default function Dashboard() {
       body: JSON.stringify({ isBanked: true, status: "pending" }),
     });
     setTasks(tasks.map(t => t._id === id ? { ...t, isBanked: true } : t));
+  };
+
+  const updateTaskQuadrant = async (id: string, quadrant: "q1" | "q2" | "q3" | "q4" | null) => {
+    const oldTasks = [...tasks];
+    setTasks(tasks.map(t => t._id === id ? { ...t, quadrant } as Task : t));
+    try {
+      await fetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quadrant }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const unbankTask = async (id: string) => {
@@ -2810,6 +2826,7 @@ export default function Dashboard() {
                   onEdit={setEditingTask}
                   onArchive={archiveTask}
                   onBank={bankTask}
+                  onUpdateQuadrant={updateTaskQuadrant}
                   onToggleSubtask={toggleTaskSubtask}
                   onPromoteSubtask={promoteSubtaskToMain}
                   onUpdatePriority={updateTaskPriority}
@@ -2848,7 +2865,7 @@ export default function Dashboard() {
             </motion.div>
           )}
           {activeTab === "weekly" && <WeeklyGoalsView />}
-          {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} />}
+          {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} onTasksChange={(updated) => setTasks(tasks.map(t => t._id === updated._id ? updated : t))} onAddTask={() => setIsAddTaskModalOpen(true)} isAddTaskModalOpen={isAddTaskModalOpen} setIsAddTaskModalOpen={setIsAddTaskModalOpen} />}
           {activeTab === "vision" && <VisionBoardView />}
           {activeTab === "reality" && <RealityView />}
           {activeTab === "roadmap" && <RoadmapView />}

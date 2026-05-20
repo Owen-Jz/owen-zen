@@ -3,21 +3,17 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Check, X, GripVertical } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Task } from "@/types";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface SortableMITItemProps {
   task: Task;
   onComplete: (id: string) => void;
   onRemoveMIT: (id: string) => void;
+  onEdit: (task: Task) => void;
 }
 
-export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITItemProps) => {
+export const SortableMITItem = ({ task, onComplete, onRemoveMIT, onEdit }: SortableMITItemProps) => {
   const {
     attributes,
     listeners,
@@ -60,7 +56,10 @@ export const SortableMITItem = ({ task, onComplete, onRemoveMIT }: SortableMITIt
         </button>
 
         {/* Task Title */}
-        <span className="font-bold text-base text-gray-300 tracking-wide truncate group-hover:text-white transition-colors">
+        <span
+          onClick={() => onEdit(task)}
+          className="font-bold text-base text-gray-300 tracking-wide truncate group-hover:text-white transition-colors cursor-pointer hover:text-primary"
+        >
           {task.title}
         </span>
       </div>

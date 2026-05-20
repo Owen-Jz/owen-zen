@@ -1,12 +1,7 @@
-import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useMotionValue, useTransform } from "framer-motion";
 import { X, Check, Play, Pause, Minimize2, CheckCircle2, AlignLeft, ChevronDown, ChevronUp, Circle } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 // Reusing types from parent context if possible, otherwise redefining locally for the component
 interface SubTask {
@@ -52,6 +47,25 @@ export const FocusOverlay = ({
   const [showStopModal, setShowStopModal] = useState(false);
   const [stopNote, setStopNote] = useState("");
   const [showNotes, setShowNotes] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Mouse parallax for orbs
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      mouseX.set((e.clientX - rect.left - centerX) / 20);
+      mouseY.set((e.clientY - rect.top - centerY) / 20);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    return () => window.removeEventListener('mousemove', handleMouseMove);
+  }, [mouseX, mouseY]);
 
   // Progress ring constants - matches r="45%" in SVG
   const PROGRESS_RING_RADIUS = 45;
@@ -107,24 +121,35 @@ export const FocusOverlay = ({
       className="fixed inset-0 z-[100] bg-background flex flex-col items-center justify-center p-6 md:p-12 overflow-hidden"
     >
       {/* Atmospheric Background with animated orbs */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Primary gradient orb - slow floating animation */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none" ref={containerRef}>
+        {/* Primary gradient orb - slow floating animation with parallax */}
         <motion.div
-          className="absolute w-[800px] h-[800px] rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)', filter: 'blur(80px)' }}
+          className="absolute w-[800px] h-[800px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, var(--primary) 0%, transparent 70%)',
+            filter: 'blur(80px)',
+            opacity: 0.1,
+            x: mouseX,
+            y: mouseY,
+          }}
           animate={{
-            x: [0, 150, 0],
-            y: [0, -80, 0],
+            scale: [1, 1.1, 1],
           }}
           transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
         />
         {/* Secondary orb - blue accent */}
         <motion.div
-          className="absolute w-[600px] h-[600px] rounded-full opacity-10"
-          style={{ background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)', filter: 'blur(60px)' }}
+          className="absolute w-[600px] h-[600px] rounded-full"
+          style={{
+            background: 'radial-gradient(circle, #3b82f6 0%, transparent 70%)',
+            filter: 'blur(60px)',
+            opacity: 0.08,
+            x: useTransform(mouseX, v => -v * 0.5),
+            y: useTransform(mouseY, v => -v * 0.5),
+          }}
           animate={{
-            x: [0, -100, 0],
-            y: [0, 60, 0],
+            x: [-50, -150, -50],
+            y: [30, 90, 30],
           }}
           transition={{ duration: 15, repeat: Infinity, ease: "easeInOut" }}
         />
@@ -202,10 +227,17 @@ export const FocusOverlay = ({
                 initial={{ strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE }}
                 animate={{
                   strokeDashoffset: PROGRESS_RING_CIRCUMFERENCE - (progress / 100) * PROGRESS_RING_CIRCUMFERENCE,
+                  opacity: task.activeTimer?.isActive ? [0.8, 1, 0.8] : 0.4,
+                  filter: task.activeTimer?.isActive
+                    ? [
+                        'drop-shadow(0 0 10px rgba(var(--primary-rgb),0.5))',
+                        'drop-shadow(0 0 25px rgba(var(--primary-rgb),0.8))',
+                        'drop-shadow(0 0 10px rgba(var(--primary-rgb),0.5))'
+                      ]
+                    : 'none',
                 }}
                 transition={{ duration: 0.7, ease: "easeOut" }}
                 style={{
-                  filter: task.activeTimer?.isActive ? 'drop-shadow(0 0 15px rgba(var(--primary-rgb),0.7))' : 'none',
                   opacity: task.activeTimer?.isActive ? 1 : 0.4
                 }}
               />
@@ -273,19 +305,36 @@ export const FocusOverlay = ({
                         ? "bg-primary/5 border-primary/20 opacity-60"
                         : "bg-background border-border hover:border-primary/50"
                     )}
+                    whileTap={{ scale: 0.98 }}
                   >
-                    <div className={cn(
-                      "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
-                      st.completed ? "bg-primary border-primary" : "border-gray-600 group-hover:border-primary"
-                    )}>
-                      {st.completed && <Check size={14} className="text-white" strokeWidth={3} />}
-                    </div>
-                    <span className={cn(
-                      "text-lg font-medium transition-all",
-                      st.completed ? "text-gray-500 line-through" : "text-white"
-                    )}>
+                    <motion.div
+                      className={cn(
+                        "w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all shrink-0",
+                        st.completed ? "bg-primary border-primary" : "border-gray-600"
+                      )}
+                      whileTap={{ scale: 0.9 }}
+                      animate={st.completed ? { scale: [0.8, 1.1, 1] } : { scale: 1 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                    >
+                      {st.completed && (
+                        <motion.span
+                          initial={{ scale: 0, opacity: 0 }}
+                          animate={{ scale: 1, opacity: 1 }}
+                          transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                        >
+                          <Check size={14} className="text-white" strokeWidth={3} />
+                        </motion.span>
+                      )}
+                    </motion.div>
+                    <motion.span
+                      className={cn(
+                        "text-lg font-medium transition-all",
+                        st.completed ? "text-gray-500 line-through" : "text-white"
+                      )}
+                      animate={st.completed ? { opacity: [1, 0.5, 0.5] } : { opacity: 1 }}
+                    >
                       {st.title}
-                    </span>
+                    </motion.span>
                   </motion.div>
                 ))}
               </div>

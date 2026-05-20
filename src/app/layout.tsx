@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Plus_Jakarta_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { SpotlightEffect } from "@/components/SpotlightEffect";
 import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
@@ -9,6 +9,12 @@ const plusJakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
   subsets: ["latin"],
   weight: ["400", "500", "600", "700", "800"],
+});
+
+const jetbrainsMono = JetBrains_Mono({
+  variable: "--font-mono",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const viewport: Viewport = {
@@ -59,7 +65,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" data-theme="zen" className={cn("font-sans", plusJakartaSans.variable)}>
+    <html lang="en" data-theme="zen" className={cn("font-sans", plusJakartaSans.variable, jetbrainsMono.variable)}>
       <body className="antialiased min-h-screen relative">
         <a href="#main-content" className="skip-link">
           Skip to main content

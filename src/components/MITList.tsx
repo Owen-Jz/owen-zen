@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useSensors, useSensor, PointerSensor, KeyboardSensor, DndContext, closestCenter } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy, arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
-import { Target } from "lucide-react";
+import { Target, Trophy, Flame } from "lucide-react";
+import { motion } from "framer-motion";
 import { SortableMITItem } from "@/components/SortableMITItem";
+import { useSoundContext } from "./SoundEffects";
 import { Task } from "@/types";
 
 interface MITListProps {
@@ -12,12 +14,41 @@ interface MITListProps {
     setTasks: React.Dispatch<React.SetStateAction<Task[]>>;
     onUpdateStatus: (id: string, status: string) => void;
     onToggleMIT: (id: string, isMIT: boolean) => void;
+    onEditTask: (task: Task) => void;
     currentBoardId?: string | null;
 }
 
-export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT, currentBoardId }: MITListProps) => {
+export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT, onEditTask, currentBoardId }: MITListProps) => {
     const [newMITTitle, setNewMITTitle] = useState("");
     const [isAdding, setIsAdding] = useState(false);
+    const { playSound } = useSoundContext();
+    const [mitStreak, setMitStreak] = useState(0);
+    const [perfectDay, setPerfectDay] = useState(false);
+
+    // Compute MIT streak
+    useEffect(() => {
+      const completedMits = tasks.filter(t => t.isMIT && t.status === "completed" && t.completedAt);
+      if (completedMits.length === 0) { setMitStreak(0); return; }
+
+      let streak = 0;
+      for (let i = 0; i < 30; i++) {
+        const checkDate = new Date(); checkDate.setDate(checkDate.getDate() - i);
+        const dateStr = checkDate.toISOString().split('T')[0];
+        const hasCompleted = completedMits.some(t => t.completedAt?.startsWith(dateStr));
+        if (hasCompleted) streak++;
+        else if (i > 0) break;
+      }
+      setMitStreak(streak);
+    }, [tasks]);
+
+    const handleCompleteMIT = (id: string) => {
+      onUpdateStatus(id, 'completed');
+      const allComplete = mitTasks.length > 0 && mitTasks.every(t => t.status === "completed");
+      if (allComplete && mitTasks.length > 0) {
+        setPerfectDay(true);
+        playSound('GOAL_ACHIEVED');
+      }
+    };
 
     // Filter MIT tasks
     const mitTasks = tasks.filter(t => t.isMIT && !t.isArchived && t.status !== 'completed').sort((a, b) => a.order - b.order);
@@ -94,11 +125,29 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT, currentB
 
     return (
         <div className="mb-8">
-            <div className="flex items-center gap-3 mb-4 px-2">
-                <div className="w-1 h-6 bg-red-600 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]"></div>
-                <h2 className="text-xl font-bold text-white tracking-tight">
-                    Daily Non-Negotiables <span className="text-gray-500 text-sm font-normal ml-2 tracking-normal uppercase opacity-70">Most Important Tasks</span>
-                </h2>
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    <div className="w-1 h-6 bg-red-600 rounded-full shadow-[0_0_10px_rgba(220,38,38,0.5)]" />
+                    <h2 className="text-lg font-bold text-white">
+                        Daily Non-Negotiables
+                    </h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    {mitStreak > 0 && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-gradient-to-r from-orange-500/20 to-red-500/20 border border-orange-500/30 rounded-full">
+                            <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                                <Flame size={12} className="text-orange-500" />
+                            </motion.div>
+                            <span className="text-xs font-bold text-orange-400">{mitStreak} day streak</span>
+                        </div>
+                    )}
+                    {perfectDay && (
+                        <div className="flex items-center gap-1.5 px-3 py-1 bg-emerald-500/20 border border-emerald-500/30 rounded-full animate-pulse">
+                            <Trophy size={12} className="text-emerald-400" />
+                            <span className="text-xs font-bold text-emerald-400">Perfect Day!</span>
+                        </div>
+                    )}
+                </div>
             </div>
 
             <DndContext
@@ -112,8 +161,9 @@ export const MITList = ({ tasks, setTasks, onUpdateStatus, onToggleMIT, currentB
                             <SortableMITItem
                                 key={task._id}
                                 task={task}
-                                onComplete={(id) => onUpdateStatus(id, 'completed')}
+                                onComplete={(id) => handleCompleteMIT(id)}
                                 onRemoveMIT={(id) => onToggleMIT(id, false)}
+                                onEdit={onEditTask}
                             />
                         ))}
                     </div>

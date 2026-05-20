@@ -2,12 +2,7 @@
 
 import { Check } from 'lucide-react';
 import { NotableDayEditor } from './NotableDayEditor';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface FormData {
     wins: string;

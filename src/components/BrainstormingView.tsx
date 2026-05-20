@@ -2,13 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { Play, Plus, Trash2, ExternalLink, ChevronDown, ChevronUp, Bookmark, Edit2 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { motion, AnimatePresence } from "framer-motion";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface Course {
   _id: string;

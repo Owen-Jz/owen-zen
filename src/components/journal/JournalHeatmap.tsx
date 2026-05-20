@@ -2,12 +2,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface Entry {
   _id: string;
@@ -49,11 +44,11 @@ export function JournalHeatmap({ year, entries, onDateClick }: JournalHeatmapPro
   const weeks = useMemo(() => {
     const result: { date: string; dayOfWeek: number }[][] = [];
     const startDate = new Date(year, 0, 1);
-    // Adjust to Sunday of that week
-    const startSunday = new Date(startDate);
-    startSunday.setDate(startSunday.getDate() - startDate.getDay());
+    // Adjust to Monday of that week
+    const startMonday = new Date(startDate);
+    startMonday.setDate(startMonday.getDate() - ((startDate.getDay() + 6) % 7));
 
-    let current = new Date(startSunday);
+    let current = new Date(startMonday);
     let week: { date: string; dayOfWeek: number }[] = [];
 
     while (current.getFullYear() <= year || current.getMonth() === 0) {

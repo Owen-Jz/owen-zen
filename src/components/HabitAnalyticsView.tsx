@@ -16,9 +16,8 @@ import {
   CheckCircle, Lightbulb, RefreshCw, Star, Trophy,
   Clock, BarChart2, Activity, Users, X
 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Loading } from "@/components/Loading";
+import { cn } from "@/lib/utils";
 import {
   Habit, StreakMetrics, CompletionPattern, FailurePattern,
   HabitComparison, CorrelationData, Prediction, Milestone,
@@ -33,10 +32,6 @@ import {
   heatmapColors, getHeatmapColor, trendColors, cardGlassClass, sectionTitleClass
 } from "@/lib/chartConfigs";
 import { abTesting, analyticsTests } from "@/lib/abTesting";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Period selector component
 const PeriodSelector = ({
@@ -407,7 +402,7 @@ export const HabitAnalyticsView = () => {
   ];
 
   return (
-    <div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration- B20">
+<div className="max-w-7xl mx-auto space-y-6 animate-in fade-in duration-500">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>

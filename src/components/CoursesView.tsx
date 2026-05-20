@@ -16,8 +16,7 @@ import {
   CheckCircle2,
   PauseCircle,
 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 
 import {
   Dialog,
@@ -38,10 +37,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -10,8 +10,7 @@ import {
   X, Flame, Award, Zap, Calendar, TrendingUp, BarChart2,
   Activity, Target, Clock
 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 import {
   Habit,
   getHabitCompletionRate,
@@ -26,10 +25,6 @@ import {
   chartColors, CustomTooltip, cardGlassClass, sectionTitleClass,
   heatmapColors, getHeatmapColor
 } from "@/lib/chartConfigs";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 
 interface HabitDetailModalProps {
   habit: Habit;
@@ -85,7 +80,7 @@ const OverviewTab = ({ habit, period }: { habit: Habit; period: string }) => {
     start.setDate(now.getDate() - daysBack + 1);
 
     const startDay = start.getDay();
-    start.setDate(start.getDate() - startDay);
+    start.setDate(start.getDate() - ((startDay + 6) % 7));
 
     let currentWeek: typeof weeks[0] = [];
     let weekIndex = 0;
@@ -97,11 +92,11 @@ const OverviewTab = ({ habit, period }: { habit: Habit; period: string }) => {
       currentWeek.push({
         date: dateStr,
         week: weekIndex,
-        dayOfWeek: current.getDay(),
+        dayOfWeek: (current.getDay() + 6) % 7,  // Mon=0, Sun=6
         completed
       });
 
-      if (current.getDay() === 6) {
+      if (current.getDay() === 0) {  // week breaks on Sunday in Mon-first layout
         weeks.push(currentWeek);
         currentWeek = [];
         weekIndex++;
@@ -168,7 +163,7 @@ const OverviewTab = ({ habit, period }: { habit: Habit; period: string }) => {
                 </div>
               ))}
             </div>
-            {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, dayIdx) => (
+            {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, dayIdx) => (
               <div key={day} className="flex gap-1 mb-1">
                 <div className="w-8 text-xs text-gray-500 flex items-center">{day}</div>
                 {heatmapData.map((week, weekIdx) => {

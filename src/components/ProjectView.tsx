@@ -2,12 +2,10 @@ import { useState, useEffect } from "react";
 import { Project, ProjectDeliverable, ProjectLink, Task } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Edit2, Trash2, ExternalLink, Filter, CheckCircle2, Circle, Clock, Target, CalendarDays, MoreVertical, LayoutTemplate, X, Check, ChevronDown, ChevronUp, ListTodo, FileText } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { EmptyState } from "@/components/ui/EmptyState";
+import { cn } from "@/lib/utils";
+import { EditTaskModal } from "./EditTaskModal";
+import { TaskPriority, SubTask } from "@/types";
 
 export const ProjectView = () => {
     const [projects, setProjects] = useState<Project[]>([]);
@@ -18,6 +16,7 @@ export const ProjectView = () => {
     const [expandedProjectId, setExpandedProjectId] = useState<string | null>(null);
     const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
     const [taskProjectId, setTaskProjectId] = useState<string | null>(null);
+    const [editingTask, setEditingTask] = useState<Task | null>(null);
 
     useEffect(() => {
         fetchProjects();
@@ -45,6 +44,58 @@ export const ProjectView = () => {
             await fetch(`/api/projects/${id}`, { method: "DELETE" });
         } catch (e) {
             console.error("Failed to delete project", e);
+        }
+    };
+
+    const handleEditTaskSave = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => {
+        try {
+            await fetch(`/api/tasks/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ title, description, priority, subtasks, dueDate, category })
+            });
+            setEditingTask(null);
+            fetchProjects();
+        } catch (e) {
+            console.error("Failed to save task", e);
+        }
+    };
+
+    const handleEditTaskToggleMIT = async (id: string, isMIT: boolean) => {
+        try {
+            await fetch(`/api/tasks/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isMIT })
+            });
+            fetchProjects();
+        } catch (e) {
+            console.error("Failed to toggle MIT", e);
+        }
+    };
+
+    const handleEditTaskArchive = async (id: string) => {
+        try {
+            await fetch(`/api/tasks/${id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ isArchived: true })
+            });
+            setEditingTask(null);
+            fetchProjects();
+        } catch (e) {
+            console.error("Failed to archive task", e);
+        }
+    };
+
+    const handleEditTaskDelete = async (id: string) => {
+        if (!confirm("Delete this task?")) return;
+        try {
+            await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+            setEditingTask(null);
+            fetchProjects();
+        } catch (e) {
+            console.error("Failed to delete task", e);
         }
     };
 
@@ -86,17 +137,13 @@ export const ProjectView = () => {
                     Loading projects...
                 </div>
             ) : filteredProjects.length === 0 ? (
-                <div className="text-center py-20 bg-surface/50 border border-dashed border-white/10 rounded-3xl flex flex-col items-center max-w-2xl mx-auto">
-                    <LayoutTemplate size={48} className="text-gray-600 mb-4 opacity-50" />
-                    <h3 className="text-xl font-bold text-gray-300 mb-2">No projects found</h3>
-                    <p className="text-gray-500 mb-6 max-w-sm">Capture all your major initiatives and track their progress from start to finish.</p>
-                    <button
-                        onClick={() => { setEditingProject(null); setIsModalOpen(true); }}
-                        className="flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all"
-                    >
-                        <Plus size={18} /> Create your first Project
-                    </button>
-                </div>
+                <EmptyState
+                    icon={LayoutTemplate}
+                    title="No projects found"
+                    description="Capture all your major initiatives and track their progress from start to finish."
+                    actionLabel="Create your first Project"
+                    onAction={() => { setEditingProject(null); setIsModalOpen(true); }}
+                  />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                     <AnimatePresence>
@@ -110,6 +157,8 @@ export const ProjectView = () => {
                                 onDelete={deleteProject}
                                 onAddTask={() => { setTaskProjectId(project._id); setIsTaskModalOpen(true); }}
                                 onRefreshProjects={fetchProjects}
+                                editingTask={editingTask}
+                                onEditTask={(task) => setEditingTask(task)}
                             />
                         ))}
                     </AnimatePresence>
@@ -144,12 +193,33 @@ export const ProjectView = () => {
                     />
                 )}
             </AnimatePresence>
+
+            {/* Edit Task Modal */}
+            <AnimatePresence>
+                {editingTask && (
+                    <EditTaskModal
+                        task={editingTask}
+                        onClose={() => setEditingTask(null)}
+                        onSave={handleEditTaskSave}
+                        onStartTimer={() => {}}
+                        onStopTimer={() => {}}
+                        onPauseTimer={() => {}}
+                        onResumeTimer={() => {}}
+                        onDeleteTimeLog={() => {}}
+                        onAddManualTimeLog={() => {}}
+                        onToggleMIT={handleEditTaskToggleMIT}
+                        onArchive={handleEditTaskArchive}
+                        onDelete={handleEditTaskDelete}
+                        onPromoteSubtask={() => {}}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 };
 
-const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, onAddTask, onRefreshProjects }: {
-    project: Project, isExpanded: boolean, onToggleExpand: () => void, onEdit: (p: Project) => void, onDelete: (id: string) => void, onAddTask: () => void, onRefreshProjects: () => void
+const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, onAddTask, onRefreshProjects, editingTask, onEditTask }: {
+    project: Project, isExpanded: boolean, onToggleExpand: () => void, onEdit: (p: Project) => void, onDelete: (id: string) => void, onAddTask: () => void, onRefreshProjects: () => void, editingTask: Task | null, onEditTask: (task: Task) => void
 }) => {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoadingTasks, setIsLoadingTasks] = useState(false);
@@ -339,9 +409,9 @@ const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, on
                                 <div className="text-center py-6 text-gray-600 text-sm">No tasks yet. Add one above.</div>
                             ) : (
                                 tasks.map((task) => (
-                                    <div key={task._id} className="flex items-center gap-3 bg-surface/50 p-3 rounded-xl border border-white/5 group/task">
+                                    <div key={task._id} className="flex items-center gap-3 bg-surface/50 p-3 rounded-xl border border-white/5 group/task cursor-pointer hover:bg-surface/70 transition-colors" onClick={() => onEditTask(task)}>
                                         <button
-                                            onClick={() => toggleTaskStatus(task._id, task.status)}
+                                            onClick={(e) => { e.stopPropagation(); toggleTaskStatus(task._id, task.status); }}
                                             className={cn(
                                                 "w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors",
                                                 task.status === 'completed' ? "bg-emerald-500 border-emerald-500 text-white" : "border-gray-500 hover:border-primary"
@@ -368,7 +438,7 @@ const ProjectCard = ({ project, isExpanded, onToggleExpand, onEdit, onDelete, on
                                             </div>
                                         </div>
                                         <button
-                                            onClick={() => deleteTask(task._id)}
+                                            onClick={(e) => { e.stopPropagation(); deleteTask(task._id); }}
                                             className="p-1.5 text-gray-500 hover:text-red-500 opacity-0 group-hover/task:opacity-100 transition-opacity"
                                         >
                                             <Trash2 size={12} />

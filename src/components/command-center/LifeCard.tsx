@@ -1,7 +1,7 @@
 "use client";
 
 import { Inbox, Check, Flame } from "lucide-react";
-import { SkeletonCard } from "./SkeletonCard";
+import { motion } from "framer-motion";
 
 interface LifeCardProps {
   inboxCount?: number;
@@ -27,6 +27,28 @@ function getMotivationalLine(params: {
   return "Every day is a fresh start.";
 }
 
+function InboxBadge({ count }: { count: number }) {
+  // Color-coded badge: green (<3), amber (3-7), red (>7)
+  const color = count === 0 ? "var(--cc-success)" : count <= 3 ? "var(--cc-success)" : count <= 7 ? "var(--cc-warning)" : "var(--cc-error)";
+  const bgOpacity = count === 0 ? 0.1 : count <= 3 ? 0.15 : count <= 7 ? 0.2 : 0.25;
+
+  return (
+    <motion.span
+      className="inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-[10px] font-bold"
+      style={{
+        backgroundColor: color,
+        opacity: 0.85,
+        color: "var(--cc-card)",
+      }}
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      transition={{ type: "spring", stiffness: 500, damping: 15 }}
+    >
+      {count}
+    </motion.span>
+  );
+}
+
 export function LifeCard({ inboxCount = 0, bucketItems = [], journalStreak = 0, nextBucketItem }: LifeCardProps) {
   const topTwo = bucketItems.slice(0, 2);
   const motivational = getMotivationalLine({
@@ -37,66 +59,128 @@ export function LifeCard({ inboxCount = 0, bucketItems = [], journalStreak = 0, 
   });
 
   return (
-    <div className="rounded-xl border p-5 h-full min-h-[140px] flex flex-col gap-3 hover:shadow-md transition-all duration-200 hover:-translate-y-px cursor-pointer bg-[var(--cc-card)] border-[var(--cc-border)]">
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      whileHover={{ scale: 1.01, boxShadow: "0 4px 20px rgba(212,168,83,0.15)" }}
+      className="rounded-2xl border p-5 h-full min-h-[200px] flex flex-col gap-3"
+      style={{
+        backgroundColor: "var(--cc-card)",
+        borderColor: "var(--cc-border)",
+        transition: "box-shadow 200ms ease",
+      }}
+    >
       {/* Header row */}
       <div className="flex items-center justify-between">
-        <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--cc-text-secondary)" }}>
+        <motion.p
+          className="text-xs font-bold uppercase tracking-widest"
+          style={{ color: "var(--cc-text-secondary)" }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.1 }}
+        >
           Life
-        </p>
-        <div className="flex items-center gap-1">
+        </motion.p>
+        <motion.div
+          className="flex items-center gap-1.5"
+          initial={{ opacity: 0, x: 10 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.15 }}
+        >
           <Inbox size={13} style={{ color: "var(--cc-accent)" }} />
-          <span className="text-xs font-mono font-bold" style={{ color: "var(--cc-text)" }}>
+          <span className="text-sm font-bold" style={{ color: "var(--cc-text)" }}>
             {inboxCount}
           </span>
-        </div>
+          <span className="text-[10px]" style={{ color: "var(--cc-text-secondary)" }}>inbox</span>
+          <InboxBadge count={inboxCount} />
+        </motion.div>
       </div>
 
-      {/* Body: journal + bucket list */}
+      {/* Body: journal streak + bucket list */}
       <div className="flex gap-4 flex-1">
-        {/* Journal streak */}
-        <div className="flex flex-col items-center justify-center gap-0.5 min-w-[44px]">
-          <Flame size={15} style={{ color: "var(--cc-accent)" }} />
-          <span className="text-xl font-bold font-mono leading-none" style={{ color: "var(--cc-text)" }}>
+        {/* Journal streak flame */}
+        <motion.div
+          className="flex flex-col items-center justify-center gap-0.5 min-w-[44px]"
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 0.2, type: "spring", stiffness: 300 }}
+        >
+          <Flame
+            size={16}
+            style={{ color: "var(--cc-accent)" }}
+            className="drop-shadow-[0_0_6px_rgba(212,168,83,0.5)]"
+          />
+          <span
+            className="text-2xl font-extrabold leading-none"
+            style={{ fontFamily: "var(--font-heading)", color: "var(--cc-text)" }}
+          >
             {journalStreak}
           </span>
-          <span className="text-[10px] uppercase tracking-wide" style={{ color: "var(--cc-text-secondary)" }}>
+          <span className="text-[9px] uppercase tracking-wide" style={{ color: "var(--cc-text-secondary)" }}>
             journal
           </span>
-        </div>
+        </motion.div>
 
         {/* Vertical divider */}
         <div className="w-px self-stretch" style={{ backgroundColor: "var(--cc-border)" }} />
 
         {/* Bucket list items */}
-        <div className="flex flex-col justify-center gap-1.5 flex-1 min-w-0">
+        <div className="flex flex-col justify-center gap-2 flex-1 min-w-0">
           {topTwo.length === 0 ? (
-            <p className="text-xs truncate italic" style={{ color: "var(--cc-text-secondary)" }}>
+            <motion.p
+              className="text-xs truncate italic"
+              style={{ color: "var(--cc-text-secondary)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.3 }}
+            >
               No bucket list items yet
-            </p>
+            </motion.p>
           ) : (
             topTwo.map((item, i) => (
-              <div key={i} className="flex items-center gap-1.5 min-w-0">
-                <Check
-                  size={12}
-                  className="flex-shrink-0"
-                  style={{ color: "var(--cc-accent)" }}
-                />
+              <motion.div
+                key={i}
+                className="flex items-center gap-1.5 min-w-0"
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: 0.3 + i * 0.08 }}
+              >
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  transition={{ delay: 0.35 + i * 0.08, type: "spring", stiffness: 400 }}
+                >
+                  <Check size={12} style={{ color: "var(--cc-accent)" }} className="drop-shadow-[0_0_3px_rgba(212,168,83,0.4)]" />
+                </motion.div>
                 <span className="text-xs truncate" style={{ color: "var(--cc-text)" }}>
                   {item}
                 </span>
-              </div>
+              </motion.div>
             ))
           )}
           {bucketItems.length > 2 && (
-            <p className="text-[10px]" style={{ color: "var(--cc-text-secondary)" }}>
+            <motion.p
+              className="text-[10px]"
+              style={{ color: "var(--cc-text-secondary)" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.45 }}
+            >
               +{bucketItems.length - 2} more
-            </p>
+            </motion.p>
           )}
         </div>
       </div>
 
-      {/* Footer: next bucket item + motivational line */}
-      <div className="space-y-1 pt-1 border-t" style={{ borderColor: "var(--cc-border)" }}>
+      {/* Footer: next bucket item + motivational */}
+      <motion.div
+        className="space-y-1 pt-1 border-t"
+        style={{ borderColor: "var(--cc-border)" }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
         {nextBucketItem && (
           <p className="text-xs truncate" style={{ color: "var(--cc-accent)" }}>
             Next: {nextBucketItem}
@@ -104,28 +188,30 @@ export function LifeCard({ inboxCount = 0, bucketItems = [], journalStreak = 0, 
         )}
         <p
           className="text-xs italic"
-          style={{
-            fontFamily: "var(--font-heading)",
-            color: "var(--cc-text-secondary)",
-          }}
+          style={{ fontFamily: "var(--font-heading)", color: "var(--cc-text-secondary)" }}
         >
           {motivational}
         </p>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 }
 
 export function LifeCardSkeleton() {
   return (
-    <div className="rounded-xl border p-5 min-h-[140px] bg-[var(--cc-card)] border-[var(--cc-border)]">
-      <SkeletonCard className="h-3 w-10 mb-3" />
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="rounded-2xl border p-5 min-h-[200px]"
+      style={{ backgroundColor: "var(--cc-card)", borderColor: "var(--cc-border)" }}
+    >
+      <div className="h-3 w-10 rounded mb-4" style={{ backgroundColor: "var(--cc-bg)" }} />
       <div className="flex gap-4 mb-3">
-        <SkeletonCard className="h-14 w-12 rounded-lg" />
-        <SkeletonCard className="h-14 flex-1 rounded-lg" />
+        <div className="h-14 w-12 rounded-lg" style={{ backgroundColor: "var(--cc-bg)" }} />
+        <div className="h-14 flex-1 rounded-lg" style={{ backgroundColor: "var(--cc-bg)" }} />
       </div>
-      <SkeletonCard className="h-3 w-full mb-1" />
-      <SkeletonCard className="h-3 w-3/4" />
-    </div>
+      <div className="h-3 w-full rounded mb-1" style={{ backgroundColor: "var(--cc-bg)" }} />
+      <div className="h-3 w-3/4 rounded" style={{ backgroundColor: "var(--cc-bg)" }} />
+    </motion.div>
   );
 }

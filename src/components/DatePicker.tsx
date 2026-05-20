@@ -1,12 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface DatePickerProps {
     value: string | undefined; // ISO string format usually YYYY-MM-DD
@@ -93,11 +88,11 @@ export const DatePicker: React.FC<DatePickerProps> = ({ value, onChange, placeho
         const monthStart = new Date(currentMonth.getFullYear(), currentMonth.getMonth(), 1);
         const monthEnd = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 0);
         const startDate = new Date(monthStart);
-        startDate.setDate(startDate.getDate() - startDate.getDay()); // go back to Sunday
+        startDate.setDate(startDate.getDate() - ((startDate.getDay() + 6) % 7)); // go back to Monday
 
         const endDate = new Date(monthEnd);
-        if (endDate.getDay() !== 6) {
-            endDate.setDate(endDate.getDate() + (6 - endDate.getDay())); // go forward to Saturday
+        if (endDate.getDay() !== 0) {
+            endDate.setDate(endDate.getDate() + (7 - endDate.getDay())); // go forward to Sunday
         }
 
         const rows = [];

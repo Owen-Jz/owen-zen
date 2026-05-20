@@ -2,12 +2,11 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Landmark } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Landmark, Copy, Flame, Grid3x3 } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import { Task, TaskStatus, TaskPriority } from "@/types";
+import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -16,10 +15,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
 
 // Helper for formatting date
 const formatDate = (dateString: string | Date | undefined) => {
@@ -41,6 +36,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onStopTimer?: (id: string, note?: string) => void;
   onFocus?: (task: Task) => void;
   onBank?: (id: string) => void;
+  onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
   style?: React.CSSProperties;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: any;
@@ -49,6 +45,9 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   isDragging?: boolean;
   isOverlay?: boolean;
   activeId?: string | null;
+  isMultiSelectMode?: boolean;
+  selectedTasks?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }>(({
   task,
   onDelete,
@@ -62,12 +61,16 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onStopTimer,
   onFocus,
   onBank,
+  onUpdateQuadrant,
   style,
   attributes,
   listeners,
   isDragging,
   isOverlay,
-  activeId
+  activeId,
+  isMultiSelectMode,
+  selectedTasks,
+  onToggleSelect
 }, ref) => {
 
   const priorityColors = {
@@ -124,7 +127,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
       className={cn(
         "group bg-surface/40 backdrop-blur-md hover:bg-surface/60 border border-white/5 rounded-2xl transition-all duration-300 mb-4 relative",
         "hover:shadow-[0_8px_30px_rgba(0,0,0,0.3),0_0_20px_rgba(var(--primary-rgb),0.1)]",
-        "hover:-translate-y-0.5 hover:border-white/10",
+        "hover:scale-[1.02] hover:-translate-y-0.5 hover:border-white/10",
         "active:translate-y-0 active:scale-[0.98]",
         task.activeTimer?.isActive && "ring-2 ring-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.2)]",
         isOverlay && "shadow-3xl scale-105 rotate-2 cursor-grabbing ring-2 ring-primary z-50 bg-surface/80 backdrop-blur-2xl",
@@ -142,6 +145,30 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
               "bg-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.9),0_0_40px_rgba(59,130,246,0.4)]"
         )}
       />
+
+      {/* MIT Flame Badge */}
+      {task.isMIT && (
+        <div className="absolute top-3 left-3 flex items-center gap-1 px-2 py-0.5 bg-red-500/20 border border-red-500/30 rounded-md">
+          <Flame size={10} className="text-red-500 animate-pulse" />
+          <span className="text-[9px] font-bold text-red-400 uppercase">MIT</span>
+        </div>
+      )}
+
+      {/* Completion Celebration Effect */}
+      {task.status === "completed" && task.completedAt && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none overflow-hidden rounded-2xl"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-emerald-500/10 via-transparent to-emerald-500/10"
+            initial={{ x: "-100%", opacity: 0 }}
+            animate={{ x: ["-100%", "100%"], opacity: [0, 1, 0] }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+          />
+        </motion.div>
+      )}
 
       {/* Make Subtask Drop Zone */}
       {
@@ -176,6 +203,20 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
             <button {...attributes} {...listeners} className={cn("p-2 text-gray-500 hover:text-white shrink-0 mt-0.5 rounded-md hover:bg-white/5 transition-colors", listeners ? "cursor-grab active:cursor-grabbing" : "cursor-default")} aria-label="Drag to reorder task">
               <GripVertical size={16} />
             </button>
+            {/* Multi-select checkbox */}
+            {isMultiSelectMode && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleSelect?.(task._id); }}
+                className={cn(
+                  "w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all shrink-0 mr-2",
+                  selectedTasks?.has(task._id)
+                    ? "bg-primary border-primary"
+                    : "border-gray-600 hover:border-primary/50"
+                )}
+              >
+                {selectedTasks?.has(task._id) && <Check size={12} className="text-white" />}
+              </button>
+            )}
             <h4
               onClick={(e) => {
                 e.stopPropagation();
@@ -189,6 +230,13 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
               {task.title}
             </h4>
           </div>
+
+          {/* Category Badge */}
+          {task.category && (
+            <div className="absolute top-3 right-12 px-2 py-0.5 bg-white/5 border border-white/10 rounded-md text-[9px] font-bold text-gray-400 uppercase tracking-wider">
+              {task.category}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 shrink-0">
             {task.activeTimer?.isActive && (
@@ -252,6 +300,31 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                     <Landmark size={14} className="mr-2" /> Move to Bank
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={() => onUpdateQuadrant?.(task._id, "q1")}
+                    className={cn("cursor-pointer", task.quadrant === "q1" && "text-red-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> Do First (Urgent & Important)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onUpdateQuadrant?.(task._id, "q2")}
+                    className={cn("cursor-pointer", task.quadrant === "q2" && "text-blue-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2" /> Schedule (Not Urgent & Important)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onUpdateQuadrant?.(task._id, "q3")}
+                    className={cn("cursor-pointer", task.quadrant === "q3" && "text-yellow-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-yellow-500 mr-2" /> Delegate (Urgent & Not Important)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => onUpdateQuadrant?.(task._id, "q4")}
+                    className={cn("cursor-pointer", task.quadrant === "q4" && "text-gray-500")}
+                  >
+                    <div className="w-2 h-2 rounded-full bg-gray-500 mr-2" /> Eliminate (Not Urgent & Not Important)
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   {task.status === "completed" && (
                     <DropdownMenuItem onClick={() => onArchive?.(task._id)} className="cursor-pointer text-yellow-500">
                       <Archive size={14} className="mr-2" /> Archive
@@ -264,6 +337,31 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
               </DropdownMenu>
             )}
           </div>
+        </div>
+
+        {/* Hover Action Buttons */}
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity mt-2 pt-2 border-t border-white/5">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit?.(task); }}
+            className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
+            title="Edit"
+          >
+            <Edit2 size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete?.(task._id); }}
+            className="p-1.5 hover:bg-red-500/10 rounded-lg text-gray-500 hover:text-red-500 transition-colors"
+            title="Delete"
+          >
+            <Trash2 size={14} />
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); /* duplicate - could call API */ }}
+            className="p-1.5 hover:bg-white/10 rounded-lg text-gray-500 hover:text-white transition-colors"
+            title="Duplicate"
+          >
+            <Copy size={14} />
+          </button>
         </div>
 
         {/* Subtasks Section */}
@@ -441,7 +539,11 @@ export const SortableTaskItem = ({
   onStopTimer,
   onFocus,
   onBank,
-  activeId
+  onUpdateQuadrant,
+  activeId,
+  isMultiSelectMode,
+  selectedTasks,
+  onToggleSelect
 }: {
   task: Task;
   onDelete: (id: string) => void;
@@ -455,7 +557,11 @@ export const SortableTaskItem = ({
   onStopTimer: (id: string, note?: string) => void;
   onFocus: (task: Task) => void;
   onBank?: (id: string) => void;
+  onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
   activeId?: string | null;
+  isMultiSelectMode?: boolean;
+  selectedTasks?: Set<string>;
+  onToggleSelect?: (id: string) => void;
 }) => {
   const {
     attributes,
@@ -489,16 +595,20 @@ export const SortableTaskItem = ({
       onStopTimer={onStopTimer}
       onFocus={onFocus}
       onBank={onBank}
+      onUpdateQuadrant={onUpdateQuadrant}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
       activeId={activeId}
+      isMultiSelectMode={isMultiSelectMode}
+      selectedTasks={selectedTasks}
+      onToggleSelect={onToggleSelect}
     />
   );
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, activeId }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, onUpdateQuadrant, activeId, isMultiSelectMode, selectedTasks, onToggleSelect }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -514,7 +624,11 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onFocus: (task: Task) => void,
   onArchiveAll?: () => void,
   onBank?: (id: string) => void,
-  activeId?: string | null
+  onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void,
+  activeId?: string | null,
+  isMultiSelectMode?: boolean,
+  selectedTasks?: Set<string>,
+  onToggleSelect?: (id: string) => void
 }) => {
   const { setNodeRef, isOver } = useDroppable({
     id: id,
@@ -526,9 +640,23 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
       className={cn(
         "relative p-4 md:p-5 rounded-3xl border border-white/5 min-h-[600px] flex flex-col transition-all duration-500 overflow-hidden",
         "before:absolute before:inset-x-4 before:top-0 before:h-px before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent",
-        isOver && "bg-primary/5 border-primary/40 shadow-[0_0_50px_rgba(var(--primary-rgb),0.15)] scale-[1.02]"
+        isOver && [
+          "bg-primary/5 border-primary/40 shadow-[0_0_50px_rgba(var(--primary-rgb),0.15)] scale-[1.02]",
+          "before:bg-gradient-to-r before:from-primary/30 before:via-primary/50 before:to-primary/30"
+        ]
       )}
     >
+      {/* Animated drop target indicator */}
+      {isOver && (
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: [0.3, 0.6, 0.3] }}
+          transition={{ duration: 0.8, repeat: Infinity }}
+        >
+          <div className="absolute inset-0 border-2 border-primary/50 rounded-3xl" />
+        </motion.div>
+      )}
       {/* Inner gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent pointer-events-none" />
       <div className="flex items-center justify-between mb-6 pb-4 border-b border-white/5">
@@ -577,7 +705,11 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onStopTimer={onStopTimer}
                 onFocus={onFocus}
                 onBank={onBank}
+                onUpdateQuadrant={onUpdateQuadrant}
                 activeId={activeId}
+                isMultiSelectMode={isMultiSelectMode}
+                selectedTasks={selectedTasks}
+                onToggleSelect={onToggleSelect}
               />
             ))}
           </AnimatePresence>
@@ -588,11 +720,11 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               animate={{ opacity: 1, y: 0 }}
               className="flex flex-col items-center justify-center py-12 text-center"
             >
-              <div className="w-16 h-16 mb-4 rounded-full bg-white/5 flex items-center justify-center">
-                <Plus size={24} className="text-gray-600" />
+              <div className="w-20 h-20 mb-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center">
+                <Check size={32} className="text-gray-600" />
               </div>
-              <p className="text-sm text-gray-500 font-medium mb-1">No tasks here</p>
-              <p className="text-xs text-gray-600">Drop a task or create one</p>
+              <p className="text-sm text-gray-400 font-medium mb-1">All clear!</p>
+              <p className="text-xs text-gray-600">No tasks here. Drag one in or create new.</p>
             </motion.div>
           )}
           {/* Invisible spacer */}

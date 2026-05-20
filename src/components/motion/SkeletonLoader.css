@@ -1,0 +1,96 @@
+/* Skeleton loader animations */
+
+.skeleton-text,
+.skeleton-rect,
+.skeleton-circle,
+.skeleton-card {
+  background: var(--surface, #141414);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shimmer animation - the recommended default */
+.skeleton-text--shimmer,
+.skeleton-rect--shimmer,
+.skeleton-circle--shimmer,
+.skeleton-card--shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--surface, #141414) 0%,
+    var(--surface-hover, #1a1a1a) 50%,
+    var(--surface, #141414) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}
+
+/* Pulse animation - subtle alternative */
+.skeleton-text--pulse,
+.skeleton-rect--pulse,
+.skeleton-circle--pulse,
+.skeleton-card--pulse {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Text-specific */
+.skeleton-text {
+  height: 16px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-text:last-child {
+  margin-bottom: 0;
+}
+
+/* Circle - for avatars */
+.skeleton-circle {
+  border-radius: 50%;
+}
+
+/* Card skeleton */
+.skeleton-card {
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border, #262626);
+}
+
+.skeleton-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border, #262626);
+}
+
+/* Group layout */
+.skeleton-group {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Shimmer keyframe */
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-text--shimmer,
+  .skeleton-rect--shimmer,
+  .skeleton-circle--shimmer,
+  .skeleton-card--shimmer,
+  .skeleton-text--pulse,
+  .skeleton-rect--pulse,
+  .skeleton-circle--pulse,
+  .skeleton-card--pulse {
+    animation: none;
+  }
+}

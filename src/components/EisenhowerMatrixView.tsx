@@ -6,6 +6,8 @@ import {
   DndContext,
   DragOverlay,
   closestCenter,
+  closestCorners,
+  rectIntersection,
   PointerSensor,
   KeyboardSensor,
   useSensor,
@@ -18,9 +20,10 @@ import {
   SortableContext,
   verticalListSortingStrategy,
   useSortable,
+  arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { Grid3x3, ChevronDown, ChevronUp, Circle } from "lucide-react";
+import { Grid3x3, ChevronDown, ChevronUp, Circle, Plus } from "lucide-react";
 import { Task } from "@/types";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./TaskColumn";
@@ -40,7 +43,7 @@ const QUADRANT_STYLES: Record<string, string> = {
   gray: "border-gray-500/30 bg-gray-500/5",
 };
 
-export const EisenhowerMatrixView = ({ tasks }: { tasks: Task[] }) => {
+export const EisenhowerMatrixView = ({ tasks, onTasksChange, onAddTask, isAddTaskModalOpen, setIsAddTaskModalOpen }: { tasks: Task[]; onTasksChange?: (updatedTask: Task) => void; onAddTask?: () => void; isAddTaskModalOpen?: boolean; setIsAddTaskModalOpen?: (open: boolean) => void }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
 
@@ -49,9 +52,6 @@ export const EisenhowerMatrixView = ({ tasks }: { tasks: Task[] }) => {
     useSensor(KeyboardSensor)
   );
 
-  const poolTasks = tasks.filter(
-    t => !t.quadrant && !t.isBanked && !t.isArchived && t.status !== "completed"
-  );
   const completedTasks = tasks.filter(t => t.status === "completed" && !t.isArchived);
   const tasksByQuadrant = (id: string) => tasks.filter(t => t.quadrant === id && !t.isArchived);
 
@@ -66,26 +66,72 @@ export const EisenhowerMatrixView = ({ tasks }: { tasks: Task[] }) => {
 
     const taskId = active.id as string;
     const overId = over.id as string;
+    const activeTask = tasks.find(t => t._id === taskId);
+    if (!activeTask) return;
+
+    const overTask = tasks.find(t => t._id === overId);
 
     let newQuadrant: "q1" | "q2" | "q3" | "q4" | null = null;
-    if (overId === "pool") {
-      newQuadrant = null;
-    } else if (["q1", "q2", "q3", "q4"].includes(overId)) {
+    if (["q1", "q2", "q3", "q4"].includes(overId)) {
       newQuadrant = overId as "q1" | "q2" | "q3" | "q4";
-    } else {
-      // Dropped on a task card — find that task's current quadrant
-      const overTask = tasks.find(t => t._id === overId);
-      if (overTask) newQuadrant = overTask.quadrant ?? null;
+    } else if (overTask) {
+      newQuadrant = overTask.quadrant ?? null;
     }
 
-    try {
-      await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ quadrant: newQuadrant }),
-      });
-    } catch (e) {
-      console.error("Failed to update task quadrant", e);
+    // Cross-quadrant move — update quadrant and persist
+    if (newQuadrant !== null && newQuadrant !== activeTask.quadrant) {
+      try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ quadrant: newQuadrant }),
+        });
+        const json = await res.json();
+        if (json.success && onTasksChange) {
+          onTasksChange(json.data);
+        }
+      } catch (e) {
+        console.error("Failed to update task quadrant", e);
+      }
+      return;
+    }
+
+    // Same-quadrant reorder — reorder within quadrant
+    const targetQuadrant = activeTask.quadrant;
+    const quadrantTasks = tasks.filter(
+      t => t.quadrant === targetQuadrant && !t.isArchived && t.status !== "completed"
+    );
+
+    const oldIndex = quadrantTasks.findIndex(t => t._id === taskId);
+    const newIndex = overTask
+      ? quadrantTasks.findIndex(t => t._id === overId)
+      : oldIndex;
+
+    if (oldIndex !== newIndex && newIndex !== -1) {
+      const reordered = arrayMove(quadrantTasks, oldIndex, newIndex);
+      const newOrder = reordered.map((t, i) => ({ ...t, order: i }));
+
+      try {
+        await fetch("/api/tasks", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            tasks: newOrder.map(t => ({
+              _id: t._id,
+              order: t.order,
+              quadrant: t.quadrant,
+              status: t.status,
+              priority: t.priority,
+              title: t.title,
+              isArchived: t.isArchived,
+              completedAt: t.completedAt,
+              isBanked: t.isBanked,
+            }))
+          }),
+        });
+      } catch (e) {
+        console.error("Failed to reorder tasks", e);
+      }
     }
   };
 
@@ -105,16 +151,22 @@ export const EisenhowerMatrixView = ({ tasks }: { tasks: Task[] }) => {
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      <div className="flex items-center gap-3">
-        <Grid3x3 size={22} className="text-primary" />
-        <h1 className="text-2xl font-bold">Eisenhower Matrix</h1>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Grid3x3 size={22} className="text-primary" />
+          <h1 className="text-2xl font-bold">Eisenhower Matrix</h1>
+        </div>
+        <button
+          onClick={onAddTask}
+          className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 border border-primary/30 text-primary rounded-xl transition-all text-sm font-bold"
+        >
+          <Plus size={16} /> Add Task
+        </button>
       </div>
-
-      <PoolSection tasks={poolTasks} activeId={activeId} />
 
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
@@ -154,43 +206,6 @@ export const EisenhowerMatrixView = ({ tasks }: { tasks: Task[] }) => {
     </div>
   );
 };
-
-// --- PoolSection ---
-function PoolSection({ tasks, activeId }: { tasks: Task[]; activeId: string | null }) {
-  const { setNodeRef, isOver } = useDroppable({ id: "pool" });
-
-  return (
-    <div
-      ref={setNodeRef}
-      className={cn(
-        "flex gap-3 overflow-x-auto pb-2 min-h-[80px] border rounded-xl transition-colors p-3",
-        isOver ? "border-primary/50 bg-primary/5" : "border-white/5 bg-surface/30"
-      )}
-    >
-      <div className="flex items-center gap-2 shrink-0 text-xs text-gray-500 font-bold uppercase tracking-wider self-center">
-        Pool
-        <span className="bg-surface px-2 py-0.5 rounded-full border border-white/10 text-gray-400">
-          {tasks.length}
-        </span>
-      </div>
-      {tasks.map(task => (
-        <motion.div
-          key={task._id}
-          layout
-          whileHover={{ scale: 1.02 }}
-          className="shrink-0 w-48"
-        >
-          <TaskCard task={task} activeId={activeId} />
-        </motion.div>
-      ))}
-      {tasks.length === 0 && (
-        <div className="flex items-center text-gray-600 text-sm italic self-center">
-          Drag tasks here to categorize
-        </div>
-      )}
-    </div>
-  );
-}
 
 // --- QuadrantCard ---
 function QuadrantCard({

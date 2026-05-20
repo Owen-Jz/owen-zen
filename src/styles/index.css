@@ -1,0 +1,14 @@
+/**
+ * Design System - Main Stylesheet
+ * Import this file to load all design system styles
+ * Order matters: tokens first, then animations, then variants
+ */
+
+/* Core design tokens */
+@import "./design-tokens.css";
+
+/* Animation utilities */
+@import "./animations.css";
+
+/* Variant utility classes */
+@import "./variants.css";

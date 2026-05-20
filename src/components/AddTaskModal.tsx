@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { X, Check, Plus, Trash2, Calendar, Layout, AlertCircle, Circle, AlignLeft, CheckCircle2 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { X, Check, Plus, Trash2, Calendar, Layout, AlertCircle, Circle, AlignLeft, CheckCircle2, Grid3x3 } from "lucide-react";
 import { TaskPriority, SubTask } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { Input } from "@/components/ui/input";
@@ -10,19 +8,18 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface AddTaskModalProps {
     initialTitle?: string;
+    initialQuadrant?: "q1" | "q2" | "q3" | "q4" | null;
     onClose: () => void;
-    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string) => void;
+    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => void;
 }
 
 export const AddTaskModal = ({
     initialTitle = "",
+    initialQuadrant,
     onClose,
     onSave,
 }: AddTaskModalProps) => {
@@ -34,6 +31,7 @@ export const AddTaskModal = ({
     const [newSubtask, setNewSubtask] = useState("");
     const [isMIT, setIsMIT] = useState(false);
     const [category, setCategory] = useState("Other");
+    const [quadrant, setQuadrant] = useState<"q1" | "q2" | "q3" | "q4" | null>(initialQuadrant ?? null);
 
     const addSubtask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -54,7 +52,7 @@ export const AddTaskModal = ({
 
     const handleSave = () => {
         if (!title.trim()) return;
-        onSave(title, description, priority, subtasks, dueDate || undefined, isMIT, category);
+        onSave(title, description, priority, subtasks, dueDate || undefined, isMIT, category, quadrant);
         onClose();
     };
 
@@ -243,6 +241,39 @@ export const AddTaskModal = ({
                                     </div>
                                     <AlertCircle size={16} className={cn("ml-auto transition-colors", isMIT ? "text-primary" : "text-gray-600")} />
                                 </label>
+                            </div>
+
+                            {/* Quadrant Selector */}
+                            <div>
+                                <label className="text-xs uppercase text-gray-500 font-bold mb-3 block">Eisenhower Quadrant</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    {([
+                                        { id: "q1", label: "Do First", color: "red" },
+                                        { id: "q2", label: "Schedule", color: "blue" },
+                                        { id: "q3", label: "Delegate", color: "yellow" },
+                                        { id: "q4", label: "Eliminate", color: "gray" },
+                                    ] as const).map((q) => (
+                                        <button
+                                            type="button"
+                                            key={q.id}
+                                            onClick={() => setQuadrant(quadrant === q.id ? null : q.id)}
+                                            className={cn(
+                                                "px-2 py-2 rounded-lg text-xs font-bold border transition-all flex flex-col items-center gap-1",
+                                                quadrant === q.id
+                                                    ? q.color === 'red' ? "bg-red-500/20 border-red-500 text-red-500" :
+                                                      q.color === 'blue' ? "bg-blue-500/20 border-blue-500 text-blue-500" :
+                                                      q.color === 'yellow' ? "bg-yellow-500/20 border-yellow-500 text-yellow-500" :
+                                                      "bg-gray-500/20 border-gray-500 text-gray-400"
+                                                    : "border-white/5 bg-white/5 text-gray-400 hover:bg-white/10 hover:border-white/10"
+                                            )}
+                                        >
+                                            <div className={cn("w-2 h-2 rounded-full",
+                                                q.color === 'red' ? "bg-red-500" : q.color === 'blue' ? "bg-blue-500" : q.color === 'yellow' ? "bg-yellow-500" : "bg-gray-500"
+                                            )} />
+                                            {q.label}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
                         </div>
                     </div>

@@ -3,8 +3,7 @@
 import { Flame, Plus, Trash2, Loader2, Target } from "lucide-react";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { cn } from "@/lib/utils";
 
 interface FoodEntry {
   _id: string;
@@ -12,10 +11,6 @@ interface FoodEntry {
   items: string[];
   totalCalories: number | null;
   analyzedAt: string | null;
-}
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
 }
 
 export default function FoodTrackerView() {

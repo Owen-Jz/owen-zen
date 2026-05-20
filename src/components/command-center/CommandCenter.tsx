@@ -173,7 +173,7 @@ export function CommandCenter() {
           const sessions = gymRes.data || [];
           const now = new Date();
           const startOfWeek = new Date(now);
-          startOfWeek.setDate(now.getDate() - now.getDay());
+          startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
           const thisWeek = sessions.filter((s: any) => new Date(s.date) >= startOfWeek);
           setGymSessions(thisWeek.length);
           // Recent sessions
@@ -257,8 +257,10 @@ export function CommandCenter() {
         if (contentRes.success) {
           const posts = contentRes.data || [];
           const now = new Date();
-          const endOfWeek = new Date(now);
-          endOfWeek.setDate(now.getDate() + (6 - now.getDay()));
+          const startOfWeek = new Date(now);
+          startOfWeek.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+          const endOfWeek = new Date(startOfWeek);
+          endOfWeek.setDate(startOfWeek.getDate() + 6);
           const thisWeek = posts.filter((p: any) => {
             const d = new Date(p.scheduledDate || p.date);
             return d >= now && d <= endOfWeek;

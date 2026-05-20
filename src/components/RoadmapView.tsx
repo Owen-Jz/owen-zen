@@ -2,12 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Plus, Trash2, ChevronRight, ChevronDown, Circle, CheckCircle2, Loader2 } from "lucide-react";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-  return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface Goal {
   _id: string;

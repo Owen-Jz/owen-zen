@@ -1,12 +1,7 @@
 'use client';
 
 import { Target, TrendingUp, Flame, Calendar, Trophy } from 'lucide-react';
-import { clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: (string | undefined | null | false)[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils";
 
 interface AutoStats {
     tasksCompleted: number;
