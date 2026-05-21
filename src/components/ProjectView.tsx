@@ -47,12 +47,12 @@ export const ProjectView = () => {
         }
     };
 
-    const handleEditTaskSave = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string) => {
+    const handleEditTaskSave = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => {
         try {
             await fetch(`/api/tasks/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, description, priority, subtasks, dueDate, category })
+                body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant })
             });
             setEditingTask(null);
             fetchProjects();
