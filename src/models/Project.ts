@@ -42,6 +42,14 @@ const ProjectSchema = new mongoose.Schema({
     deliverables: [DeliverableSchema],
     notes: [{ type: String }],
     links: [LinkSchema],
+    tags: [{
+        name: { type: String },
+        color: { type: String }
+    }],
+    estimatedHours: Number,
+    teamMembers: [String],
+    quadrant: String,
+    notesRichText: String,
     createdAt: {
         type: Date,
         default: Date.now,
