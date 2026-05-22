@@ -4,8 +4,8 @@ import path from 'path';
 export interface CalendarEvent {
   id: string;
   title: string;
-  start: string; // ISO string
-  end: string; // ISO string
+  start: string;
+  end: string;
   location?: string;
   htmlLink: string;
   colorId?: string;
@@ -17,108 +17,134 @@ export interface SyncResult {
   isIncremental: boolean;
 }
 
-export class GoogleCalendarService {
-  private static instance: GoogleCalendarService;
+interface AccountConfig {
+  credentialsJson: string;
+  calendarId: string;
+  syncTokenKey: string;
+}
 
+const ACCOUNT_CONFIGS: Record<string, AccountConfig> = {
+  personal: {
+    credentialsJson: process.env.GOOGLE_SERVICE_ACCOUNT_JSON || '',
+    calendarId: 'owendigitals@gmail.com',
+    syncTokenKey: 'gcal_personal_sync_token',
+  },
+  work: {
+    credentialsJson: process.env.GOOGLE_WORK_SERVICE_ACCOUNT_JSON || '',
+    calendarId: process.env.GOOGLE_WORK_CALENDAR_ID || '',
+    syncTokenKey: 'gcal_work_sync_token',
+  },
+};
+
+export class GoogleCalendarClient {
+  private auth: any = null;
+  private calendar: calendar_v3.Calendar | null = null;
+  private credentialsJson: string;
+  private calendarId: string;
+  private syncTokenKey: string;
   private syncToken: string | null = null;
-  private lastSync: Date | null = null;
+  private resolvedCalendarId: string | null = null;
 
-  private readonly CALENDAR_ID = 'owendigitals@gmail.com';
-  private readonly SYNC_TOKEN_KEY = 'gcal_sync_token';
-
-  private constructor() {}
-
-  public static getInstance(): GoogleCalendarService {
-    if (!GoogleCalendarService.instance) {
-      GoogleCalendarService.instance = new GoogleCalendarService();
-    }
-    return GoogleCalendarService.instance;
+  constructor(config: AccountConfig) {
+    this.credentialsJson = config.credentialsJson;
+    this.calendarId = config.calendarId;
+    this.syncTokenKey = config.syncTokenKey;
   }
 
-  private async getCalendarClient(): Promise<calendar_v3.Calendar> {
-    // Priority 1: Use Environment Variable (Production/Vercel/Local)
-    if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-      try {
-        const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON);
-        const auth = new google.auth.GoogleAuth({
-          credentials,
-          scopes: ['https://www.googleapis.com/auth/calendar'],
-        });
-        return google.calendar({ version: 'v3', auth });
-      } catch (e) {
-        console.error('Failed to parse GOOGLE_SERVICE_ACCOUNT_JSON', e);
-        throw new Error('Invalid GOOGLE_SERVICE_ACCOUNT_JSON format.');
+  private async resolvePrimaryCalendarId(calendar: calendar_v3.Calendar): Promise<string> {
+    if (this.resolvedCalendarId) return this.resolvedCalendarId;
+
+    try {
+      const calendarList = await calendar.calendarList.list();
+      const primary = calendarList.data.items?.find(c => c.primary === true);
+      if (primary?.id) {
+        this.resolvedCalendarId = primary.id;
+        return this.resolvedCalendarId;
       }
+    } catch (e) {
+      console.warn('Could not fetch calendar list to find primary:', e);
     }
 
-    // Priority 2: Fallback to local file in project root (Cross-platform)
-    try {
+    // Fallback to configured calendarId
+    this.resolvedCalendarId = this.calendarId;
+    return this.resolvedCalendarId;
+  }
+
+  private async getAuth(): Promise<any> {
+    if (this.auth) return this.auth;
+
+    if (!this.credentialsJson) {
+      // Try local file fallback
       const keyFilePath = path.join(process.cwd(), 'service_account.json');
-      const auth = new google.auth.GoogleAuth({
+      this.auth = new google.auth.GoogleAuth({
         keyFile: keyFilePath,
         scopes: ['https://www.googleapis.com/auth/calendar'],
       });
-      return google.calendar({ version: 'v3', auth });
-    } catch (e) {
-      console.warn('Could not initialize Google Calendar with local file:', e);
-      throw new Error(
-        'Google Calendar credentials missing. Set GOOGLE_SERVICE_ACCOUNT_JSON env var or place service_account.json in project root.'
-      );
+    } else {
+      try {
+        const creds = JSON.parse(this.credentialsJson);
+        this.auth = new google.auth.GoogleAuth({
+          credentials: creds,
+          scopes: ['https://www.googleapis.com/auth/calendar'],
+        });
+      } catch (e) {
+        console.error('Failed to parse service account JSON:', e);
+        throw e;
+      }
     }
+
+    return this.auth;
   }
 
-  /**
-   * Public method that returns the calendar client.
-   * Used by the sync route to reuse auth without duplicating logic.
-   */
   public async getCalendar(): Promise<calendar_v3.Calendar> {
     return this.getCalendarClient();
   }
 
-  public saveSyncToken(token: string): void {
-    this.syncToken = token;
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(this.SYNC_TOKEN_KEY, token);
-    }
+  private async getCalendarClient(): Promise<calendar_v3.Calendar> {
+    if (this.calendar) return this.calendar;
+    const auth = await this.getAuth();
+    this.calendar = google.calendar({ version: 'v3', auth });
+    return this.calendar;
   }
 
-  public getSyncToken(): string | null {
-    if (this.syncToken) {
-      return this.syncToken;
-    }
+  private loadSyncToken(): string | null {
+    if (this.syncToken) return this.syncToken;
     if (typeof window !== 'undefined') {
-      this.syncToken = localStorage.getItem(this.SYNC_TOKEN_KEY);
+      this.syncToken = localStorage.getItem(this.syncTokenKey);
       return this.syncToken;
     }
     return null;
   }
 
-  public clearSyncToken(): void {
-    this.syncToken = null;
+  private saveSyncToken(token: string): void {
+    this.syncToken = token;
     if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.SYNC_TOKEN_KEY);
+      localStorage.setItem(this.syncTokenKey, token);
     }
   }
 
-  public async getUpcomingEvents(maxResults = 10): Promise<SyncResult> {
-    return this.getUpcomingEventsInternal(maxResults, 0);
+  public clearSyncToken(): void {
+    this.syncToken = null;
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(this.syncTokenKey);
+    }
   }
 
-  private async getUpcomingEventsInternal(maxResults: number, retryCount: number): Promise<SyncResult> {
-    const calendar = await this.getCalendarClient();
+  public async getUpcomingEvents(maxResults = 10, retryCount = 0): Promise<SyncResult> {
+    const calendar = await this.getCalendar();
+    const calendarId = await this.resolvePrimaryCalendarId(calendar);
     const timeMin = new Date().toISOString();
-    const existingToken = this.getSyncToken();
+    const existingToken = this.loadSyncToken();
 
     let isIncremental = false;
-    let requestConfig: calendar_v3.Params$Resource$Events$List = {
-      calendarId: this.CALENDAR_ID,
+    const requestConfig: calendar_v3.Params$Resource$Events$List = {
+      calendarId,
       singleEvents: true,
       orderBy: 'startTime',
       timeMin,
       maxResults,
     };
 
-    // Use sync token for incremental sync if available
     if (existingToken) {
       isIncremental = true;
       requestConfig.syncToken = existingToken;
@@ -127,14 +153,23 @@ export class GoogleCalendarService {
     try {
       const response = await calendar.events.list(requestConfig);
 
-      // Save the next sync token for future incremental syncs
       if (response.data.nextSyncToken) {
         this.saveSyncToken(response.data.nextSyncToken);
       }
 
-      this.lastSync = new Date();
-
-      const events: CalendarEvent[] = (response.data.items || []).map((item) => ({
+      // Filter to only events whose organizer matches the calendar ID being queried
+    // AND exclude workingLocation events (Google Calendar's "work from home" marker)
+    // For work account, the calendar ID is owen@twolions.co — any event with that organizer
+    // comes from the primary calendar. Events from shared/secondary calendars have different organizers.
+    const events: CalendarEvent[] = (response.data.items || [])
+      .filter((item) => {
+        // Exclude workingLocation events (these are "work from home" markers, not real events)
+        if (item.eventType === 'workingLocation') return false;
+        const organizerEmail = item.organizer?.email;
+        // Only include events where the organizer matches the calendar we're querying
+        return organizerEmail && organizerEmail.toLowerCase() === this.calendarId.toLowerCase();
+      })
+      .map((item) => ({
         id: item.id || '',
         title: item.summary || '(No title)',
         start: item.start?.dateTime || item.start?.date || '',
@@ -144,30 +179,50 @@ export class GoogleCalendarService {
         colorId: item.colorId ?? undefined,
       }));
 
+    // For work account, also include events organized by other people but on the shared calendar
+    // These are legitimate calendar events (like Design Daily Sync organized by emmanuel@twolions.co)
+    if (this.calendarId === 'owen@twolions.co') {
+      const sharedEvents: CalendarEvent[] = (response.data.items || [])
+        .filter((item) => {
+          if (item.eventType === 'workingLocation') return false;
+          const org = item.organizer?.email || '';
+          return org.endsWith('@twolions.co');
+        })
+        .map((item) => ({
+          id: item.id || '',
+          title: item.summary || '(No title)',
+          start: item.start?.dateTime || item.start?.date || '',
+          end: item.end?.dateTime || item.end?.date || '',
+          location: item.location ?? undefined,
+          htmlLink: item.htmlLink || '',
+          colorId: item.colorId ?? undefined,
+        }));
+      // Merge and deduplicate
+      const allEvents = [...events, ...sharedEvents];
+      const uniqueEvents = allEvents.filter((e, i, arr) => arr.findIndex(a => a.id === e.id) === i);
+      return {
+        events: uniqueEvents.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
+        nextSyncToken: response.data.nextSyncToken || null,
+        isIncremental,
+      };
+    }
+
       return {
         events,
         nextSyncToken: response.data.nextSyncToken || null,
         isIncremental,
       };
     } catch (error: any) {
-      // Handle Gone error (410) - sync token is expired, clear and retry with full sync
       if (error.code === 410 || error.response?.status === 410) {
         if (retryCount >= 1) {
-          // Already retried once after clearing sync token - throwing to avoid infinite recursion
-          console.error('Sync token expired on full sync retry. A 410 error persists after clearing token.');
-          throw new Error('Calendar sync failed: sync token rejected by Google even after clear. The calendar may have been deleted or sync token corrupted server-side.');
+          throw new Error('Calendar sync failed: sync token rejected by Google even after clear.');
         }
         console.warn('Sync token expired, clearing and retrying with full sync');
         this.clearSyncToken();
-        return this.getUpcomingEventsInternal(maxResults, retryCount + 1);
+        return this.getUpcomingEvents(maxResults, retryCount + 1);
       }
       throw error;
     }
-  }
-
-  public async forceFullSync(maxResults = 10): Promise<SyncResult> {
-    this.clearSyncToken();
-    return this.getUpcomingEvents(maxResults);
   }
 
   public async createEvent(params: {
@@ -178,7 +233,7 @@ export class GoogleCalendarService {
     location?: string;
     timeZone?: string;
   }): Promise<{ id: string; htmlLink: string }> {
-    const calendar = await this.getCalendarClient();
+    const calendar = await this.getCalendar();
     const event = {
       summary: params.title,
       description: params.description,
@@ -193,13 +248,11 @@ export class GoogleCalendarService {
       },
       reminders: {
         useDefault: false,
-        overrides: [
-          { method: 'popup' as const, minutes: 10 },
-        ],
+        overrides: [{ method: 'popup' as const, minutes: 10 }],
       },
     };
     const response = await calendar.events.insert({
-      calendarId: this.CALENDAR_ID,
+      calendarId: this.calendarId,
       requestBody: event,
     });
     return {
@@ -209,5 +262,44 @@ export class GoogleCalendarService {
   }
 }
 
-// Export a singleton instance for convenience
+// Registry for calendar clients
+const clients: Record<string, GoogleCalendarClient> = {};
+
+export function getCalendarClient(account: 'personal' | 'work'): GoogleCalendarClient {
+  if (!clients[account]) {
+    const config = ACCOUNT_CONFIGS[account];
+    if (!config?.credentialsJson) {
+      throw new Error(`Missing credentials for ${account} account. Set ${account === 'personal' ? 'GOOGLE_SERVICE_ACCOUNT_JSON' : 'GOOGLE_WORK_SERVICE_ACCOUNT_JSON'} env var.`);
+    }
+    clients[account] = new GoogleCalendarClient(config);
+  }
+  return clients[account];
+}
+
+export class GoogleCalendarService {
+  private static instance: GoogleCalendarService;
+
+  private constructor() {}
+
+  public static getInstance(): GoogleCalendarService {
+    if (!GoogleCalendarService.instance) {
+      GoogleCalendarService.instance = new GoogleCalendarService();
+    }
+    return GoogleCalendarService.instance;
+  }
+
+  public async getUpcomingEventsForAccount(account: 'personal' | 'work', maxResults = 10) {
+    const client = getCalendarClient(account);
+    return client.getUpcomingEvents(maxResults);
+  }
+
+  public async createEventOnAccount(
+    account: 'personal' | 'work',
+    params: { title: string; description?: string; start: Date; end: Date; location?: string; timeZone?: string }
+  ) {
+    const client = getCalendarClient(account);
+    return client.createEvent(params);
+  }
+}
+
 export const googleCalendarService = GoogleCalendarService.getInstance();

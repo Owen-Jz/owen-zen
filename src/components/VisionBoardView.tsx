@@ -44,6 +44,7 @@ const MOODBOARD = [
   "https://i.pinimg.com/736x/10/14/8d/10148d703608eaaaee88e91ec9f28813.jpg", // Drive & Discipline
   "https://i.pinimg.com/736x/32/35/6a/32356a88b8ebd04f59c074a15fa0f38e.jpg", // Elite Professional
   "https://i.pinimg.com/736x/17/7e/72/177e7236ab5e181631fc49ab093fc154.jpg", // The Peak Athlete
+  "https://res.cloudinary.com/dwwk10ror/image/upload/v1779353685/vision_board/dkjq5qgkiseyn8wz3tlr.png", // AI Generated Vision
 ];
 
 export const VisionBoardView = () => {
@@ -149,7 +150,8 @@ export const VisionBoardView = () => {
                           i === 5 ? "The Giveback" :
                             i === 6 ? "Drive & Discipline" :
                               i === 7 ? "Elite Professional" :
-                                "The Peak Athlete"}
+                                i === 8 ? "The Peak Athlete" :
+                                  "AI Generated Vision"}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110 opacity-80 group-hover:opacity-100"
                 loading="lazy"
               />
@@ -165,7 +167,8 @@ export const VisionBoardView = () => {
                             i === 5 ? "The Giveback" :
                               i === 6 ? "Drive & Discipline" :
                                 i === 7 ? "Elite Professional" :
-                                  "The Peak Athlete"}
+                                  i === 8 ? "The Peak Athlete" :
+                                    "AI Generated Vision"}
                 </p>
               </div>
               {/* Subtle corner accent */}

@@ -1,12 +1,12 @@
 import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import { NextResponse } from "next/server";
-import { GoogleCalendarService } from "@/lib/googleCalendar";
+import { getCalendarClient } from "@/lib/googleCalendar";
 
 export async function POST(req: Request) {
   await dbConnect();
   try {
-    const { taskId, date } = await req.json();
+    const { taskId, date, account = 'personal' } = await req.json();
 
     if (!taskId || !date) {
       return NextResponse.json({ success: false, error: "Missing taskId or date" }, { status: 400 });
@@ -18,20 +18,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Task not found" }, { status: 404 });
     }
 
-    // 1. Create Google Calendar Event
+    // Get the appropriate calendar client
     let calendar;
     try {
-      calendar = await GoogleCalendarService.getInstance().getCalendar();
+      calendar = await getCalendarClient(account).getCalendar();
     } catch (authError: any) {
       console.error("Google Auth Failed:", authError.message);
       return NextResponse.json({
         success: false,
-        error: "Google Calendar configuration missing. Please add GOOGLE_SERVICE_ACCOUNT_JSON to .env.local",
+        error: "Google Calendar configuration missing.",
         details: authError.message
       }, { status: 500 });
     }
-
-    const calendarId = 'owendigitals@gmail.com'; // TODO: Make this configurable if needed
 
     const startDate = new Date(date);
     const endDate = new Date(startDate);
@@ -57,6 +55,10 @@ export async function POST(req: Request) {
       },
     };
 
+    const calendarId = account === 'work'
+      ? (process.env.GOOGLE_WORK_CALENDAR_ID || 'owen@twolions.co')
+      : 'owendigitals@gmail.com';
+
     const res = await calendar.events.insert({
       calendarId,
       requestBody: event,
@@ -67,7 +69,7 @@ export async function POST(req: Request) {
     task.googleEventId = res.data.id;
     await task.save();
 
-    console.log(`Successfully scheduled task "${task.title}" to Google Calendar`);
+    console.log(`Successfully scheduled task "${task.title}" to Google Calendar (${account})`);
 
     return NextResponse.json({ success: true, data: task, googleLink: res.data.htmlLink });
 

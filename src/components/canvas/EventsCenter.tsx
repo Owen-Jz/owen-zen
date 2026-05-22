@@ -1,8 +1,9 @@
 // src/components/canvas/EventsCenter.tsx
 'use client';
 
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Calendar, RefreshCw, ExternalLink } from 'lucide-react';
+import { Calendar, RefreshCw, ExternalLink, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ interface EventsResponse {
   data: {
     events: CalendarEvent[];
     isIncremental: boolean;
+    account: string;
   };
   error?: string;
 }
@@ -49,10 +51,50 @@ function SkeletonRow() {
   );
 }
 
+type Account = 'personal' | 'work';
+const ACCOUNT_LABELS: Record<Account, string> = {
+  personal: 'Personal',
+  work: 'Work',
+};
+
+function AccountTab({
+  account,
+  isActive,
+  onClick,
+  eventCount,
+}: {
+  account: Account;
+  isActive: boolean;
+  onClick: () => void;
+  eventCount: number;
+}) {
+  const Icon = account === 'personal' ? Calendar : Briefcase;
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        'flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium transition-all',
+        isActive
+          ? 'bg-white/10 text-white'
+          : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
+      )}
+    >
+      <Icon size={10} />
+      {ACCOUNT_LABELS[account]}
+      {eventCount > 0 && (
+        <span className="ml-0.5 text-[9px] font-mono opacity-60">{eventCount}</span>
+      )}
+    </button>
+  );
+}
+
 export function EventsCenter() {
-  const { data, isLoading, isError, error, refetch } = useQuery<EventsResponse>({
-    queryKey: ['calendar-events'],
-    queryFn: () => fetch('/api/calendar/events').then(r => r.json()),
+  const [activeAccount, setActiveAccount] = useState<Account>('personal');
+
+  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<EventsResponse>({
+    queryKey: ['calendar-events', activeAccount],
+    queryFn: () => fetch(`/api/calendar/events?account=${activeAccount}`).then(r => r.json()),
+    staleTime: 1000 * 60 * 5,
   });
 
   const events = data?.data?.events ?? [];
@@ -79,23 +121,31 @@ export function EventsCenter() {
           <span className="text-sm font-bold" style={{ color: 'var(--foreground)' }}>
             Upcoming
           </span>
-          {!isLoading && !isError && upcomingEvents.length > 0 && (
-            <span
-              className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold"
-              style={{ background: 'var(--gray-800)', color: 'var(--gray-400)' }}
-            >
-              {upcomingEvents.length}
-            </span>
-          )}
         </div>
-        <button
-          onClick={() => refetch()}
-          className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
-          style={{ color: 'var(--gray-500)' }}
-          aria-label="Refresh events"
-        >
-          <RefreshCw size={14} className={isLoading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-1.5">
+          {/* Account tabs */}
+          <AccountTab
+            account="personal"
+            isActive={activeAccount === 'personal'}
+            onClick={() => setActiveAccount('personal')}
+            eventCount={events.length}
+          />
+          <AccountTab
+            account="work"
+            isActive={activeAccount === 'work'}
+            onClick={() => setActiveAccount('work')}
+            eventCount={events.length}
+          />
+          <div className="w-px h-4 bg-white/10 mx-1" />
+          <button
+            onClick={() => refetch()}
+            className="p-1.5 rounded-lg hover:bg-white/5 transition-colors"
+            style={{ color: 'var(--gray-500)' }}
+            aria-label="Refresh events"
+          >
+            <RefreshCw size={14} className={isFetching ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Body */}

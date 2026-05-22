@@ -1124,7 +1124,7 @@ const RightSidebar = ({
                     setCurrentMusicGenre(null);
                   } else {
                     const urls = {
-                      lofi: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                      lofi: 'https://www.youtube.com/watch?v=EWrX250Zhko',
                       classical: 'https://www.youtube.com/watch?v=rR3Spmdj3LU',
                       jazz: 'https://www.youtube.com/watch?v=6aM31dzlXVM',
                     };
@@ -2575,7 +2575,7 @@ export default function Dashboard() {
                             key={genre}
                             onClick={() => {
                               const urls = {
-                                lofi: 'https://www.youtube.com/watch?v=jfKfPfyJRdk',
+                                lofi: 'https://www.youtube.com/watch?v=EWrX250Zhko',
                                 classical: 'https://www.youtube.com/watch?v=rR3Spmdj3LU',
                                 jazz: 'https://www.youtube.com/watch?v=6aM31dzlXVM',
                                 founders: 'https://www.youtube.com/watch?v=0NCrui_dYJY',

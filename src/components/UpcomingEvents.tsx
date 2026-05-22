@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Calendar, ChevronDown, ChevronUp, RefreshCw, ExternalLink, AlertCircle, Plus, X } from 'lucide-react';
+import { Calendar, ChevronDown, ChevronUp, RefreshCw, ExternalLink, AlertCircle, Plus, X, Briefcase } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from "@/lib/utils";
 
@@ -21,6 +21,7 @@ interface EventsResponse {
   data: {
     events: CalendarEvent[];
     isIncremental: boolean;
+    account: string;
   };
   error?: string;
 }
@@ -39,26 +40,145 @@ function formatEventDate(isoString: string): string {
   return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
-export function UpcomingEvents() {
+function AccountSection({
+  account,
+  label,
+  icon: Icon,
+}: {
+  account: 'personal' | 'work';
+  label: string;
+  icon: React.ElementType;
+}) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newEventTitle, setNewEventTitle] = useState('');
-  const [newEventDate, setNewEventDate] = useState('');
-  const [newEventTime, setNewEventTime] = useState('');
-  const [newEventDuration, setNewEventDuration] = useState('60'); // minutes
-  const [isCreating, setIsCreating] = useState(false);
-  const [createError, setCreateError] = useState('');
-
   const queryClient = useQueryClient();
 
-  const { data, isLoading, isError, error, refetch, isFetching } = useQuery<EventsResponse>({
-    queryKey: ['calendar-events'],
-    queryFn: () => fetch('/api/calendar/events').then(r => r.json()),
+  const { data, isLoading, isError, refetch, isFetching } = useQuery<EventsResponse>({
+    queryKey: ['calendar-events', account],
+    queryFn: () => fetch(`/api/calendar/events?account=${account}`).then(r => r.json()),
     staleTime: 1000 * 60 * 5,
   });
 
   const events = data?.data?.events ?? [];
   const hasEvents = events.length > 0;
+
+  return (
+    <div className="space-y-1">
+      {/* Account Header */}
+      <button
+        onClick={() => setIsExpanded(!isExpanded)}
+        className="w-full flex items-center justify-between px-2 py-2.5 rounded-lg border border-white/5 hover:bg-white/5 transition-all group"
+      >
+        <div className="flex items-center gap-2">
+          <Icon size={14} className="text-gray-500" />
+          <span className="text-xs font-bold text-gray-300 tracking-tight">
+            {label}
+          </span>
+          {!isExpanded && hasEvents && !isLoading && (
+            <span className="px-1.5 py-0.5 rounded-full text-[9px] font-mono font-bold bg-surface border border-border text-gray-500">
+              {events.length}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1.5">
+          {isFetching && !isLoading && (
+            <RefreshCw size={12} className="animate-spin text-gray-500" />
+          )}
+          {isExpanded ? (
+            <ChevronUp size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+          ) : (
+            <ChevronDown size={14} className="text-gray-600 group-hover:text-gray-400 transition-colors" />
+          )}
+        </div>
+      </button>
+
+      {/* Expandable Content */}
+      <AnimatePresence initial={false}>
+        {isExpanded && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2, ease: 'easeOut' }}
+            className="overflow-hidden"
+          >
+            <div className="pl-4 pb-1 space-y-0.5">
+              {/* Loading */}
+              {isLoading && (
+                <div className="space-y-1.5 px-1 py-2">
+                  {[1, 2].map(i => (
+                    <div key={i} className="flex items-center gap-3 animate-pulse">
+                      <div className="h-2.5 w-10 rounded bg-white/5" />
+                      <div className="h-2.5 flex-1 rounded bg-white/5" />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Error */}
+              {isError && (
+                <div className="flex flex-col items-center gap-1.5 py-3 px-1">
+                  <AlertCircle size={12} className="text-red-400" />
+                  <span className="text-[10px] text-gray-600">Failed to load</span>
+                  <button
+                    onClick={() => refetch()}
+                    className="px-2 py-0.5 rounded-lg text-[10px] font-medium bg-surface border border-border text-gray-500 hover:bg-white/5 transition-colors"
+                  >
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {/* Empty */}
+              {!isLoading && !isError && events.length === 0 && (
+                <div className="py-2.5 text-center">
+                  <span className="text-[10px] italic text-gray-600">No upcoming events</span>
+                </div>
+              )}
+
+              {/* Events */}
+              {!isLoading && !isError && events.length > 0 && (
+                <div className="space-y-0.5">
+                  {events.map(event => (
+                    <button
+                      key={event.id}
+                      onClick={() => window.open(event.htmlLink, '_blank')}
+                      className="w-full flex items-center gap-2.5 px-2 py-1.5 rounded-md hover:bg-white/5 transition-colors text-left group/event"
+                    >
+                      <div className="flex flex-col items-start w-12 shrink-0">
+                        <span className="text-[10px] font-mono font-medium text-gray-500">
+                          {formatEventTime(event.start)}
+                        </span>
+                        <span className="text-[9px] text-gray-600">
+                          {formatEventDate(event.start)}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-400 flex-1 truncate group-hover/event:text-gray-200 transition-colors">
+                        {event.title}
+                      </span>
+                      <ExternalLink size={9} className="text-gray-700 group-hover/event:text-gray-500 transition-colors shrink-0" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+export function UpcomingEvents() {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEventTitle, setNewEventTitle] = useState('');
+  const [newEventDate, setNewEventDate] = useState('');
+  const [newEventTime, setNewEventTime] = useState('');
+  const [newEventDuration, setNewEventDuration] = useState('60');
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState('');
+  const [activeAccount, setActiveAccount] = useState<'personal' | 'work'>('personal');
+
+  const queryClient = useQueryClient();
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -71,7 +191,7 @@ export function UpcomingEvents() {
     const endDateTime = new Date(startDateTime.getTime() + parseInt(newEventDuration) * 60 * 1000);
 
     try {
-      const res = await fetch('/api/calendar/events', {
+      const res = await fetch(`/api/calendar/events?account=${activeAccount}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,7 +208,7 @@ export function UpcomingEvents() {
         setNewEventDate('');
         setNewEventTime('');
         setNewEventDuration('60');
-        refetch(); // Refresh the event list
+        queryClient.invalidateQueries({ queryKey: ['calendar-events', activeAccount] });
       } else {
         setCreateError(json.error || 'Failed to create event');
       }
@@ -104,7 +224,6 @@ export function UpcomingEvents() {
       {/* Collapsible Header */}
       <div className="flex items-center gap-2">
         <button
-          onClick={() => setIsExpanded(!isExpanded)}
           className="flex-1 flex items-center justify-between px-2 py-3 rounded-xl border border-white/5 hover:bg-white/5 transition-all group"
         >
           <div className="flex items-center gap-3">
@@ -112,21 +231,10 @@ export function UpcomingEvents() {
             <span className="text-sm font-bold text-gray-200 tracking-tight">
               Upcoming Events
             </span>
-            {!isExpanded && hasEvents && !isLoading && (
-              <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-surface border border-border text-gray-400">
-                {events.length}
-              </span>
-            )}
           </div>
           <div className="flex items-center gap-2">
-            {isFetching && !isLoading && (
-              <RefreshCw size={14} className="animate-spin text-gray-500" />
-            )}
-            {isExpanded ? (
-              <ChevronUp size={16} className="text-gray-500 group-hover:text-gray-300 transition-colors" />
-            ) : (
-              <ChevronDown size={16} className="text-gray-500 group-hover:text-gray-300 transition-colors" />
-            )}
+            <RefreshCw size={14} className="text-gray-600" />
+            <ChevronDown size={16} className="text-gray-500" />
           </div>
         </button>
 
@@ -140,94 +248,11 @@ export function UpcomingEvents() {
         </button>
       </div>
 
-      {/* Expandable Content */}
-      <AnimatePresence initial={false}>
-        {isExpanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: 'easeOut' }}
-            className="overflow-hidden"
-          >
-            <div className="pt-3 space-y-1">
-              {/* Loading */}
-              {isLoading && (
-                <div className="space-y-2 px-1 py-2">
-                  {[1, 2, 3].map(i => (
-                    <div key={i} className="flex items-center gap-3 animate-pulse">
-                      <div className="h-3 w-12 rounded bg-white/5" />
-                      <div className="h-3 flex-1 rounded bg-white/5" />
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Error */}
-              {isError && (
-                <div className="flex flex-col items-center gap-2 py-4 px-2">
-                  <AlertCircle size={16} className="text-red-400" />
-                  <span className="text-xs text-gray-500">Failed to load events</span>
-                  <button
-                    onClick={() => refetch()}
-                    className="px-3 py-1 rounded-lg text-xs font-medium bg-surface border border-border text-gray-400 hover:bg-white/5 transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
-
-              {/* Empty */}
-              {!isLoading && !isError && events.length === 0 && (
-                <div className="py-4 text-center">
-                  <span className="text-sm italic text-gray-600">No upcoming events</span>
-                </div>
-              )}
-
-              {/* Events */}
-              {!isLoading && !isError && events.length > 0 && (
-                <div className="space-y-0.5">
-                  {events.map(event => (
-                    <button
-                      key={event.id}
-                      onClick={() => window.open(event.htmlLink, '_blank')}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/5 transition-colors text-left group/event"
-                    >
-                      <div className="flex flex-col items-start w-14 shrink-0">
-                        <span className="text-xs font-mono font-medium text-gray-500">
-                          {formatEventTime(event.start)}
-                        </span>
-                        <span className="text-[10px] text-gray-600">
-                          {formatEventDate(event.start)}
-                        </span>
-                      </div>
-                      <span className="text-sm text-gray-300 flex-1 truncate group-hover/event:text-white transition-colors">
-                        {event.title}
-                      </span>
-                      <ExternalLink size={11} className="text-gray-600 group-hover/event:text-gray-400 transition-colors shrink-0" />
-                    </button>
-                  ))}
-                </div>
-              )}
-
-              {/* Footer */}
-              {!isLoading && !isError && hasEvents && (
-                <div className="pt-3 mt-2 border-t border-white/5">
-                  <a
-                    href="https://calendar.google.com"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-1.5 text-xs text-gray-500 hover:text-gray-300 transition-colors"
-                  >
-                    Open Google Calendar
-                    <ExternalLink size={10} />
-                  </a>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Account Sections */}
+      <div className="pt-3 pl-2 space-y-1">
+        <AccountSection account="personal" label="Personal" icon={Calendar} />
+        <AccountSection account="work" label="Work" icon={Briefcase} />
+      </div>
 
       {/* Add Event Modal */}
       <AnimatePresence>
@@ -256,6 +281,39 @@ export function UpcomingEvents() {
               </div>
 
               <form onSubmit={handleCreateEvent} className="space-y-4">
+                {/* Account Selector */}
+                <div>
+                  <label className="block text-xs font-medium text-gray-400 mb-1.5">Account</label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setActiveAccount('personal')}
+                      className={cn(
+                        'flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all',
+                        activeAccount === 'personal'
+                          ? 'border-primary bg-primary/10 text-white'
+                          : 'border-border text-gray-400 hover:bg-white/5'
+                      )}
+                    >
+                      <Calendar size={14} className="inline mr-1.5" />
+                      Personal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setActiveAccount('work')}
+                      className={cn(
+                        'flex-1 px-4 py-2.5 rounded-xl border text-sm font-medium transition-all',
+                        activeAccount === 'work'
+                          ? 'border-primary bg-primary/10 text-white'
+                          : 'border-border text-gray-400 hover:bg-white/5'
+                      )}
+                    >
+                      <Briefcase size={14} className="inline mr-1.5" />
+                      Work
+                    </button>
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-xs font-medium text-gray-400 mb-1.5">Event Title</label>
                   <input
