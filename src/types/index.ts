@@ -64,6 +64,11 @@ export interface ProjectLink {
     url: string;
 }
 
+export interface ProjectTag {
+    name: string;
+    color: string; // hex e.g. "#ef4444"
+}
+
 export interface Project {
     _id: string;
     title: string;
@@ -80,6 +85,11 @@ export interface Project {
     createdAt: string;
     taskCount?: number;
     completedTaskCount?: number;
+    tags?: ProjectTag[];
+    estimatedHours?: number;
+    teamMembers?: string[];
+    quadrant?: "q1" | "q2" | "q3" | "q4" | null;
+    notesRichText?: string; // Tiptap HTML
 }
 
 export interface Note {
