@@ -153,6 +153,9 @@ const CommandCenter = dynamic(() => import("@/components/command-center/CommandC
 const AffirmationsView = dynamic(() => import("@/components/AffirmationsView").then(mod => ({ default: mod.AffirmationsView })), {
   loading: () => <Loading />
 });
+const HourTrackerView = dynamic(() => import("@/components/HourTrackerView").then(mod => ({ default: mod.HourTrackerView })), {
+  loading: () => <Loading />
+});
 
 // --- Types ---
 // Shared types imported from "@/types"
@@ -294,6 +297,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
+        { id: "hour-tracker", label: "Hour Tracker", icon: Clock },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
         { id: "courses", label: "Courses", icon: BookOpen },
         { id: "command-center", label: "Life Command Center", icon: LayoutDashboard },
@@ -2930,6 +2934,7 @@ export default function Dashboard() {
           {activeTab === "marketing" && <MarketingDashboard />}
           {activeTab === "courses" && <CoursesView />}
           {activeTab === "command-center" && <CommandCenter />}
+          {activeTab === "hour-tracker" && <HourTrackerView />}
           {activeTab === "affirmations" && <AffirmationsView />}
           </motion.div>
         </main>
