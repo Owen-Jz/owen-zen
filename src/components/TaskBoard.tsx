@@ -55,7 +55,8 @@ export const TaskBoard = ({
   onBulkUpdateStatus,
   onBulkUpdatePriority,
   onBank,
-  onUpdateQuadrant
+  onUpdateQuadrant,
+  onUpdateSubtaskDescription
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -80,7 +81,8 @@ export const TaskBoard = ({
   onBulkUpdateStatus?: (ids: string[], status: TaskStatus) => void | Promise<void>,
   onBulkUpdatePriority?: (ids: string[], priority: TaskPriority) => void | Promise<void>,
   onBank?: (id: string) => void,
-  onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void
+  onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void,
+  onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void | Promise<void>
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -492,6 +494,7 @@ export const TaskBoard = ({
                   onFocus={onFocus}
                   onBank={onBank}
                   onUpdateQuadrant={onUpdateQuadrant}
+                  onUpdateSubtaskDescription={onUpdateSubtaskDescription}
                   onArchiveAll={col.id === "completed" ? handleArchiveAllCompleted : undefined}
                   activeId={activeId}
                 />

@@ -1288,6 +1288,7 @@ export default function Dashboard() {
   type MusicGenre = 'lofi' | 'classical' | 'jazz' | 'founders' | 'concentration' | 'ceo';
   const [currentMusicGenre, setCurrentMusicGenre] = useState<MusicGenre | null>(null);
   const [isMusicDropdownOpen, setIsMusicDropdownOpen] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
 
   // Close music dropdown on outside click
   useEffect(() => {
@@ -1924,6 +1925,29 @@ export default function Dashboard() {
       });
     } catch {
       setTasks(oldTasks);
+    }
+  };
+
+  const updateSubtaskDescription = async (taskId: string, subtaskIndex: number, description: string) => {
+    const task = tasks.find(t => t._id === taskId);
+    if (!task) return;
+
+    const updatedSubtasks = task.subtasks?.map((st, i) =>
+        i === subtaskIndex ? { ...st, description } : st
+    ) || [];
+
+    try {
+        const res = await fetch(`/api/tasks/${taskId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ subtasks: updatedSubtasks }),
+        });
+        const json = await res.json();
+        if (json.success) {
+            setTasks(tasks.map(t => t._id === taskId ? json.data : t));
+        }
+    } catch (e) {
+        console.error("Failed to update subtask description", e);
     }
   };
 
@@ -2840,6 +2864,7 @@ export default function Dashboard() {
                   onUpdateQuadrant={updateTaskQuadrant}
                   onToggleSubtask={toggleTaskSubtask}
                   onPromoteSubtask={promoteSubtaskToMain}
+                  onUpdateSubtaskDescription={updateSubtaskDescription}
                   onUpdatePriority={updateTaskPriority}
                   onStartTimer={startTimer}
                   onStopTimer={stopTimer}
@@ -2887,7 +2912,7 @@ export default function Dashboard() {
           {activeTab === "notes" && <NotesView />}
           {activeTab === "sniper" && <SniperView />}
           {activeTab === "leads" && <LeadsView />}
-          {activeTab === "clients" && <ClientsView />}
+          {activeTab === "clients" && <ClientsView onSelectClient={setSelectedClientId} />}
           {activeTab === "inbox" && <InboxView />}
           {activeTab === "finance" && <FinanceView />}
           {activeTab === "subscriptions" && <SubscriptionsView />}
