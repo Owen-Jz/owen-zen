@@ -84,6 +84,9 @@ const BrainstormingView = dynamic(() => import("@/components/BrainstormingView")
 const LeadsView = dynamic(() => import("@/components/LeadsView").then(mod => ({ default: mod.LeadsView })), {
   loading: () => <Loading />
 });
+const ClientsView = dynamic(() => import("@/components/clients/ClientListView").then(mod => ({ default: mod.ClientListView })), {
+  loading: () => <Loading />
+});
 const InboxView = dynamic(() => import("@/components/InboxView").then(mod => ({ default: mod.InboxView })), {
   loading: () => <Loading />
 });
@@ -278,12 +281,18 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       ]
     },
     {
+      title: "CRM",
+      links: [
+        { id: "leads", label: "Leads CRM", icon: Users },
+        { id: "clients", label: "Clients", icon: Users },
+      ]
+    },
+    {
       title: "Tools",
       links: [
         { id: "inbox", label: "The Inbox", icon: Inbox },
         { id: "sniper", label: "Sniper System", icon: Crosshair },
         { id: "finance", label: "Finance Tracker", icon: Wallet },
-        { id: "leads", label: "Leads CRM", icon: Users },
         { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
         { id: "courses", label: "Courses", icon: BookOpen },
@@ -2878,6 +2887,7 @@ export default function Dashboard() {
           {activeTab === "notes" && <NotesView />}
           {activeTab === "sniper" && <SniperView />}
           {activeTab === "leads" && <LeadsView />}
+          {activeTab === "clients" && <ClientsView />}
           {activeTab === "inbox" && <InboxView />}
           {activeTab === "finance" && <FinanceView />}
           {activeTab === "subscriptions" && <SubscriptionsView />}
