@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const SessionSchema = new mongoose.Schema({
   date: {
     type: Date,
-    default: Date.now,
+    default: () => Date.now(),
   },
   summary: {
     type: String,
@@ -15,7 +15,7 @@ const SessionSchema = new mongoose.Schema({
   nextSteps: {
     type: String,
   },
-});
+}, { _id: false });
 
 const CommunicationPrefsSchema = new mongoose.Schema({
   preferredContactMethod: {
@@ -41,6 +41,9 @@ const ClientSchema = new mongoose.Schema({
   },
   email: {
     type: String,
+    unique: true,
+    lowercase: true,
+    trim: true,
     maxlength: 200,
   },
   phone: {
