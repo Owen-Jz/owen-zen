@@ -66,7 +66,7 @@ export const EditTaskModal = ({
     const addSubtask = (e: React.FormEvent) => {
         e.preventDefault();
         if (!newSubtask.trim()) return;
-        setSubtasks([...subtasks, { title: newSubtask, completed: false }]);
+        setSubtasks([...subtasks, { title: newSubtask, completed: false, description: "" }]);
         setNewSubtask("");
     };
 
@@ -207,62 +207,78 @@ export const EditTaskModal = ({
 
                             <div className="space-y-2 mb-3">
                                 {subtasks.map((st, i) => (
-                                    <div key={i} className="flex items-center gap-3 group bg-surface hover:bg-surface-hover p-3 rounded-xl border border-border transition-all">
-                                        <button
-                                            onClick={() => toggleSubtask(i)}
-                                            className={cn(
-                                                "w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0",
-                                                st.completed ? "bg-primary border-primary text-white" : "border-gray-600 hover:border-primary/50"
-                                            )}
-                                        >
-                                            {st.completed && <Check size={12} />}
-                                        </button>
-                                        <input
-                                            type="text"
-                                            value={st.title}
-                                            onChange={(e) => {
-                                                const updated = [...subtasks];
-                                                updated[i].title = e.target.value;
-                                                setSubtasks(updated);
-                                            }}
-                                            className={cn(
-                                                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0 whitespace-normal break-words",
-                                                st.completed && "text-gray-500 line-through decoration-gray-600"
-                                            )}
-                                        />
-                                        {onPromoteSubtask && (
-                                            <button
-                                                onClick={(e) => {
-                                                    e.preventDefault();
-                                                    onPromoteSubtask(task._id, i);
-                                                    setSubtasks(subtasks.filter((_, idx) => idx !== i));
-                                                }}
-                                                className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                                title="Promote to main task"
-                                            >
-                                                <ArrowUpToLine size={14} />
-                                            </button>
-                                        )}
-                                        <button
-                                            onClick={() => moveSubtaskUp(i)}
-                                            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                            title="Move up"
-                                            disabled={i === 0}
-                                        >
-                                            <ArrowUp size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => moveSubtaskDown(i)}
-                                            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
-                                            title="Move down"
-                                            disabled={i === subtasks.length - 1}
-                                        >
-                                            <ArrowDown size={14} />
-                                        </button>
-                                        <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                    <div key={i} className="flex flex-col gap-2 group bg-surface hover:bg-surface-hover p-3 rounded-xl border border-border transition-all">
+    <div className="flex items-center gap-3">
+        <button
+            onClick={() => toggleSubtask(i)}
+            className={cn(
+                "w-5 h-5 rounded-md border flex items-center justify-center transition-all shrink-0",
+                st.completed ? "bg-primary border-primary text-white" : "border-gray-600 hover:border-primary/50"
+            )}
+        >
+            {st.completed && <Check size={12} />}
+        </button>
+        <input
+            type="text"
+            value={st.title}
+            onChange={(e) => {
+                const updated = [...subtasks];
+                updated[i].title = e.target.value;
+                setSubtasks(updated);
+            }}
+            className={cn(
+                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0 whitespace-normal break-words",
+                st.completed && "text-gray-500 line-through decoration-gray-600"
+            )}
+        />
+        {onPromoteSubtask && (
+            <button
+                onClick={(e) => {
+                    e.preventDefault();
+                    onPromoteSubtask(task._id, i);
+                    setSubtasks(subtasks.filter((_, idx) => idx !== i));
+                }}
+                className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                title="Promote to main task"
+            >
+                <ArrowUpToLine size={14} />
+            </button>
+        )}
+        <button
+            onClick={() => moveSubtaskUp(i)}
+            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+            title="Move up"
+            disabled={i === 0}
+        >
+            <ArrowUp size={14} />
+        </button>
+        <button
+            onClick={() => moveSubtaskDown(i)}
+            className="text-gray-500 hover:text-primary opacity-0 group-hover:opacity-100 transition-opacity p-1"
+            title="Move down"
+            disabled={i === subtasks.length - 1}
+        >
+            <ArrowDown size={14} />
+        </button>
+        <button onClick={() => removeSubtask(i)} className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1">
+            <Trash2 size={14} />
+        </button>
+    </div>
+    {/* Description input — visible by default */}
+    <div className="ml-7">
+        <input
+            type="text"
+            value={st.description || ""}
+            onChange={(e) => {
+                const updated = [...subtasks];
+                updated[i].description = e.target.value;
+                setSubtasks(updated);
+            }}
+            placeholder="Description (optional)"
+            className="w-full bg-transparent/50 outline-none border-none text-xs text-gray-400 placeholder-gray-600 focus:ring-0 p-0 leading-relaxed"
+        />
+    </div>
+</div>
                                 ))}
                             </div>
 
