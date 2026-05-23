@@ -37,6 +37,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onFocus?: (task: Task) => void;
   onBank?: (id: string) => void;
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
+  onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void;
   style?: React.CSSProperties;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: any;
@@ -62,6 +63,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onFocus,
   onBank,
   onUpdateQuadrant,
+  onUpdateSubtaskDescription,
   style,
   attributes,
   listeners,
@@ -80,6 +82,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   };
 
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [expandedSubtaskId, setExpandedSubtaskId] = useState<number | null>(null);
 
   const { isOver: isSubtaskOver, setNodeRef: setSubtaskDropRef } = useDroppable({
     id: `subtask-${task._id}`,
@@ -367,7 +370,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
         {/* Subtasks Section */}
         {task.subtasks && task.subtasks.length > 0 && (
           <div className="mb-4 space-y-2.5">
-            {/* Progress Bar with shimmer */}
+            {/* Progress Bar */}
             <div className="flex items-center gap-3">
               <div className="relative flex-1 h-2 bg-white/5 rounded-full overflow-hidden">
                 <motion.div
@@ -381,11 +384,6 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                       : "bg-primary shadow-[0_0_8px_rgba(var(--primary-rgb),0.4)]"
                   )}
                 />
-                <motion.div
-                  className="absolute inset-y-0 w-1/3 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-                  animate={{ x: ['-100%', '300%'] }}
-                  transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-                />
               </div>
               <span className={cn(
                 "text-[10px] font-mono font-bold tracking-wider tabular-nums",
@@ -396,49 +394,74 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
               </span>
             </div>
 
-            {/* Subtask List (collapsed by default, first 2 visible) */}
+            {/* Subtask List */}
             <div className="space-y-1">
-              {task.subtasks.slice(0, 2).map((st, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors group/sub"
-                >
-                  <div 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onToggleSubtask) onToggleSubtask(task._id, i);
-                    }}
-                    className={cn(
-                      "w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
-                      st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
-                    )}>
-                    {st.completed && <Check size={12} className="text-white" />}
-                  </div>
-                  <span 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (onToggleSubtask) onToggleSubtask(task._id, i);
-                    }}
-                    className={cn(
-                      "text-xs leading-relaxed font-medium transition-colors flex-1 whitespace-normal break-words",
-                      st.completed ? "text-gray-500 line-through" : "text-gray-300"
-                    )}>
-                    {st.title}
-                  </span>
-                  {onPromoteSubtask && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPromoteSubtask(task._id, i);
+              {task.subtasks.slice(0, 2).map((st, i) => {
+                const isExpanded = expandedSubtaskId === i;
+                return (
+                  <div key={i} className="group/sub">
+                    <div
+                      onClick={() => {
+                        if (isExpanded) {
+                          setExpandedSubtaskId(null);
+                        } else {
+                          setExpandedSubtaskId(i);
+                        }
                       }}
-                      className="opacity-0 group-hover/sub:opacity-100 p-1 hover:bg-white/10 rounded transition-all text-gray-500 hover:text-primary"
-                      title="Promote to main task"
+                      className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors"
                     >
-                      <ArrowUpToLine size={12} />
-                    </button>
-                  )}
-                </div>
-              ))}
+                      <div
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (onToggleSubtask) onToggleSubtask(task._id, i);
+                        }}
+                        className={cn(
+                          "w-5 h-5 mt-0.5 rounded-md border flex items-center justify-center transition-all shrink-0 cursor-pointer",
+                          st.completed ? "bg-primary border-primary shadow-[0_0_8px_rgba(var(--primary),0.4)]" : "border-gray-600 group-hover/sub:border-primary/50 bg-black/20"
+                        )}>
+                        {st.completed && <Check size={12} className="text-white" />}
+                      </div>
+                      <span
+                        className={cn(
+                          "text-xs leading-relaxed font-medium transition-colors flex-1 whitespace-normal break-words",
+                          st.completed ? "text-gray-500 line-through" : "text-gray-300"
+                        )}>
+                        {st.title}
+                      </span>
+                      {onPromoteSubtask && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onPromoteSubtask(task._id, i);
+                        }}
+                        className="opacity-0 group-hover/sub:opacity-100 p-1 hover:bg-white/10 rounded transition-all text-gray-500 hover:text-primary"
+                        title="Promote to main task"
+                      >
+                        <ArrowUpToLine size={12} />
+                      </button>
+                      )}
+                    </div>
+
+                    {/* Expanded description area */}
+                    {isExpanded && (
+                      <div className="ml-7 pr-2 mb-1">
+                        <textarea
+                          value={st.description || ""}
+                          onChange={(e) => {
+                            if (onUpdateSubtaskDescription) {
+                              onUpdateSubtaskDescription(task._id, i, e.target.value);
+                            }
+                          }}
+                          onFocus={() => setExpandedSubtaskId(i)}
+                          placeholder="Add a description..."
+                          className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-gray-300 placeholder-gray-600 outline-none focus:border-primary/50 resize-none min-h-[60px] leading-relaxed"
+                          rows={2}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
               {task.subtasks.length > 2 && (
                 <button
                   onClick={() => onEdit && onEdit(task)}
@@ -540,6 +563,7 @@ export const SortableTaskItem = ({
   onFocus,
   onBank,
   onUpdateQuadrant,
+  onUpdateSubtaskDescription,
   activeId,
   isMultiSelectMode,
   selectedTasks,
@@ -558,6 +582,7 @@ export const SortableTaskItem = ({
   onFocus: (task: Task) => void;
   onBank?: (id: string) => void;
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
+  onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void;
   activeId?: string | null;
   isMultiSelectMode?: boolean;
   selectedTasks?: Set<string>;
@@ -596,6 +621,7 @@ export const SortableTaskItem = ({
       onFocus={onFocus}
       onBank={onBank}
       onUpdateQuadrant={onUpdateQuadrant}
+      onUpdateSubtaskDescription={onUpdateSubtaskDescription}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
@@ -608,7 +634,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, onUpdateQuadrant, activeId, isMultiSelectMode, selectedTasks, onToggleSelect }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, onUpdateQuadrant, onUpdateSubtaskDescription, activeId, isMultiSelectMode, selectedTasks, onToggleSelect }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -625,6 +651,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onArchiveAll?: () => void,
   onBank?: (id: string) => void,
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void,
+  onUpdateSubtaskDescription?: (id: string, subtaskIndex: number, description: string) => void,
   activeId?: string | null,
   isMultiSelectMode?: boolean,
   selectedTasks?: Set<string>,
@@ -706,6 +733,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onFocus={onFocus}
                 onBank={onBank}
                 onUpdateQuadrant={onUpdateQuadrant}
+                onUpdateSubtaskDescription={onUpdateSubtaskDescription}
                 activeId={activeId}
                 isMultiSelectMode={isMultiSelectMode}
                 selectedTasks={selectedTasks}
