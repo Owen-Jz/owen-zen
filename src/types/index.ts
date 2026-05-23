@@ -119,6 +119,17 @@ export interface Session {
     nextSteps?: string;
 }
 
+export interface HourEntry {
+  _id: string;
+  date: string;          // YYYY-MM-DD
+  hour: number;          // 0–23
+  text: string;
+  type: 'deep-work' | 'routine' | 'meetings' | 'breaks' | 'distracted' | 'default';
+  isPlanned: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export interface Client {
     _id: string;
     name: string;
