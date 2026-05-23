@@ -2867,7 +2867,7 @@ export default function Dashboard() {
             </motion.div>
           )}
           {activeTab === "weekly" && <WeeklyGoalsView />}
-          {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} onTasksChange={(updated) => setTasks(tasks.map(t => t._id === updated._id ? updated : t))} onAddTask={() => setIsAddTaskModalOpen(true)} isAddTaskModalOpen={isAddTaskModalOpen} setIsAddTaskModalOpen={setIsAddTaskModalOpen} />}
+          {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} onTasksChange={(updated) => setTasks(tasks.map(t => t._id === updated._id ? updated : t))} onAddTask={() => setIsAddTaskModalOpen(true)} isAddTaskModalOpen={isAddTaskModalOpen} setIsAddTaskModalOpen={setIsAddTaskModalOpen} onDelete={deleteTask} onUpdateStatus={updateTaskStatus} onEdit={setEditingTask} onArchive={archiveTask} onToggleSubtask={toggleTaskSubtask} onUpdatePriority={updateTaskPriority} onStartTimer={startTimer} onStopTimer={stopTimer} onFocus={setEditingTask} onBank={bankTask} />}
           {activeTab === "vision" && <VisionBoardView />}
           {activeTab === "reality" && <RealityView />}
           {activeTab === "roadmap" && <RoadmapView />}

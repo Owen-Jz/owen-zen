@@ -24,7 +24,7 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { Grid3x3, ChevronDown, ChevronUp, Circle, Plus } from "lucide-react";
-import { Task } from "@/types";
+import { Task, TaskStatus, TaskPriority } from "@/types";
 import { cn } from "@/lib/utils";
 import { TaskCard } from "./TaskColumn";
 import styles from "./EisenhowerMatrixView.module.css";
@@ -43,12 +43,44 @@ const QUADRANT_STYLES: Record<string, string> = {
   gray: "border-gray-500/30 bg-gray-500/5",
 };
 
-export const EisenhowerMatrixView = ({ tasks, onTasksChange, onAddTask, isAddTaskModalOpen, setIsAddTaskModalOpen }: { tasks: Task[]; onTasksChange?: (updatedTask: Task) => void; onAddTask?: () => void; isAddTaskModalOpen?: boolean; setIsAddTaskModalOpen?: (open: boolean) => void }) => {
+export const EisenhowerMatrixView = ({
+  tasks,
+  onTasksChange,
+  onAddTask,
+  isAddTaskModalOpen,
+  setIsAddTaskModalOpen,
+  onDelete,
+  onUpdateStatus,
+  onEdit,
+  onArchive,
+  onToggleSubtask,
+  onUpdatePriority,
+  onStartTimer,
+  onStopTimer,
+  onFocus,
+  onBank,
+}: {
+  tasks: Task[];
+  onTasksChange?: (updatedTask: Task) => void;
+  onAddTask?: () => void;
+  isAddTaskModalOpen?: boolean;
+  setIsAddTaskModalOpen?: (open: boolean) => void;
+  onDelete?: (id: string) => void;
+  onUpdateStatus?: (id: string, status: TaskStatus) => void;
+  onEdit?: (task: Task) => void;
+  onArchive?: (id: string) => void;
+  onToggleSubtask?: (taskId: string, index: number) => void;
+  onUpdatePriority?: (id: string, priority: TaskPriority) => void;
+  onStartTimer?: (id: string, sessionTitle?: string) => void;
+  onStopTimer?: (id: string, note?: string) => void;
+  onFocus?: (task: Task) => void;
+  onBank?: (id: string) => void;
+}) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [showCompleted, setShowCompleted] = useState(false);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(PointerSensor, { activationConstraint: { distance: 10 } }),
     useSensor(KeyboardSensor)
   );
 
@@ -87,8 +119,10 @@ export const EisenhowerMatrixView = ({ tasks, onTasksChange, onAddTask, isAddTas
           body: JSON.stringify({ quadrant: newQuadrant }),
         });
         const json = await res.json();
-        if (json.success && onTasksChange) {
-          onTasksChange(json.data);
+        if (json.success) {
+          // Update local state directly so UI reflects change immediately
+          const updated = json.data;
+          onTasksChange?.(updated);
         }
       } catch (e) {
         console.error("Failed to update task quadrant", e);
@@ -137,11 +171,15 @@ export const EisenhowerMatrixView = ({ tasks, onTasksChange, onAddTask, isAddTas
 
   const handleComplete = async (taskId: string) => {
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "completed" }),
       });
+      const json = await res.json();
+      if (json.success) {
+        onTasksChange?.(json.data);
+      }
     } catch (e) {
       console.error("Failed to complete task", e);
     }
@@ -181,6 +219,16 @@ export const EisenhowerMatrixView = ({ tasks, onTasksChange, onAddTask, isAddTas
               tasks={tasksByQuadrant(q.id)}
               activeId={activeId}
               onComplete={handleComplete}
+              onDelete={onDelete}
+              onUpdateStatus={onUpdateStatus}
+              onEdit={onEdit}
+              onArchive={onArchive}
+              onToggleSubtask={onToggleSubtask}
+              onUpdatePriority={onUpdatePriority}
+              onStartTimer={onStartTimer}
+              onStopTimer={onStopTimer}
+              onFocus={onFocus}
+              onBank={onBank}
             />
           ))}
         </div>
@@ -216,6 +264,16 @@ function QuadrantCard({
   tasks,
   activeId,
   onComplete,
+  onDelete,
+  onUpdateStatus,
+  onEdit,
+  onArchive,
+  onToggleSubtask,
+  onUpdatePriority,
+  onStartTimer,
+  onStopTimer,
+  onFocus,
+  onBank,
 }: {
   id: string;
   label: string;
@@ -224,6 +282,16 @@ function QuadrantCard({
   tasks: Task[];
   activeId: string | null;
   onComplete: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onUpdateStatus?: (id: string, status: TaskStatus) => void;
+  onEdit?: (task: Task) => void;
+  onArchive?: (id: string) => void;
+  onToggleSubtask?: (taskId: string, index: number) => void;
+  onUpdatePriority?: (id: string, priority: TaskPriority) => void;
+  onStartTimer?: (id: string, sessionTitle?: string) => void;
+  onStopTimer?: (id: string, note?: string) => void;
+  onFocus?: (task: Task) => void;
+  onBank?: (id: string) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
@@ -242,7 +310,20 @@ function QuadrantCard({
       </div>
       <SortableContext items={tasks.map(t => t._id)} strategy={verticalListSortingStrategy}>
         {tasks.map(task => (
-          <SortableTaskCard key={task._id} task={task} />
+          <SortableTaskCard
+            key={task._id}
+            task={task}
+            onDelete={onDelete}
+            onUpdateStatus={onUpdateStatus}
+            onEdit={onEdit}
+            onArchive={onArchive}
+            onToggleSubtask={onToggleSubtask}
+            onUpdatePriority={onUpdatePriority}
+            onStartTimer={onStartTimer}
+            onStopTimer={onStopTimer}
+            onFocus={onFocus}
+            onBank={onBank}
+          />
         ))}
       </SortableContext>
       {tasks.length === 0 && (
@@ -255,7 +336,31 @@ function QuadrantCard({
 }
 
 // --- SortableTaskCard ---
-function SortableTaskCard({ task }: { task: Task }) {
+function SortableTaskCard({
+  task,
+  onDelete,
+  onUpdateStatus,
+  onEdit,
+  onArchive,
+  onToggleSubtask,
+  onUpdatePriority,
+  onStartTimer,
+  onStopTimer,
+  onFocus,
+  onBank,
+}: {
+  task: Task;
+  onDelete?: (id: string) => void;
+  onUpdateStatus?: (id: string, status: TaskStatus) => void;
+  onEdit?: (task: Task) => void;
+  onArchive?: (id: string) => void;
+  onToggleSubtask?: (taskId: string, index: number) => void;
+  onUpdatePriority?: (id: string, priority: TaskPriority) => void;
+  onStartTimer?: (id: string, sessionTitle?: string) => void;
+  onStopTimer?: (id: string, note?: string) => void;
+  onFocus?: (task: Task) => void;
+  onBank?: (id: string) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: task._id });
 
   const style = {
@@ -266,7 +371,19 @@ function SortableTaskCard({ task }: { task: Task }) {
 
   return (
     <div ref={setNodeRef} style={style} {...attributes} {...listeners}>
-      <TaskCard task={task} />
+      <TaskCard
+        task={task}
+        onDelete={onDelete}
+        onUpdateStatus={onUpdateStatus}
+        onEdit={onEdit}
+        onArchive={onArchive}
+        onToggleSubtask={onToggleSubtask}
+        onUpdatePriority={onUpdatePriority}
+        onStartTimer={onStartTimer}
+        onStopTimer={onStopTimer}
+        onFocus={onFocus}
+        onBank={onBank}
+      />
     </div>
   );
 }
