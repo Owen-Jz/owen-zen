@@ -49,6 +49,8 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   isMultiSelectMode?: boolean;
   selectedTasks?: Set<string>;
   onToggleSelect?: (id: string) => void;
+  expandedSubtaskId?: number | null;
+  setExpandedSubtaskId?: (id: number | null) => void;
 }>(({
   task,
   onDelete,
@@ -72,7 +74,9 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   activeId,
   isMultiSelectMode,
   selectedTasks,
-  onToggleSelect
+  onToggleSelect,
+  expandedSubtaskId,
+  setExpandedSubtaskId
 }, ref) => {
 
   const priorityColors = {
@@ -82,7 +86,6 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   };
 
   const [elapsedTime, setElapsedTime] = useState(0);
-  const [expandedSubtaskId, setExpandedSubtaskId] = useState<number | null>(null);
 
   const { isOver: isSubtaskOver, setNodeRef: setSubtaskDropRef } = useDroppable({
     id: `subtask-${task._id}`,
@@ -403,9 +406,9 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                     <div
                       onClick={() => {
                         if (isExpanded) {
-                          setExpandedSubtaskId(null);
+                          setExpandedSubtaskId?.(null);
                         } else {
-                          setExpandedSubtaskId(i);
+                          setExpandedSubtaskId?.(i);
                         }
                       }}
                       className="flex items-start gap-2.5 cursor-pointer hover:bg-white/5 p-2 rounded-lg transition-colors"
@@ -452,7 +455,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                               onUpdateSubtaskDescription(task._id, i, e.target.value);
                             }
                           }}
-                          onFocus={() => setExpandedSubtaskId(i)}
+                          onFocus={() => setExpandedSubtaskId?.(i)}
                           placeholder="Add a description..."
                           className="w-full bg-black/20 border border-white/10 rounded-lg p-2 text-xs text-gray-300 placeholder-gray-600 outline-none focus:border-primary/50 resize-none min-h-[60px] leading-relaxed"
                           rows={2}
@@ -604,6 +607,8 @@ export const SortableTaskItem = ({
     // The DragOverlay shows the full opacity version
   };
 
+  const [expandedSubtaskId, setExpandedSubtaskId] = useState<number | null>(null);
+
   return (
     <TaskCard
       ref={setNodeRef}
@@ -629,6 +634,8 @@ export const SortableTaskItem = ({
       isMultiSelectMode={isMultiSelectMode}
       selectedTasks={selectedTasks}
       onToggleSelect={onToggleSelect}
+      expandedSubtaskId={expandedSubtaskId}
+      setExpandedSubtaskId={setExpandedSubtaskId}
     />
   );
 };
