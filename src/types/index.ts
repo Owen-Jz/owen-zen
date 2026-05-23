@@ -4,6 +4,7 @@ export type TaskPriority = "high" | "medium" | "low";
 export interface SubTask {
     title: string;
     completed: boolean;
+    description?: string;
 }
 
 export interface TimeLog {
