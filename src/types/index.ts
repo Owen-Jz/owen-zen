@@ -103,3 +103,35 @@ export interface Note {
     createdAt: string;
     updatedAt: string;
 }
+
+export interface CommunicationPrefs {
+    preferredContactMethod?: 'email' | 'phone' | 'slack' | 'video' | 'other';
+    bestTimeToContact?: string;
+    timezone?: string;
+    communicationStyle?: string;
+}
+
+export interface Session {
+    _id?: string;
+    date: string;
+    summary: string;
+    followUps: string[];
+    nextSteps?: string;
+}
+
+export interface Client {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    company?: string;
+    role?: string;
+    communicationPrefs: CommunicationPrefs;
+    personalNotes?: string;
+    projects: string[];
+    sessions: Session[];
+    tags: string[];
+    status: 'active' | 'dormant' | 'needs-followup';
+    createdAt: string;
+    updatedAt: string;
+}
