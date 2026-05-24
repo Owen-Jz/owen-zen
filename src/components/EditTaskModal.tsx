@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown } from "lucide-react";
+import { useMutation } from "@tanstack/react-query";
+import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { TimeTracker } from "./TimeTracker";
 import { Task, TaskPriority, SubTask, TaskStatus } from "@/types";
 import { DatePicker } from "./DatePicker";
@@ -47,8 +48,39 @@ export const EditTaskModal = ({
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
     const [category, setCategory] = useState(task?.category || "Other");
     const [quadrant, setQuadrant] = useState<"q1" | "q2" | "q3" | "q4" | null>(task?.quadrant ?? null);
+    const [decomposingSubtasks, setDecomposingSubtasks] = useState<SubTask[] | null>(null);
+
+    const decomposeMutation = useMutation({
+        mutationFn: async (description: string) => {
+            const res = await fetch("/api/tasks/decompose", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description }),
+            });
+            const json = await res.json();
+            if (!json.success) throw new Error(json.error);
+            return json.data.subtasks as SubTask[];
+        },
+        onSuccess: (subtasks) => {
+            setDecomposingSubtasks(subtasks);
+        },
+        onError: (error: any) => {
+            alert(error.message);
+        },
+    });
 
     const { playSound } = useSoundContext();
+
+    const handleAcceptDecomposed = () => {
+        if (decomposingSubtasks) {
+            setSubtasks([...subtasks, ...decomposingSubtasks]);
+        }
+        setDecomposingSubtasks(null);
+    };
+
+    const handleCancelDecomposed = () => {
+        setDecomposingSubtasks(null);
+    };
 
     useEffect(() => {
         playSound('TASK_MODAL_OPENED');
@@ -200,9 +232,24 @@ export const EditTaskModal = ({
                                 <div className="flex items-center gap-2 text-sm font-bold text-gray-400 uppercase tracking-wider">
                                     <CheckCircle2 size={14} /> Subtasks
                                 </div>
-                                <span className="text-xs text-gray-500 font-mono">
-                                    {subtasks.filter(s => s.completed).length}/{subtasks.length} Done
-                                </span>
+                                <div className="flex items-center gap-3">
+                                    <span className="text-xs text-gray-500 font-mono">
+                                        {subtasks.filter(s => s.completed).length}/{subtasks.length} Done
+                                    </span>
+                                    <button
+                                        onClick={() => decomposeMutation.mutate(description)}
+                                        disabled={description.trim().split(/\s+/).length < 3 || decomposeMutation.isPending}
+                                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 hover:bg-primary/30 text-primary text-xs font-medium transition-all disabled:opacity-50 disabled:cursor-not-allowed border border-primary/30 hover:border-primary/50"
+                                        title="Auto-decompose description into subtasks"
+                                    >
+                                        {decomposeMutation.isPending ? (
+                                            <Sparkles size={14} className="animate-spin" />
+                                        ) : (
+                                            <Sparkles size={14} />
+                                        )}
+                                        Auto-Decompose
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-2 mb-3">
@@ -456,6 +503,95 @@ export const EditTaskModal = ({
                 </div>
 
             </motion.div>
+
+            {/* Auto-Decompose Preview Modal */}
+            <AnimatePresence>
+                {decomposingSubtasks && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[70] flex items-center justify-center p-4"
+                    >
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+                            onClick={handleCancelDecomposed}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                            className="relative w-full max-w-md bg-surface/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="flex items-center justify-between p-5 border-b border-white/5 bg-gradient-to-r from-primary/10 to-transparent">
+                                <div className="flex items-center gap-2 text-base font-bold text-white">
+                                    <Sparkles size={18} className="text-primary" />
+                                    Auto-Decompose — Review Steps
+                                </div>
+                                <button
+                                    onClick={handleCancelDecomposed}
+                                    className="p-1.5 hover:bg-white/10 rounded-lg text-gray-400 hover:text-white transition-colors"
+                                >
+                                    <X size={16} />
+                                </button>
+                            </div>
+
+                            {/* Body */}
+                            <div className="p-5 max-h-[60vh] overflow-y-auto">
+                                <p className="text-xs text-gray-400 mb-4">Edit the suggested subtasks before accepting. You can modify or remove any step.</p>
+                                <div className="space-y-2">
+                                    {decomposingSubtasks.map((st, i) => (
+                                        <div key={i} className="flex items-center gap-2 group bg-surface hover:bg-surface-hover p-3 rounded-xl border border-border transition-all">
+                                            <div className="w-5 h-5 rounded-md border border-gray-600 flex items-center justify-center shrink-0">
+                                                <Circle size={12} className="text-gray-500" />
+                                            </div>
+                                            <input
+                                                type="text"
+                                                value={st.title}
+                                                onChange={(e) => {
+                                                    const updated = [...decomposingSubtasks];
+                                                    updated[i].title = e.target.value;
+                                                    setDecomposingSubtasks(updated);
+                                                }}
+                                                className="flex-1 bg-transparent outline-none border-none text-sm text-gray-200 focus:ring-0 p-0"
+                                            />
+                                            <button
+                                                onClick={() => {
+                                                    setDecomposingSubtasks(decomposingSubtasks.filter((_, idx) => idx !== i));
+                                                }}
+                                                className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Footer */}
+                            <div className="p-4 border-t border-white/5 bg-black/20 flex justify-end gap-3">
+                                <button
+                                    onClick={handleCancelDecomposed}
+                                    className="px-5 py-2.5 rounded-xl border border-white/10 text-gray-400 hover:bg-white/5 hover:text-white transition-all text-sm font-medium"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleAcceptDecomposed}
+                                    className="px-6 py-2.5 rounded-xl bg-primary text-white hover:brightness-110 shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all text-sm font-bold flex items-center gap-2"
+                                >
+                                    <Check size={16} /> Accept All
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
