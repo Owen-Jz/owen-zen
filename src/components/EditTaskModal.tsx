@@ -73,7 +73,7 @@ export const EditTaskModal = ({
 
     const handleAcceptDecomposed = () => {
         if (decomposingSubtasks) {
-            setSubtasks([...subtasks, ...decomposingSubtasks]);
+            setSubtasks([...subtasks, ...decomposingSubtasks.filter(st => st.title.trim())]);
         }
         setDecomposingSubtasks(null);
     };
