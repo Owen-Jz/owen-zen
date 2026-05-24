@@ -111,7 +111,7 @@ Respond ONLY with the JSON array. No preamble or explanation.`;
     return NextResponse.json({ success: true, data: { subtasks: normalized } });
   } catch (error: any) {
     if (error.name === "AbortError") {
-      return NextResponse.json({ error: "Request timed out. Please try again." }, { status: 504 });
+      return NextResponse.json({ success: false, error: "Request timed out. Please try again." }, { status: 504 });
     }
     console.error("[Decompose] Error:", error.message || error);
     return NextResponse.json(
