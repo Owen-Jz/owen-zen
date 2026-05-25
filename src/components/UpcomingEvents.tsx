@@ -27,6 +27,17 @@ interface EventsResponse {
 }
 
 function formatEventTime(isoString: string): string {
+  // Parse timezone offset directly from ISO string to avoid browser local-time confusion
+  // Google Calendar returns e.g. "2026-05-25T13:00:00+01:00" — we want the hour in that timezone
+  const match = isoString.match(/T(\d{2}):(\d{2}):\d{2}([+-]\d{2}):(\d{2})/);
+  if (match) {
+    const hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    const hour12 = hours % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  }
+  // Fallback: legacy all-day event (date only, no time)
   const date = new Date(isoString);
   const hours = date.getHours();
   const minutes = date.getMinutes().toString().padStart(2, '0');
