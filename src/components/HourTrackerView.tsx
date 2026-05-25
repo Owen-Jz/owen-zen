@@ -186,12 +186,17 @@ export function HourTrackerView() {
   const handleSave = () => {
     if (editingCell === null) return;
     const hour = editingCell;
+    if (!draftText.trim()) {
+      cancelEditing();
+      return;
+    }
     // Determine isPlanned: future hours on today are planned, past hours are logged
-    const isPlanned = isToday && hour > new Date().getHours();
+    // Use UTC hours consistently to match how toDateString() uses UTC via toISOString()
+    const isPlanned = isToday && hour > new Date().getUTCHours();
     saveMutation.mutate({
       date: dateString,
       hour,
-      text: draftText,
+      text: draftText.trim(),
       type: draftType,
       isPlanned,
     });
@@ -320,7 +325,7 @@ export function HourTrackerView() {
               const hour = startHour + i;
               const entry = getEntryForHour(hour);
               const isEditing = editingCell === hour;
-              const isFuture = isToday && hour > new Date().getHours();
+              const isFuture = isToday && hour > new Date().getUTCHours();
               const isEmpty = !entry;
 
               return (
