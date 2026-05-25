@@ -171,10 +171,10 @@ export function HourTrackerView() {
     }
   };
 
-  const startEditing = (hour: number, entry?: HourEntry) => {
+  const startEditing = (hour: number, _entry?: HourEntry) => {
     setEditingCell(hour);
-    setDraftText(entry?.text ?? "");
-    setDraftType(entry?.type ?? "default");
+    setDraftText("");
+    setDraftType("default");
   };
 
   const cancelEditing = () => {
@@ -206,8 +206,8 @@ export function HourTrackerView() {
     deleteMutation.mutate(id);
   };
 
-  const getEntryForHour = (hour: number) =>
-    entries.find((e) => e.hour === hour);
+  const getEntriesForHour = (hour: number) =>
+    entries.filter((e) => e.hour === hour);
 
   const getEntryColor = (type: HourEntry["type"]) => {
     const found = ENTRY_TYPES.find((t) => t.key === type);
@@ -216,8 +216,15 @@ export function HourTrackerView() {
 
   const handleCellClick = (hour: number) => {
     if (editingCell !== null) return;
-    const existing = getEntryForHour(hour);
-    startEditing(hour, existing);
+    const hourEntries = getEntriesForHour(hour);
+    // If no entries yet, start editing fresh; otherwise add to existing entries
+    if (hourEntries.length === 0) {
+      startEditing(hour);
+    }
+    // If entries exist, just start a new entry for this hour without disrupting existing ones
+    if (hourEntries.length > 0) {
+      startEditing(hour);
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -323,17 +330,16 @@ export function HourTrackerView() {
           <div className="divide-y divide-[var(--color-border-subtle)]">
             {Array.from({ length: endHour - startHour + 1 }, (_, i) => {
               const hour = startHour + i;
-              const entry = getEntryForHour(hour);
+              const hourEntries = getEntriesForHour(hour);
               const isEditing = editingCell === hour;
               const isFuture = isToday && hour > new Date().getUTCHours();
-              const isEmpty = !entry;
 
               return (
                 <div
                   key={hour}
                   className={cn(
                     "flex min-h-[52px] group",
-                    isFuture && isToday && !entry && "opacity-60"
+                    isFuture && isToday && hourEntries.length === 0 && "opacity-60"
                   )}
                 >
                   {/* Hour Label */}
@@ -404,54 +410,49 @@ export function HourTrackerView() {
                         className={cn(
                           "w-full h-full px-3 py-2 cursor-pointer transition-all min-h-[44px]",
                           "border-l-2",
-                          entry
-                            ? cn(
-                                getEntryColor(entry.type),
-                                entry.isPlanned
-                                  ? "border-dashed opacity-80"
-                                  : "border-solid"
-                              )
+                          hourEntries.length > 0
+                            ? "border-transparent"
                             : cn(
                                 "border-transparent",
                                 "hover:bg-[var(--color-surface-hover)]"
                               ),
-                          isFuture && isToday && !entry
+                          isFuture && isToday && hourEntries.length === 0
                             ? "border-dashed border-[var(--color-text-disabled)]"
                             : ""
                         )}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div
-                            className={cn(
-                              "text-sm flex-1",
-                              entry?.isPlanned
-                                ? "text-[var(--color-text-muted)] italic"
-                                : "text-[var(--color-foreground)]"
-                            )}
-                          >
-                            {entry?.text || (
-                              <span className="text-[var(--color-text-disabled)] italic">
-                                {isFuture && isToday ? "Planned" : "Click to log..."}
-                              </span>
-                            )}
-                          </div>
-
-                          <AnimatePresence>
-                            {entry && (
-                              <motion.button
-                                initial={{ opacity: 0, scale: 0.8 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                exit={{ opacity: 0, scale: 0.8 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (entry._id) handleDelete(entry._id);
-                                }}
-                                className="opacity-0 group-hover:opacity-100 shrink-0 p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-muted)] transition-all"
-                              >
-                                <X size={12} />
-                              </motion.button>
-                            )}
-                          </AnimatePresence>
+                        <div className="flex flex-col gap-1">
+                          {hourEntries.length === 0 ? (
+                            <span className="text-sm text-[var(--color-text-disabled)] italic">
+                              {isFuture && isToday ? "Planned" : "Click to log..."}
+                            </span>
+                          ) : (
+                            hourEntries.map((e, idx) => (
+                              <div key={e._id} className="flex items-start justify-between gap-2 group/entry">
+                                <div className="flex items-start gap-2 flex-1 min-w-0">
+                                  <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0", getEntryColor(e.type), e.isPlanned && "opacity-60")} />
+                                  <span className={cn(
+                                    "text-sm flex-1 min-w-0 break-words",
+                                    idx > 0 && "text-[var(--color-text-muted)]",
+                                    e.isPlanned
+                                      ? "text-[var(--color-text-muted)] italic"
+                                      : "text-[var(--color-foreground)]"
+                                  )}>
+                                    {e.text}
+                                  </span>
+                                </div>
+                                <button
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    if (e._id) handleDelete(e._id);
+                                  }}
+                                  className="opacity-0 group-hover/entry:opacity-100 shrink-0 p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-all"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </div>
+                            ))
+                          )}
                         </div>
                       </div>
                     )}
