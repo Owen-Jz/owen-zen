@@ -92,7 +92,25 @@ export const AnalyticsView = () => {
   const [categoryData, setCategoryData] = useState<{ name: string; count: number; color: string }[]>([]);
   const [earnedIds, setEarnedIds] = useState<string[]>([]);
 
-  const CATEGORY_COLORS: Record<string, string> = {
+  function computeStreak(completedDates: string[]): number {
+  if (!completedDates || completedDates.length === 0) return 0;
+  const uniqueDateStrs = [...new Set(completedDates.map((d: string) => new Date(d).toISOString().split('T')[0]))].sort().reverse();
+  if (uniqueDateStrs.length === 0) return 0;
+  let streak = 1;
+  for (let i = 0; i < uniqueDateStrs.length - 1; i++) {
+    const curr = new Date(uniqueDateStrs[i]);
+    const prev = new Date(uniqueDateStrs[i + 1]);
+    const dayDiff = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
+    if (dayDiff === 1) {
+      streak++;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+const CATEGORY_COLORS: Record<string, string> = {
     development: "#3b82f6",
     design: "#8b5cf6",
     business: "#22c55e",
@@ -140,7 +158,8 @@ export const AnalyticsView = () => {
 
           habits.forEach((h: any) => {
             totalHabitReps += h.completedDates?.length || 0;
-            if (h.streak > currentHighestStreak) currentHighestStreak = h.streak;
+            const computedStreak = computeStreak(h.completedDates || []);
+            if (computedStreak > currentHighestStreak) currentHighestStreak = computedStreak;
           });
 
           const totalXP = (completedTasks * 50) + (totalHabitReps * 20);
