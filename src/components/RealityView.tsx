@@ -96,6 +96,7 @@ export const RealityView = () => {
 
   const saveEdit = () => {
     if (!editingSection) return;
+    if (editingSection.startsWith("yearPlan-")) return; // year plans use their own save
     const newData = { ...data, [editingSection]: editValue };
     saveData(newData);
     setEditingSection(null);
