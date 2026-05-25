@@ -10,6 +10,8 @@ import {
   Crosshair, Wallet, Users, MessageSquare,
   Circle, FileText, Archive, Settings,
   BookOpen, Search, Grid3x3, Landmark,
+  CreditCard, CheckSquare, Play, Megaphone,
+  Briefcase, Book, Clock, Volume2,
 } from "lucide-react";
 interface ViewItem {
   id: string;
@@ -44,6 +46,7 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
         { id: "habit-analytics", label: "Habit Analytics", icon: BarChart2 },
         { id: "discipline", label: "Discipline Challenge", icon: Shield },
         { id: "daily-word", label: "Daily Word", icon: BookOpen },
+        { id: "routines", label: "Routines", icon: CheckSquare },
       ]
     },
     {
@@ -68,6 +71,30 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
       ]
     },
     {
+      title: "Clients",
+      links: [
+        { id: "clients", label: "Clients", icon: Briefcase },
+        { id: "susan", label: "Susan", icon: Book },
+      ]
+    },
+    {
+      title: "Content",
+      links: [
+        { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
+        { id: "canvas", label: "Mind Map", icon: Clock },
+        { id: "brainstorming", label: "Brainstorming", icon: Play },
+        { id: "marketing", label: "Marketing HQ", icon: Megaphone },
+      ]
+    },
+    {
+      title: "Learning",
+      links: [
+        { id: "courses", label: "Courses", icon: Book },
+        { id: "journal", label: "Journal", icon: BookOpen },
+        { id: "affirmations", label: "Affirmations", icon: Volume2 },
+      ]
+    },
+    {
       title: "Tools",
       links: [
         { id: "inbox", label: "The Inbox", icon: Inbox },
@@ -75,6 +102,8 @@ export function SectionsGrid({ isOpen, onClose, onSelect }: SectionsGridProps) {
         { id: "finance", label: "Finance Tracker", icon: Wallet },
         { id: "leads", label: "Leads CRM", icon: Users },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
+        { id: "command-center", label: "Command Center", icon: LayoutDashboard },
+        { id: "hour-tracker", label: "Hour Tracker", icon: Clock },
       ]
     },
     {
