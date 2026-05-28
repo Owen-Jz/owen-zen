@@ -17,6 +17,7 @@ export interface CanvasNodeData {
   parentId?: string;
   subNodes?: SubNode[];
   isNew?: boolean;
+  createdAt?: string;
   searchQuery?: string;
   onUpdate?: (id: string, data: Partial<CanvasNodeData>) => void;
 }
@@ -216,9 +217,16 @@ export const CanvasNode = memo(function CanvasNode({ data, selected, id }: NodeP
             rows={3}
           />
         ) : (
-          <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>
-            {nodeData.content || 'Double-click to edit'}
-          </p>
+          <>
+            <p className="text-sm whitespace-pre-wrap" style={{ color: 'var(--foreground)' }}>
+              {nodeData.content || 'Double-click to edit'}
+            </p>
+            {nodeData.createdAt && (
+              <p className="text-[10px] mt-1 opacity-50" style={{ color: 'var(--gray-500)' }}>
+                {new Date(nodeData.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              </p>
+            )}
+          </>
         )}
 
         {/* Inline tags */}

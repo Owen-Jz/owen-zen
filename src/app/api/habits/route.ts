@@ -1,4 +1,4 @@
-import dbConnect from "@/lib/db";
+﻿import dbConnect from "@/lib/db";
 import Habit from "@/models/Habit";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
       pagination: { page, limit, total, pages: Math.ceil(total / limit) }
     });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
 
@@ -32,6 +32,6 @@ export async function POST(req: Request) {
     const habit = await Habit.create(body);
     return NextResponse.json({ success: true, data: habit }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }

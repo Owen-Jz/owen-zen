@@ -48,11 +48,11 @@ const toDateKeyFromDate = (dateObj: Date): string => {
 };
 
 /**
- * Given a date, returns the Sunday ending that date's week (Monday-Sunday).
+ * Given a date, returns the Saturday ending that date's Sun-Sat week.
  */
 export const getWeekEndDate = (date: Date): Date => {
   const d = new Date(date.getTime());
-  d.setDate(d.getDate() + (7 - d.getDay()) % 7);
+  d.setDate(d.getDate() + (6 - d.getDay() + 7) % 7);
   return d;
 };
 
@@ -73,19 +73,19 @@ export const isPerfectDay = (
 };
 
 /**
- * Returns true if every day of the Mon-Sun week ending on the given date has every habit completed.
+ * Returns true if every day of the Sun-Sat week containing the given date has every habit completed.
  * An empty habits array returns false.
  */
 export const isPerfectWeek = (
-  saturdayDate: Date,
+  anyDateInWeek: Date,
   habits: { completedDates: (Date | string)[] }[]
 ): boolean => {
   if (habits.length === 0) return false;
-  const sat = new Date(saturdayDate.getTime());
-  sat.setDate(sat.getDate() - ((sat.getDay() + 6) % 7)); // Rewind to Monday
+  const sun = new Date(anyDateInWeek.getTime());
+  sun.setDate(sun.getDate() - sun.getDay()); // Rewind to Sunday
   for (let i = 0; i < 7; i++) {
-    const day = new Date(sat);
-    day.setDate(sat.getDate() + i);
+    const day = new Date(sun);
+    day.setDate(sun.getDate() + i);
     if (!isPerfectDay(day, habits)) return false;
   }
   return true;

@@ -19,7 +19,7 @@ describe('Canvas API', () => {
     it('returns existing canvas', async () => {
       const mockCanvas = { _id: '1', viewport: { x: 0, y: 0, zoom: 1 }, nodes: [], edges: [] };
       const Canvas = (await import('@/models/Canvas')).default;
-      vi.mocked(Canvas.findOne).mockResolvedValue(mockCanvas);
+      vi.mocked(Canvas.findOne).mockResolvedValue(mockCanvas as any);
 
       const response = await GET();
       expect(response.status).toBe(200);

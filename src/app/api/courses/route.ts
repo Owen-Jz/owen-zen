@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+﻿import { NextRequest, NextResponse } from "next/server";
 import dbConnect from "@/lib/db";
 import Course from "@/models/Course";
 
@@ -8,7 +8,7 @@ export async function GET() {
     const courses = await Course.find({}).sort({ createdAt: -1 });
     return NextResponse.json({ success: true, data: courses });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
 
@@ -19,6 +19,6 @@ export async function POST(req: NextRequest) {
     const course = await Course.create(body);
     return NextResponse.json({ success: true, data: course }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }

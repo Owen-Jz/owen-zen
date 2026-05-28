@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import MarketingGuide from "./MarketingGuide";
@@ -31,6 +31,14 @@ import {
   Target,
   Archive,
   Send,
+  Twitter,
+  Linkedin,
+  Instagram,
+  Loader2,
+  ArrowRight,
+  CalendarPlus,
+  ChevronDown,
+  ChevronRight,
 } from "lucide-react";
 
 // Types
@@ -83,7 +91,42 @@ interface SEOEntry {
   };
 }
 
+interface PipelinePost {
+  _id: string;
+  content: string;
+  platforms: string | string[];
+  type: "idea" | "draft";
+  status: "draft" | "scheduled" | "published" | "failed";
+  scheduledFor?: string;
+  createdAt: string;
+}
+
 type SubTab = "dashboard" | "pipeline" | "campaigns" | "analytics" | "brand" | "email" | "seo";
+type PlatformFilter = "all" | "twitter" | "linkedin" | "instagram";
+
+const TIME_SLOTS = Array.from({ length: 96 }, (_, i) => {
+  const hours = Math.floor(i / 4);
+  const minutes = (i % 4) * 15;
+  return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}`;
+});
+
+const PLATFORM_COLORS: Record<string, string> = {
+  twitter: "#1DA1F2",
+  linkedin: "#0A66C2",
+  instagram: "#E4405F",
+};
+
+const PLATFORM_BG: Record<string, string> = {
+  twitter: "bg-blue-500/20 text-blue-400 border-blue-500/30",
+  linkedin: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+  instagram: "bg-pink-500/20 text-pink-400 border-pink-500/30",
+};
+
+const PLATFORM_ICON: Record<string, React.ReactNode> = {
+  twitter: <Twitter size={11} />,
+  linkedin: <Linkedin size={11} />,
+  instagram: <Instagram size={11} />,
+};
 
 // Stats card component
 const StatCard = ({ label, value, icon: Icon, trend, trendUp }: { label: string; value: string | number; icon: any; trend?: string; trendUp?: boolean }) => (
@@ -113,6 +156,141 @@ const QuickCreateBtn = ({ label, icon: Icon, onClick, color }: { label: string; 
   </button>
 );
 
+// Pipeline board component
+interface PipelineBoardProps {
+  posts: PipelinePost[];
+  loading: boolean;
+  platformFilter: PlatformFilter;
+  onMove: (postId: string, updates: { type?: string; status?: string; scheduledFor?: string | null }) => void;
+  onSchedule: (post: PipelinePost) => void;
+  onDelete: (postId: string) => void;
+}
+
+function getTimeAgo(dateStr: string) {
+  const diff = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 60) return `${mins}m ago`;
+  if (hours < 24) return `${hours}h ago`;
+  return `${days}d ago`;
+}
+
+function PipelineBoard({ posts, loading, platformFilter, onMove, onSchedule, onDelete }: PipelineBoardProps) {
+  const filtered = posts.filter(p => {
+    if (platformFilter === "all") return true;
+    const platforms = Array.isArray(p.platforms) ? p.platforms : [p.platforms];
+    return platforms.includes(platformFilter);
+  });
+
+  const ideas = filtered.filter(p => p.type === "idea" && !p.scheduledFor);
+  const drafts = filtered.filter(p => p.type === "draft" && !p.scheduledFor);
+  const scheduled = filtered.filter(p => p.scheduledFor && p.status !== "published");
+  const published = filtered.filter(p => p.status === "published");
+
+  if (loading) {
+    return <div className="flex items-center justify-center py-20 text-gray-500"><Loader2 size={24} className="animate-spin" /></div>;
+  }
+
+  const SectionHeader = ({ label, count, open, onToggle }: { label: string; count: number; open: boolean; onToggle: () => void }) => (
+    <button onClick={onToggle} className="flex items-center gap-1.5 mb-3 group w-full">
+      {open ? <ChevronDown size={12} className="text-gray-500" /> : <ChevronRight size={12} className="text-gray-500" />}
+      <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-gray-200 transition-colors">{label}</span>
+      <span className="text-[10px] font-mono bg-white/5 border border-white/10 text-gray-500 px-1.5 py-0.5 rounded">{count}</span>
+    </button>
+  );
+
+  const PostCard = ({ post }: { post: PipelinePost }) => {
+    const platforms = Array.isArray(post.platforms) ? post.platforms : [post.platforms];
+    return (
+      <div className="bg-surface border border-white/5 rounded-lg p-3 hover:border-white/20 transition-all group">
+        <p className="text-sm font-medium mb-2 line-clamp-2">{post.content}</p>
+        <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+          {platforms.map(p => (
+            <span key={p} className={clsx("flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium", PLATFORM_BG[p] || "bg-white/10 text-gray-400")}>
+              {PLATFORM_ICON[p]} <span className="capitalize">{p}</span>
+            </span>
+          ))}
+          <span className="text-[10px] text-gray-600 ml-auto">{getTimeAgo(post.createdAt)}</span>
+        </div>
+        {/* Action buttons */}
+        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          {post.type === "idea" && (
+            <button onClick={() => onMove(post._id, { type: "draft" })} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-purple-400 hover:bg-purple-500/10 transition-all flex items-center justify-center gap-1">
+              <ArrowRight size={10} /> Draft
+            </button>
+          )}
+          {post.type === "draft" && !post.scheduledFor && (
+            <>
+              <button onClick={() => onSchedule(post)} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-yellow-400 hover:bg-yellow-500/10 transition-all flex items-center justify-center gap-1">
+                <CalendarPlus size={10} /> Schedule
+              </button>
+              <button onClick={() => onMove(post._id, { status: "published" })} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-green-400 hover:bg-green-500/10 transition-all flex items-center justify-center gap-1">
+                <ArrowRight size={10} /> Publish
+              </button>
+            </>
+          )}
+          {post.scheduledFor && post.status !== "published" && (
+            <>
+              <button onClick={() => onMove(post._id, { status: "published" })} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-green-400 hover:bg-green-500/10 transition-all flex items-center justify-center gap-1">
+                <ArrowRight size={10} /> Publish
+              </button>
+              <button onClick={() => onMove(post._id, { scheduledFor: null, status: "draft" })} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all flex items-center justify-center gap-1">
+                Unschedule
+              </button>
+            </>
+          )}
+          {post.status === "published" && (
+            <button onClick={() => onMove(post._id, { type: "draft", status: "draft" })} className="flex-1 py-1 rounded bg-white/5 text-[10px] text-gray-400 hover:text-blue-400 hover:bg-blue-500/10 transition-all flex items-center justify-center gap-1">
+              <ArrowRight size={10} /> Move to Draft
+            </button>
+          )}
+          <button onClick={() => onDelete(post._id)} className="py-1 px-1.5 rounded bg-white/5 text-[10px] text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-all">
+            <Trash2 size={10} />
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      {/* Ideas */}
+      <div className="bg-white/2 rounded-xl p-4 min-h-[300px]">
+        <SectionHeader label="Ideas" count={ideas.length} open={true} onToggle={() => {}} />
+        <div className="space-y-2">
+          {ideas.length === 0 && <p className="text-xs text-gray-600 text-center py-4">No ideas yet</p>}
+          {ideas.map(post => <PostCard key={post._id} post={post} />)}
+        </div>
+      </div>
+      {/* Drafts */}
+      <div className="bg-white/2 rounded-xl p-4 min-h-[300px]">
+        <SectionHeader label="Drafts" count={drafts.length} open={true} onToggle={() => {}} />
+        <div className="space-y-2">
+          {drafts.length === 0 && <p className="text-xs text-gray-600 text-center py-4">No drafts yet</p>}
+          {drafts.map(post => <PostCard key={post._id} post={post} />)}
+        </div>
+      </div>
+      {/* Scheduled */}
+      <div className="bg-white/2 rounded-xl p-4 min-h-[300px]">
+        <SectionHeader label="Scheduled" count={scheduled.length} open={true} onToggle={() => {}} />
+        <div className="space-y-2">
+          {scheduled.length === 0 && <p className="text-xs text-gray-600 text-center py-4">Nothing scheduled</p>}
+          {scheduled.map(post => <PostCard key={post._id} post={post} />)}
+        </div>
+      </div>
+      {/* Published */}
+      <div className="bg-white/2 rounded-xl p-4 min-h-[300px]">
+        <SectionHeader label="Published" count={published.length} open={true} onToggle={() => {}} />
+        <div className="space-y-2">
+          {published.length === 0 && <p className="text-xs text-gray-600 text-center py-4">Nothing published</p>}
+          {published.map(post => <PostCard key={post._id} post={post} />)}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MarketingDashboard() {
   const [subTab, setSubTab] = useState<SubTab>("dashboard");
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -123,13 +301,114 @@ export default function MarketingDashboard() {
   const [isCampaignModalOpen, setIsCampaignModalOpen] = useState(false);
   const [editingCampaign, setEditingCampaign] = useState<Campaign | null>(null);
 
+  // Pipeline state
+  const [pipelinePosts, setPipelinePosts] = useState<PipelinePost[]>([]);
+  const [pipelineLoading, setPipelineLoading] = useState(false);
+  const [platformFilter, setPlatformFilter] = useState<PlatformFilter>("all");
+  const [isNewIdeaModalOpen, setIsNewIdeaModalOpen] = useState(false);
+  const [schedulingPost, setSchedulingPost] = useState<PipelinePost | null>(null);
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleTime, setScheduleTime] = useState("09:00");
+  const [scheduling, setScheduling] = useState(false);
+  const [newIdeaContent, setNewIdeaContent] = useState("");
+  const [newIdeaPlatform, setNewIdeaPlatform] = useState<string[]>(["twitter"]);
+  const [creatingIdea, setCreatingIdea] = useState(false);
+  const [ideasOpen, setIdeasOpen] = useState(true);
+  const [draftsOpen, setDraftsOpen] = useState(true);
+  const [scheduledOpen, setScheduledOpen] = useState(true);
+  const [publishedOpen, setPublishedOpen] = useState(true);
+
   // Fetch data
   useEffect(() => {
     fetchCampaigns();
     fetchBrandAssets();
     fetchEmailCampaigns();
     fetchSEOEntries();
+    fetchPipelinePosts();
   }, []);
+
+  const fetchPipelinePosts = async () => {
+    try {
+      setPipelineLoading(true);
+      const res = await fetch("/api/posts");
+      const json = await res.json();
+      if (json.success) setPipelinePosts(json.data);
+    } catch (e) { console.error(e); }
+    finally { setPipelineLoading(false); }
+  };
+
+  const movePost = async (postId: string, updates: { type?: string; status?: string; scheduledFor?: string | null }) => {
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (res.ok) {
+        setPipelinePosts(posts => posts.map(p => {
+          if (p._id !== postId) return p;
+          return {
+            ...p,
+            ...updates,
+            type: (updates.type as "idea" | "draft") ?? p.type,
+            status: (updates.status as "draft" | "published" | "scheduled" | "failed") ?? p.status,
+            scheduledFor: updates.scheduledFor === null ? undefined : updates.scheduledFor ?? p.scheduledFor,
+          } as PipelinePost;
+        }));
+      }
+    } catch (e) { console.error(e); }
+  };
+
+  const handleCreateIdea = async () => {
+    if (!newIdeaContent.trim()) return;
+    setCreatingIdea(true);
+    try {
+      const res = await fetch("/api/posts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newIdeaContent.trim(), platforms: newIdeaPlatform, type: "idea", status: "draft" }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setPipelinePosts(posts => [json.data, ...posts]);
+        setNewIdeaContent("");
+        setIsNewIdeaModalOpen(false);
+      }
+    } catch (e) { console.error(e); }
+    finally { setCreatingIdea(false); }
+  };
+
+  const handleSchedule = async () => {
+    if (!schedulingPost || !scheduleDate || !scheduleTime) return;
+    setScheduling(true);
+    try {
+      const [hours, minutes] = scheduleTime.split(":").map(Number);
+      const dt = new Date(scheduleDate);
+      dt.setHours(hours, minutes, 0, 0);
+      const res = await fetch(`/api/posts/${schedulingPost._id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ scheduledFor: dt.toISOString(), status: "scheduled" }),
+      });
+      if (res.ok) {
+        setPipelinePosts(posts => posts.map(p => p._id === schedulingPost._id ? { ...p, scheduledFor: dt.toISOString(), status: "scheduled" } : p));
+        setSchedulingPost(null);
+      }
+    } catch (e) { console.error(e); }
+    finally { setScheduling(false); }
+  };
+
+  const deletePipelinePost = async (postId: string) => {
+    if (!confirm("Delete this post?")) return;
+    try {
+      await fetch(`/api/posts/${postId}`, { method: "DELETE" });
+      setPipelinePosts(posts => posts.filter(p => p._id !== postId));
+    } catch (e) { console.error(e); }
+  };
+
+  const togglePlatformFilter = (p: PlatformFilter) => {
+    setPlatformFilter(prev => prev === p ? "all" : p);
+  };
 
   const fetchCampaigns = async () => {
     try {
@@ -313,43 +592,48 @@ export default function MarketingDashboard() {
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold">Content Pipeline</h3>
                 <div className="flex gap-2">
-                  <button className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 text-sm hover:bg-white/10 transition-all">
-                    <Zap size={14} className="text-yellow-400" /> AI Suggestions
+                  <button
+                    onClick={() => setIsNewIdeaModalOpen(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-white text-sm hover:brightness-110 transition-all"
+                  >
+                    <Plus size={14} /> New Idea
                   </button>
                 </div>
               </div>
 
               {/* Platform filters */}
               <div className="flex gap-2 mb-6">
-                {["All", "Twitter", "LinkedIn", "Instagram"].map(p => (
-                  <button key={p} className="px-3 py-1 rounded-lg text-xs font-medium bg-white/5 hover:bg-white/10 transition-all capitalize">
-                    {p}
+                {(["all", "twitter", "linkedin", "instagram"] as PlatformFilter[]).map(p => (
+                  <button
+                    key={p}
+                    onClick={() => setPlatformFilter(p)}
+                    className={clsx(
+                      "flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-medium transition-all capitalize",
+                      platformFilter === p
+                        ? PLATFORM_BG[p] || "bg-white/20 text-white border border-white/20"
+                        : "bg-white/5 hover:bg-white/10 text-gray-400"
+                    )}
+                  >
+                    {p === "all" ? "All" : PLATFORM_ICON[p]}
+                    {p !== "all" && <span className="capitalize">{p}</span>}
                   </button>
                 ))}
               </div>
 
               {/* Pipeline stages */}
-              <div className="grid grid-cols-4 gap-4">
-                {["Ideas", "Drafts", "Scheduled", "Published"].map((stage, i) => (
-                  <div key={stage} className="bg-white/2 rounded-xl p-4 min-h-[300px]">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider">{stage}</h4>
-                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-xs font-bold">
-                        {[0, 0, 0, 0][i]}
-                      </span>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="bg-surface border border-white/5 rounded-lg p-3 cursor-pointer hover:border-white/20 transition-all">
-                        <p className="text-sm font-medium mb-2">Sample post idea...</p>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded text-xs bg-blue-500/20 text-blue-400">Twitter</span>
-                          <span className="text-xs text-gray-500">2h ago</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <PipelineBoard
+                posts={pipelinePosts}
+                loading={pipelineLoading}
+                platformFilter={platformFilter}
+                onMove={movePost}
+                onSchedule={(post) => {
+                  setSchedulingPost(post);
+                  const today = new Date().toISOString().split("T")[0];
+                  setScheduleDate(today);
+                  setScheduleTime("09:00");
+                }}
+                onDelete={deletePipelinePost}
+              />
             </div>
           </motion.div>
         )}
@@ -665,6 +949,111 @@ export default function MarketingDashboard() {
 
       {/* Guide Modal */}
       <MarketingGuide isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+
+      {/* New Idea Modal */}
+      <AnimatePresence>
+        {isNewIdeaModalOpen && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface border border-border w-full max-w-md rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-border flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white">New Idea</h3>
+                <button onClick={() => setIsNewIdeaModalOpen(false)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10"><X size={20} /></button>
+              </div>
+              <div className="p-5 space-y-4">
+                <div>
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Platforms</label>
+                  <div className="flex gap-2">
+                    {["twitter", "linkedin", "instagram"].map(p => (
+                      <button
+                        key={p}
+                        type="button"
+                        onClick={() => setNewIdeaPlatform(prev => prev.includes(p) ? prev.filter(x => x !== p) : [...prev, p])}
+                        className={clsx(
+                          "flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-all",
+                          newIdeaPlatform.includes(p)
+                            ? "bg-purple-500/20 border-purple-500 text-purple-400"
+                            : "bg-background border-border text-gray-400 hover:text-gray-200"
+                        )}
+                      >
+                        {PLATFORM_ICON[p]} <span className="capitalize">{p}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-2 block">Idea / Hook / Notes</label>
+                  <textarea
+                    value={newIdeaContent}
+                    onChange={e => setNewIdeaContent(e.target.value)}
+                    placeholder="Start with a hook, a link, a one-liner..."
+                    className="w-full h-32 bg-background border border-border rounded-xl p-4 text-sm text-white placeholder-gray-600 focus:border-purple-500 outline-none resize-none"
+                  />
+                </div>
+                <button
+                  onClick={handleCreateIdea}
+                  disabled={creatingIdea || !newIdeaContent.trim()}
+                  className="w-full py-3 bg-primary hover:brightness-110 disabled:opacity-50 text-white rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  {creatingIdea ? <><Loader2 size={16} className="animate-spin" /> Creating...</> : <><Plus size={16} /> Add to Ideas</>}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Schedule Modal */}
+      <AnimatePresence>
+        {schedulingPost && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-surface border border-border w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden"
+            >
+              <div className="p-4 border-b border-border flex justify-between items-center">
+                <h3 className="text-lg font-bold text-white">Schedule Post</h3>
+                <button onClick={() => setSchedulingPost(null)} className="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-white/10"><X size={20} /></button>
+              </div>
+              <div className="p-5 space-y-4">
+                <p className="text-sm text-gray-400 bg-background p-3 rounded-lg line-clamp-2">{schedulingPost.content}</p>
+                <div>
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-1.5 block">Date</label>
+                  <input
+                    type="date"
+                    value={scheduleDate}
+                    onChange={e => setScheduleDate(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs uppercase font-bold text-gray-500 mb-1.5 block">Time</label>
+                  <select
+                    value={scheduleTime}
+                    onChange={e => setScheduleTime(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:border-purple-500 outline-none"
+                  >
+                    {TIME_SLOTS.map(time => <option key={time} value={time}>{time}</option>)}
+                  </select>
+                </div>
+                <button
+                  onClick={handleSchedule}
+                  disabled={scheduling || !scheduleDate}
+                  className="w-full py-3 bg-purple-500 hover:bg-purple-600 disabled:opacity-50 text-white rounded-xl font-bold transition-all text-sm flex items-center justify-center gap-2"
+                >
+                  {scheduling ? <><Loader2 size={16} className="animate-spin" /> Scheduling...</> : <><CalendarPlus size={16} /> Schedule</>}
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

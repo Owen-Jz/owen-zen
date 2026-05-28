@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server';
-import mongoose from 'mongoose';
+import dbConnect from '@/lib/db';
 import PaperWallet from '@/models/PaperWallet';
 
-const MONGODB_URI = process.env.MONGODB_URI;
-
 export async function GET() {
-  if (!MONGODB_URI) return NextResponse.json({ error: 'DB not configured' }, { status: 500 });
-  
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGODB_URI);
-  }
+  await dbConnect();
 
   // Get or Create
   let wallet = await PaperWallet.findOne();

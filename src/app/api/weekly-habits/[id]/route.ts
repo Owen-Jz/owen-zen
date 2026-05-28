@@ -97,7 +97,7 @@ export async function PUT(
     const updated = await WeeklyHabit.findByIdAndUpdate(id, body, { new: true, runValidators: true });
     return NextResponse.json({ success: true, data: updated });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
 
@@ -112,6 +112,6 @@ export async function DELETE(
     await WeeklyHabit.deleteOne({ _id: id });
     return NextResponse.json({ success: true, data: {} });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }

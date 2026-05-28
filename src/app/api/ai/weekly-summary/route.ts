@@ -1,9 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import mongoose from "mongoose";
+import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import Habit from "@/models/Habit";
 
-const MONGODB_URI = process.env.MONGODB_URI;
 const FETCH_TIMEOUT = 30000;
 
 async function fetchWithTimeout(url: string, options: RequestInit): Promise<Response> {
@@ -24,21 +23,13 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { weekNumber, year } = body;
 
-    if (!MONGODB_URI) {
-      return NextResponse.json({ error: "Database not configured" }, { status: 500 });
-    }
-
-    if (mongoose.connection.readyState === 0) {
-      await mongoose.connect(MONGODB_URI);
-    }
+    await dbConnect();
 
     const now = new Date();
     const targetYear = year || now.getFullYear();
     const targetWeek = weekNumber || getWeekNumber(now);
 
     const { startOfWeek, endOfWeek } = getWeekDateRange(targetWeek, targetYear);
-
-    console.log("[Weekly Summary] Generating for week", targetWeek, "of", targetYear, "from", startOfWeek, "to", endOfWeek);
 
     const tasks = await Task.find({}).lean();
     const habits = await Habit.find({}).lean();
@@ -135,8 +126,6 @@ Give an overall score out of 100 based on:
 
 Format the response with clear headings using emojis and bullet points. Be encouraging, specific, and actionable.`;
 
-    console.log("[Weekly Summary] Calling MiniMax API...");
-
     const response = await fetchWithTimeout("https://api.minimax.io/v1/text/chatcompletion_v2", {
       method: "POST",
       headers: {
@@ -170,12 +159,10 @@ Format the response with clear headings using emojis and bullet points. Be encou
         }
       });
     } else {
-      console.error("[Weekly Summary] API Error:", data);
       return NextResponse.json({ error: "Failed to generate summary" }, { status: 500 });
     }
   } catch (error: any) {
     if (error.name === 'AbortError') {
-      console.error("[Weekly Summary] Request timed out");
       return NextResponse.json({ error: "Request timed out. Please try again." }, { status: 504 });
     }
     console.error("[Weekly Summary] Error:", error.message || error);

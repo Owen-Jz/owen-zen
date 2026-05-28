@@ -15,6 +15,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     await routine.save();
     return NextResponse.json({ success: true, data: routine }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }

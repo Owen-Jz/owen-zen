@@ -27,7 +27,7 @@ beforeEach(() => {
     lean: vi.fn().mockResolvedValue([]),
   } as any);
   vi.mocked(Journal.findOneAndUpdate).mockResolvedValue(null);
-  vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0 });
+  vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0, acknowledged: true });
 });
 
 describe('Journal API', () => {
@@ -171,7 +171,7 @@ describe('Journal API', () => {
 describe('Journal [id] API', () => {
   describe('DELETE /api/journal/[id]', () => {
     it('deletes an entry successfully', async () => {
-      vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 1 });
+      vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 1, acknowledged: true });
 
       const request = new Request('http://localhost/api/journal/123', {
         method: 'DELETE',
@@ -185,7 +185,7 @@ describe('Journal [id] API', () => {
     });
 
     it('returns 404 when entry not found', async () => {
-      vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0 });
+      vi.mocked(Journal.deleteOne).mockResolvedValue({ deletedCount: 0, acknowledged: true });
 
       const request = new Request('http://localhost/api/journal/123', {
         method: 'DELETE',

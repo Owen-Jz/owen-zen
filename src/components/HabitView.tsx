@@ -561,7 +561,7 @@ export const HabitView = () => {
 
     // Detect newly perfect days/weeks and trigger celebration
     useEffect(() => {
-      const isMonday = new Date().getDay() === 1; // Only notify on Mondays (week start / kickoff)
+      const todayKey = toLocalString(new Date());
 
       const currentPerfectDays = new Set(
         (heatmapGrid as Array<NonNullable<typeof heatmapGrid[number]>>)
@@ -569,22 +569,27 @@ export const HabitView = () => {
           .map(d => toLocalString(d.date))
       );
 
-      const newlyPerfectDay = heatmapGrid.find(d => {
-        if (!d || !d.isPerfectDay) return false;
-        const key = toLocalString(d.date);
-        return !prevPerfectDaysRef.current.has(key);
-      });
+      // Only celebrate when TODAY itself just became perfect — historical days never trigger on load
+      const todayJustBecamePerfect =
+        currentPerfectDays.has(todayKey) && !prevPerfectDaysRef.current.has(todayKey);
 
-      const newlyPerfectWeek = heatmapGrid.find(d => {
+      // Perfect week: celebrate when the week containing today just became fully perfect
+      const todayJustBecamePerfectWeek = heatmapGrid.some(d => {
         if (!d || !d.isPerfectWeek) return false;
         const key = toLocalString(d.date);
-        return !prevPerfectDaysRef.current.has(key);
+        if (prevPerfectDaysRef.current.has(key)) return false;
+        // Check that today falls within this week (Sun cell marks the week)
+        const weekSunday = d.date;
+        const weekMonday = new Date(weekSunday);
+        weekMonday.setDate(weekSunday.getDate() - 6);
+        const todayDate = new Date(todayKey);
+        return todayDate >= weekMonday && todayDate <= weekSunday;
       });
 
-      if (newlyPerfectWeek && isMonday) {
+      if (todayJustBecamePerfectWeek) {
         triggerCelebration('week');
         notifyWeeklyGoalsComplete(getCurrentWeekKey());
-      } else if (newlyPerfectDay) {
+      } else if (todayJustBecamePerfect) {
         triggerCelebration('day');
       }
 

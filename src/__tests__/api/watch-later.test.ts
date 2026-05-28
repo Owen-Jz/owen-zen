@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET, POST } from '@/app/api/watch-later/route';
-import { GET as GET_BY_ID, PUT, DELETE } from '@/app/api/watch-later/[id]/route';
+import { PUT, DELETE } from '@/app/api/watch-later/[id]/route';
 
 // Mock dependencies
 vi.mock('@/lib/db', () => ({

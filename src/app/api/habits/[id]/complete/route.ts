@@ -17,8 +17,13 @@ export async function GET(
   const { searchParams } = new URL(req.url);
   const token = searchParams.get("token");
 
-  // Token guard — matches HABIT_COMPLETE_TOKEN env var, or fallback default
-  const validToken = process.env.HABIT_COMPLETE_TOKEN || "2f0b3176-54b5-4a27-bd45-6191c59b31d7";
+  const validToken = process.env.HABIT_COMPLETE_TOKEN;
+  if (!validToken) {
+    return new NextResponse(
+      html("⛔ Not configured", "HABIT_COMPLETE_TOKEN is not set.", "#ef4444"),
+      { status: 500, headers: { "Content-Type": "text/html" } }
+    );
+  }
   if (token !== validToken) {
     return new NextResponse(
       html("⛔ Unauthorized", "Invalid or missing token.", "#ef4444"),

@@ -179,6 +179,7 @@ function CanvasInner() {
           color: '#f97316',
           labels: [],
           subNodes,
+          createdAt: new Date().toISOString(),
         },
       };
       setNodes(nds => [...nds, newNode]);
@@ -376,6 +377,7 @@ function CanvasInner() {
         data: {
           ...data,
           isNew: true,
+          createdAt: new Date().toISOString(),
           subNodes: data.subNodes ? [...data.subNodes] : [],
           labels: [...(data.labels || [])],
           childIds: [],
@@ -418,6 +420,7 @@ function CanvasInner() {
         color: '#f97316',
         labels: [],
         subNodes,
+        createdAt: new Date().toISOString(),
       },
     };
     setNodes(nds => [...nds, newNode]);
@@ -690,7 +693,7 @@ function CanvasInner() {
               if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 if (creatingNode.text.trim()) {
-                  const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: creatingNode.x, y: creatingNode.y }, data: { content: creatingNode.text.trim(), color: '#f97316', labels: [] as string[], subNodes: [] as { id: string; content: string; color: string }[] } };
+                  const newNode = { id: crypto.randomUUID(), type: 'idea' as const, position: { x: creatingNode.x, y: creatingNode.y }, data: { content: creatingNode.text.trim(), color: '#f97316', labels: [] as string[], subNodes: [] as { id: string; content: string; color: string }[], createdAt: new Date().toISOString() } };
                   setNodes(nds => [...nds, newNode]);
                 }
                 setCreatingNode(null);

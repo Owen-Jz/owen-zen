@@ -1,4 +1,4 @@
-import dbConnect from "@/lib/db";
+﻿import dbConnect from "@/lib/db";
 import Goal from "@/models/Goal";
 import { NextResponse } from "next/server";
 
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
         return NextResponse.json({ success: true, data: goals });
     } catch (error) {
         console.error("GET /api/goals error:", error);
-        return NextResponse.json({ success: false, error: error }, { status: 400 });
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
     }
 }
 
@@ -22,7 +22,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ success: true, data: goal }, { status: 201 });
     } catch (error) {
         console.error("POST /api/goals error:", error);
-        return NextResponse.json({ success: false, error: error }, { status: 400 });
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
     }
 }
 
@@ -49,6 +49,6 @@ export async function PUT(req: Request) {
 
     } catch (error) {
         console.error("PUT /api/goals error:", error);
-        return NextResponse.json({ success: false, error: error }, { status: 400 });
+        return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
     }
 }

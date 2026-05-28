@@ -1,4 +1,4 @@
-import dbConnect from "@/lib/db";
+﻿import dbConnect from "@/lib/db";
 import Task from "@/models/Task";
 import { NextResponse } from "next/server";
 
@@ -61,7 +61,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: true, data: task }, { status: 201 });
   } catch (error) {
     console.error("Attributes: POST /api/tasks error:", error);
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
 
@@ -110,6 +110,6 @@ export async function PUT(req: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Attributes: PUT /api/tasks error:", error);
-    return NextResponse.json({ success: false, error: error }, { status: 400 });
+    return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });
   }
 }
