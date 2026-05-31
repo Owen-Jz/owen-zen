@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
-import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard, Grid3x3 } from "lucide-react";
+import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard, Grid3x3, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
@@ -299,6 +299,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
         { id: "subscriptions", label: "Subscriptions", icon: CreditCard },
         { id: "hour-tracker", label: "Hour Tracker", icon: Clock },
         { id: "prompts", label: "Prompt Library", icon: MessageSquare },
+        { id: "dictionary", label: "AI Dictionary", icon: Brain, href: "/dictionary" },
         { id: "courses", label: "Courses", icon: BookOpen },
         { id: "command-center", label: "Life Command Center", icon: LayoutDashboard },
       ]
@@ -403,6 +404,35 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                       {section.links.map((link, linkIndex) => {
                         const Icon = link.icon;
                         const isActive = activeTab === link.id;
+                        const linkHref = (link as { href?: string }).href;
+                        const itemClass = cn(
+                          "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
+                          isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white hover:translate-x-1"
+                        );
+                        const itemContent = (
+                          <>
+                            <Icon size={18} className={cn("shrink-0 transition-transform duration-200", isActive && "text-primary", "group-hover:scale-110")} />
+                            <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300 text-sm", isCollapsed && "md:hidden")}>
+                              {link.label}
+                            </span>
+                            {isActive && <div className="active-indicator" />}
+                          </>
+                        );
+                        if (linkHref) {
+                          return (
+                            <motion.a
+                              key={link.id}
+                              href={linkHref}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1, x: 0 }}
+                              transition={{ duration: 0.2, delay: linkIndex * 0.03 }}
+                              className={itemClass}
+                              title={isCollapsed ? link.label : undefined}
+                            >
+                              {itemContent}
+                            </motion.a>
+                          );
+                        }
                         return (
                           <motion.button
                             key={link.id}
@@ -413,19 +443,10 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
                               setActiveTab(link.id);
                               setIsOpen(false);
                             }}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 group relative",
-                              isActive ? "bg-primary/10 text-primary" : "text-gray-400 hover:bg-surface-hover hover:text-white hover:translate-x-1"
-                            )}
+                            className={itemClass}
                             title={isCollapsed ? link.label : undefined}
                           >
-                            <Icon size={18} className={cn("shrink-0 transition-transform duration-200", isActive && "text-primary", "group-hover:scale-110")} />
-                            <span className={cn("font-medium whitespace-nowrap overflow-hidden transition-all duration-300 text-sm", isCollapsed && "md:hidden")}>
-                              {link.label}
-                            </span>
-                            {isActive && (
-                              <div className="active-indicator" />
-                            )}
+                            {itemContent}
                           </motion.button>
                         );
                       })}
