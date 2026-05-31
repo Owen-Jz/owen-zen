@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
@@ -7,6 +7,29 @@ import { Task, TaskPriority, SubTask, TaskStatus } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { useSoundContext } from "./SoundEffects";
 import { cn } from "@/lib/utils";
+
+function AutoResizeTextarea({ value, onChange, className }: {
+    value: string;
+    onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
+    className?: string;
+}) {
+    const ref = useRef<HTMLTextAreaElement>(null);
+    useEffect(() => {
+        if (ref.current) {
+            ref.current.style.height = 'auto';
+            ref.current.style.height = ref.current.scrollHeight + 'px';
+        }
+    }, [value]);
+    return (
+        <textarea
+            ref={ref}
+            value={value}
+            onChange={onChange}
+            rows={1}
+            className={className}
+        />
+    );
+}
 
 interface EditTaskModalProps {
     task: Task | null;
@@ -265,8 +288,7 @@ export const EditTaskModal = ({
         >
             {st.completed && <Check size={12} />}
         </button>
-        <input
-            type="text"
+        <AutoResizeTextarea
             value={st.title}
             onChange={(e) => {
                 const updated = [...subtasks];
@@ -274,7 +296,7 @@ export const EditTaskModal = ({
                 setSubtasks(updated);
             }}
             className={cn(
-                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0 whitespace-normal break-words",
+                "flex-1 bg-transparent outline-none border-none text-sm focus:ring-0 p-0 resize-none overflow-hidden min-w-0 break-words leading-snug",
                 st.completed && "text-gray-500 line-through decoration-gray-600"
             )}
         />
