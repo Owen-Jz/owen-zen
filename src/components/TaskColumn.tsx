@@ -756,10 +756,29 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
               className="flex flex-col items-center justify-center py-12 text-center"
             >
               <div className="w-20 h-20 mb-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center">
-                <Check size={32} className="text-gray-600" />
+                {id === "pending" && <Circle size={32} className="text-gray-600" />}
+                {id === "in-progress" && <Clock size={32} className="text-gray-600" />}
+                {id === "completed" && <Check size={32} className="text-gray-600" />}
+                {id === "pinned" && <Pin size={32} className="text-gray-600" />}
+                {id === "ai-agent" && <Sparkles size={32} className="text-gray-600" />}
+                {id === "mind-map" && <Sparkles size={32} className="text-gray-600" />}
               </div>
-              <p className="text-sm text-gray-400 font-medium mb-1">All clear!</p>
-              <p className="text-xs text-gray-600">No tasks here. Drag one in or create new.</p>
+              <p className="text-sm text-gray-400 font-medium mb-1">
+                {id === "pending" ? "Backlog is clear" :
+                 id === "in-progress" ? "Nothing in focus" :
+                 id === "completed" ? "All clear!" :
+                 id === "pinned" ? "No pinned tasks" :
+                 id === "ai-agent" ? "AI queue empty" :
+                 "No mind map items"}
+              </p>
+              <p className="text-xs text-gray-600">
+                {id === "pending" ? "Add a task or drag one here" :
+                 id === "in-progress" ? "Move a task here to focus" :
+                 id === "completed" ? "Drag completed tasks here" :
+                 id === "pinned" ? "Pin important tasks for later" :
+                 id === "ai-agent" ? "Assign tasks to the AI agent" :
+                 "Add items to your mind map"}
+              </p>
             </motion.div>
           )}
           {/* Invisible spacer */}
