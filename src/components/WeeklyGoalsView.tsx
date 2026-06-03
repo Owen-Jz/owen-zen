@@ -5,6 +5,7 @@ import { Plus, Check, Flame, Trophy, Target, Trash2, Calendar, ChevronLeft, Chev
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface WeeklyGoal {
     _id: string;
@@ -379,12 +380,12 @@ export const WeeklyGoalsView = () => {
             </div>
 
             {goals.length === 0 && (
-                <div className="text-center py-12">
-                    <Star className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">No weekly goals yet</p>
-                    <p className="text-gray-600 text-sm">Add your first weekly goal above</p>
-                </div>
-            )}
+                          <EmptyState
+                            icon={Star}
+                            title="No weekly goals yet"
+                            description="Add your first weekly goal above to start tracking progress."
+                          />
+                      )}
         </div>
     );
 };

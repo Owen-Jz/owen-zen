@@ -15,6 +15,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Progress } from "@/components/ui/progress";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Helper for formatting date
 const formatDate = (dateString: string | Date | undefined) => {
@@ -750,17 +751,11 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
           </AnimatePresence>
           {/* Empty State */}
           {tasks.length === 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center py-12 text-center"
-            >
-              <div className="w-20 h-20 mb-4 rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 flex items-center justify-center">
-                <Check size={32} className="text-gray-600" />
-              </div>
-              <p className="text-sm text-gray-400 font-medium mb-1">All clear!</p>
-              <p className="text-xs text-gray-600">No tasks here. Drag one in or create new.</p>
-            </motion.div>
+            <EmptyState
+              icon={Check}
+              title="All clear!"
+              description="No tasks here. Drag one in or create new."
+            />
           )}
           {/* Invisible spacer */}
           <div className="h-10 w-full" />

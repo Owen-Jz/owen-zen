@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, X, Edit2, Trash2, Search, Twitter, Linkedin, Instagram, Loader2, Inbox, CalendarPlus, ChevronDown, ChevronRight } from "lucide-react";
+import { Plus, X, Edit2, Trash2, Search, Twitter, Linkedin, Instagram, Loader2, Inbox, CalendarPlus, ChevronDown, ChevronRight, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Post {
   _id: string;
@@ -305,10 +306,11 @@ export const PostBucketView = () => {
       {/* Posts — two sections */}
       <div className="flex-1 overflow-y-auto custom-scrollbar space-y-6">
         {filteredPosts.length === 0 && (
-          <div className="h-48 flex flex-col items-center justify-center text-gray-600 border border-dashed border-white/10 rounded-xl">
-            <Inbox size={32} className="mb-2 opacity-40" />
-            <p className="text-sm">Nothing here yet — capture an idea above.</p>
-          </div>
+          <EmptyState
+            icon={Inbox}
+            title="Nothing here yet"
+            description="Capture an idea above — hooks, threads, links, thoughts."
+          />
         )}
 
         {/* Ideas Section */}

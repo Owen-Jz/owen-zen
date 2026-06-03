@@ -7,479 +7,151 @@ import {
   Trash2, ChevronDown, Check, ExternalLink, RefreshCw
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Lead {
   _id: string;
   name: string;
   email: string;
-  source: string;
-  message?: string;
-  status: "new" | "contacted" | "replied" | "converted" | "archived";
-  tags: string[];
-  replyCount: number;
-  lastReplyAt?: string;
+  status: "new" | "contacted" | "qualified" | "converted";
+  source?: string;
   notes?: string;
   createdAt: string;
+  updatedAt: string;
 }
 
-const STATUS_COLORS: Record<string, string> = {
-  new: "bg-blue-500/15 text-blue-400 border-blue-500/30",
-  contacted: "bg-yellow-500/15 text-yellow-400 border-yellow-500/30",
-  replied: "bg-green-500/15 text-green-400 border-green-500/30",
-  converted: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-  archived: "bg-gray-500/15 text-gray-400 border-gray-500/30",
-};
-
-const SOURCE_COLORS: Record<string, string> = {
-  twitter: "bg-sky-500/10 text-sky-400",
-  instagram: "bg-pink-500/10 text-pink-400",
-  linkedin: "bg-blue-600/10 text-blue-400",
-  website: "bg-purple-500/10 text-purple-400",
-  referral: "bg-orange-500/10 text-orange-400",
-  direct: "bg-gray-500/10 text-gray-400",
-  other: "bg-gray-500/10 text-gray-400",
-};
-
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hrs = Math.floor(mins / 60);
-  if (hrs < 24) return `${hrs}h ago`;
-  const days = Math.floor(hrs / 24);
-  if (days < 30) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
+interface LeadsViewProps {
+  leads: Lead[];
+  onUpdate: (leads: Lead[]) => void;
 }
 
-function StatCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
-  return (
-    <div className="bg-surface border border-border rounded-xl p-5 flex items-center gap-4">
-      <div className={cn("p-3 rounded-lg", color)}>
-        <Icon size={20} />
-      </div>
-      <div>
-        <div className="text-2xl font-bold">{value}</div>
-        <div className="text-xs text-gray-500 uppercase tracking-wide font-medium">{label}</div>
-      </div>
-    </div>
-  );
-}
+export default function LeadsView({ leads, onUpdate }: LeadsViewProps) {
+  const [filter, setFilter] = useState<"all" | Lead["status"]>("all");
+  const [showForm, setShowForm] = useState(false);
+  const [editingLead, setEditingLead] = useState<Lead | null>(null);
+  const [formData, setFormData] = useState({ name: "", email: "", status: "new" as Lead["status"], source: "", notes: "" });
 
-function AddLeadForm({ onAdd, onClose }: { onAdd: (lead: Partial<Lead>) => Promise<void>; onClose: () => void }) {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [source, setSource] = useState("direct");
-  const [message, setMessage] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const filtered = filter === "all" ? leads : leads.filter(l => l.status === filter);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!name.trim() || !email.trim()) return;
-    setLoading(true);
-    setError("");
-    try {
-      await onAdd({ name, email, source, message });
-      onClose();
-    } catch (err: any) {
-      setError(err.message || "Failed to add lead");
-    } finally {
-      setLoading(false);
-    }
+  const addLead = (lead: Omit<Lead, "_id" | "createdAt" | "updatedAt">) => {
+    const now = new Date().toISOString();
+    const newLead: Lead = { ...lead, _id: crypto.randomUUID(), createdAt: now, updatedAt: now };
+    onUpdate([...leads, newLead]);
+    setShowForm(false);
+    setFormData({ name: "", email: "", status: "new", source: "", notes: "" });
+  };
+
+  const updateLead = (id: string, updates: Partial<Lead>) => {
+    onUpdate(leads.map(l => l._id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l));
+    setEditingLead(null);
+  };
+
+  const deleteLead = (id: string) => {
+    if (confirm("Delete this lead?")) onUpdate(leads.filter(l => l._id !== id));
+  };
+
+  const statusColors: Record<Lead["status"], string> = {
+    new: "bg-blue-500/20 text-blue-400",
+    contacted: "bg-yellow-500/20 text-yellow-400",
+    qualified: "bg-purple-500/20 text-purple-400",
+    converted: "bg-green-500/20 text-green-400",
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -12 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -12 }}
-      className="bg-surface border border-border rounded-xl p-6 mb-6"
-    >
-      <div className="flex items-center justify-between mb-5">
-        <h3 className="font-bold text-lg">Add Lead</h3>
-        <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-          <X size={18} />
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold text-white">Leads</h2>
+          <p className="text-sm text-zinc-400 mt-1">{leads.length} total · {leads.filter(l => l.status === "new").length} new</p>
+        </div>
+        <button
+          onClick={() => { setEditingLead(null); setFormData({ name: "", email: "", status: "new", source: "", notes: "" }); setShowForm(true); }}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors"
+        >
+          <Plus className="w-4 h-4" /> Add Lead
         </button>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide block mb-1.5">Name *</label>
-            <input
-              autoFocus
-              type="text"
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Jane Doe"
-              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 placeholder:text-gray-600"
-              required
-            />
-          </div>
-          <div>
-            <label className="text-xs text-gray-400 font-medium uppercase tracking-wide block mb-1.5">Email *</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="jane@example.com"
-              className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 placeholder:text-gray-600"
-              required
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-medium uppercase tracking-wide block mb-1.5">Source</label>
-          <select
-            value={source}
-            onChange={e => setSource(e.target.value)}
-            className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 appearance-none cursor-pointer"
-          >
-            {["direct", "website", "twitter", "instagram", "linkedin", "referral", "other"].map(s => (
-              <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="text-xs text-gray-400 font-medium uppercase tracking-wide block mb-1.5">Initial Message</label>
-          <textarea
-            value={message}
-            onChange={e => setMessage(e.target.value)}
-            placeholder="What did they say..."
-            rows={3}
-            className="w-full bg-background border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-primary/50 placeholder:text-gray-600 resize-none"
-          />
-        </div>
-
-        {error && <p className="text-red-400 text-sm">{error}</p>}
-
-        <div className="flex gap-3 justify-end">
-          <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-400 hover:text-white transition-colors">
-            Cancel
-          </button>
+      <div className="flex gap-2 mb-4 flex-wrap">
+        {(["all", "new", "contacted", "qualified", "converted"] as const).map(f => (
           <button
-            type="submit"
-            disabled={loading}
-            className="px-5 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:brightness-110 transition-all disabled:opacity-50 flex items-center gap-2"
+            key={f}
+            onClick={() => setFilter(f)}
+            className={cn("px-3 py-1.5 rounded-lg text-sm transition-colors", filter === f ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700")}
           >
-            {loading ? <RefreshCw size={14} className="animate-spin" /> : <Check size={14} />}
-            {loading ? "Adding..." : "Add Lead"}
+            {f.charAt(0).toUpperCase() + f.slice(1)}
           </button>
-        </div>
-      </form>
-    </motion.div>
-  );
-}
-
-function LeadRow({ lead, onUpdate, onDelete }: {
-  lead: Lead;
-  onUpdate: (id: string, data: Partial<Lead>) => Promise<void>;
-  onDelete: (id: string) => Promise<void>;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [notes, setNotes] = useState(lead.notes || "");
-  const [status, setStatus] = useState(lead.status);
-  const [deleting, setDeleting] = useState(false);
-
-  const handleStatusChange = async (newStatus: Lead["status"]) => {
-    setStatus(newStatus);
-    await onUpdate(lead._id, { status: newStatus });
-  };
-
-  const handleNotesSave = async () => {
-    if (notes !== lead.notes) {
-      await onUpdate(lead._id, { notes });
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm(`Delete lead "${lead.name}"?`)) return;
-    setDeleting(true);
-    await onDelete(lead._id);
-  };
-
-  return (
-    <div className={cn("border border-border rounded-xl overflow-hidden transition-all", deleting && "opacity-40")}>
-      {/* Row header */}
-      <div
-        className="flex items-center gap-3 p-4 cursor-pointer hover:bg-white/[0.02] transition-colors"
-        onClick={() => setExpanded(!expanded)}
-      >
-        {/* Avatar */}
-        <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 text-sm font-bold text-primary">
-          {lead.name.charAt(0).toUpperCase()}
-        </div>
-
-        {/* Name + email */}
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-sm truncate">{lead.name}</div>
-          <div className="text-xs text-gray-500 truncate">{lead.email}</div>
-        </div>
-
-        {/* Source badge */}
-        <span className={cn("hidden sm:inline-flex px-2 py-0.5 rounded-md text-xs font-medium capitalize", SOURCE_COLORS[lead.source] || SOURCE_COLORS.other)}>
-          {lead.source}
-        </span>
-
-        {/* Status badge */}
-        <span className={cn("px-2.5 py-0.5 rounded-full text-xs font-semibold border capitalize", STATUS_COLORS[status])}>
-          {status}
-        </span>
-
-        {/* Reply count */}
-        {lead.replyCount > 0 && (
-          <div className="hidden sm:flex items-center gap-1 text-xs text-green-400">
-            <MessageSquare size={12} />
-            {lead.replyCount}
-          </div>
-        )}
-
-        {/* Time */}
-        <span className="hidden md:block text-xs text-gray-600 whitespace-nowrap">{timeAgo(lead.createdAt)}</span>
-
-        <ChevronDown size={16} className={cn("text-gray-500 transition-transform shrink-0", expanded && "rotate-180")} />
+        ))}
       </div>
 
-      {/* Expanded panel */}
+      <div className="flex-1 overflow-y-auto space-y-3">
+        {filtered.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No leads yet"
+            description={filter !== "all" ? `No ${filter} leads. Try a different filter.` : "Add your first lead to start tracking prospects."}
+          />
+        ) : (
+          filtered.map(lead => (
+            <motion.div
+              key={lead._id}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl p-4 hover:border-zinc-700 transition-colors"
+            >
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-white">{lead.name}</h3>
+                    <span className={cn("text-xs px-2 py-0.5 rounded-full", statusColors[lead.status])}>
+                      {lead.status}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4 mt-1 text-sm text-zinc-400">
+                    <span className="flex items-center gap-1"><Mail className="w-3 h-3" /> {lead.email}</span>
+                    {lead.source && <span className="flex items-center gap-1"><TrendingUp className="w-3 h-3" /> {lead.source}</span>}
+                  </div>
+                  {lead.notes && <p className="text-sm text-zinc-500 mt-2">{lead.notes}</p>}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button onClick={() => { setEditingLead(lead); setFormData({ name: lead.name, email: lead.email, status: lead.status, source: lead.source || "", notes: lead.notes || "" }); setShowForm(true); }} className="p-2 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"><Tag className="w-4 h-4" /></button>
+                  <button onClick={() => deleteLead(lead._id)} className="p-2 text-zinc-400 hover:text-red-400 hover:bg-zinc-800 rounded-lg transition-colors"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            </motion.div>
+          ))
+        )}
+      </div>
+
       <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: "auto", opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="overflow-hidden"
-          >
-            <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
-              {/* Initial message */}
-              {lead.message && (
-                <div className="bg-background rounded-lg p-3">
-                  <div className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-1">Initial Message</div>
-                  <p className="text-sm text-gray-300">{lead.message}</p>
-                </div>
-              )}
-
-              {/* Status + Actions row */}
-              <div className="flex flex-wrap items-center gap-3">
-                <div>
-                  <div className="text-xs text-gray-500 uppercase tracking-wide mb-1">Status</div>
-                  <select
-                    value={status}
-                    onChange={e => handleStatusChange(e.target.value as Lead["status"])}
-                    className="bg-background border border-border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-primary/50 appearance-none cursor-pointer"
-                  >
-                    {["new", "contacted", "replied", "converted", "archived"].map(s => (
-                      <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <a
-                  href={`mailto:${lead.email}`}
-                  onClick={e => e.stopPropagation()}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-primary/10 border border-primary/30 text-primary rounded-lg text-sm hover:bg-primary/20 transition-colors"
-                >
-                  <Mail size={13} /> Email
-                </a>
-
+        {showForm && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 bg-black/60 flex items-center justify-center z-50" onClick={(e) => e.target === e.currentTarget && setShowForm(false)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-full max-w-md">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-white">{editingLead ? "Edit Lead" : "Add New Lead"}</h3>
+                <button onClick={() => setShowForm(false)} className="p-2 text-zinc-400 hover:text-white"><X className="w-4 h-4" /></button>
+              </div>
+              <div className="space-y-4">
+                <div><label className="text-sm text-zinc-400 block mb-1">Name</label><input value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500" placeholder="Full name" /></div>
+                <div><label className="text-sm text-zinc-400 block mb-1">Email</label><input value={formData.email} onChange={e => setFormData({ ...formData, email: e.target.value })} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500" placeholder="email@example.com" /></div>
+                <div><label className="text-sm text-zinc-400 block mb-1">Status</label><select value={formData.status} onChange={e => setFormData({ ...formData, status: e.target.value as Lead["status"] })} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500"><option value="new">New</option><option value="contacted">Contacted</option><option value="qualified">Qualified</option><option value="converted">Converted</option></select></div>
+                <div><label className="text-sm text-zinc-400 block mb-1">Source (optional)</label><input value={formData.source} onChange={e => setFormData({ ...formData, source: e.target.value })} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500" placeholder="Twitter, referral, etc." /></div>
+                <div><label className="text-sm text-zinc-400 block mb-1">Notes (optional)</label><textarea value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 resize-none" rows={3} placeholder="Any additional context..." /></div>
                 <button
-                  onClick={handleDelete}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/20 transition-colors ml-auto"
+                  onClick={() => {
+                    if (!formData.name.trim() || !formData.email.trim()) return;
+                    if (editingLead) updateLead(editingLead._id, formData); else addLead(formData);
+                    setShowForm(false);
+                  }}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-medium transition-colors"
                 >
-                  <Trash2 size={13} /> Delete
+                  {editingLead ? "Save Changes" : "Add Lead"}
                 </button>
               </div>
-
-              {/* Notes */}
-              <div>
-                <div className="text-xs text-gray-500 uppercase tracking-wide mb-1.5">Notes</div>
-                <textarea
-                  value={notes}
-                  onChange={e => setNotes(e.target.value)}
-                  onBlur={handleNotesSave}
-                  placeholder="Add private notes about this lead..."
-                  rows={3}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary/50 placeholder:text-gray-600 resize-none"
-                />
-              </div>
-
-              {/* Meta */}
-              <div className="flex flex-wrap gap-4 text-xs text-gray-600">
-                <span>Added {new Date(lead.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}</span>
-                {lead.lastReplyAt && <span>Last reply {timeAgo(lead.lastReplyAt)}</span>}
-                {lead.replyCount > 0 && <span>{lead.replyCount} {lead.replyCount === 1 ? "reply" : "replies"}</span>}
-              </div>
-            </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
-  );
-}
-
-export function LeadsView() {
-  const [leads, setLeads] = useState<Lead[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [showAdd, setShowAdd] = useState(false);
-  const [filter, setFilter] = useState<string>("all");
-
-  const fetchLeads = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch("/api/leads");
-      const json = await res.json();
-      if (json.success) setLeads(json.data);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { fetchLeads(); }, []);
-
-  const addLead = async (data: Partial<Lead>) => {
-    const res = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const json = await res.json();
-    if (!json.success) throw new Error(json.error || "Failed to create lead");
-    setLeads(prev => [json.data, ...prev]);
-  };
-
-  const updateLead = async (id: string, data: Partial<Lead>) => {
-    const res = await fetch(`/api/leads/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data),
-    });
-    const json = await res.json();
-    if (json.success) {
-      setLeads(prev => prev.map(l => l._id === id ? { ...l, ...json.data } : l));
-    }
-  };
-
-  const deleteLead = async (id: string) => {
-    await fetch(`/api/leads/${id}`, { method: "DELETE" });
-    setLeads(prev => prev.filter(l => l._id !== id));
-  };
-
-  const stats = {
-    total: leads.length,
-    new: leads.filter(l => l.status === "new").length,
-    replied: leads.filter(l => l.status === "replied").length,
-    converted: leads.filter(l => l.status === "converted").length,
-  };
-
-  const filters = ["all", "new", "contacted", "replied", "converted", "archived"];
-  const filtered = filter === "all" ? leads : leads.filter(l => l.status === filter);
-
-  return (
-    <div className="max-w-4xl mx-auto pb-20 space-y-6">
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Total" value={stats.total} color="bg-primary/10 text-primary" />
-        <StatCard icon={Mail} label="New" value={stats.new} color="bg-blue-500/10 text-blue-400" />
-        <StatCard icon={MessageSquare} label="Replied" value={stats.replied} color="bg-green-500/10 text-green-400" />
-        <StatCard icon={TrendingUp} label="Converted" value={stats.converted} color="bg-emerald-500/10 text-emerald-400" />
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        {/* Filter tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto">
-          {filters.map(f => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={cn(
-                "px-3 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all whitespace-nowrap",
-                filter === f
-                  ? "bg-primary/15 text-primary border border-primary/30"
-                  : "text-gray-500 hover:text-gray-300 border border-transparent hover:border-border"
-              )}
-            >
-              {f}
-            </button>
-          ))}
-        </div>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={fetchLeads}
-            className="p-2 text-gray-500 hover:text-white border border-border rounded-lg hover:border-gray-500 transition-all"
-            title="Refresh"
-          >
-            <RefreshCw size={15} />
-          </button>
-          <button
-            onClick={() => setShowAdd(!showAdd)}
-            className="flex items-center gap-2 px-4 py-2 bg-primary text-white rounded-lg text-sm font-semibold hover:brightness-110 transition-all"
-          >
-            <Plus size={15} /> Add Lead
-          </button>
-        </div>
-      </div>
-
-      {/* Add Lead Form */}
-      <AnimatePresence>
-        {showAdd && (
-          <AddLeadForm onAdd={addLead} onClose={() => setShowAdd(false)} />
-        )}
-      </AnimatePresence>
-
-      {/* Leads list */}
-      {loading ? (
-        <div className="space-y-3">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="h-16 bg-surface border border-border rounded-xl animate-pulse" />
-          ))}
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-border rounded-xl">
-          <Users size={36} className="text-gray-700 mx-auto mb-3" />
-          <div className="text-gray-500 font-medium">No leads yet</div>
-          <div className="text-gray-700 text-sm mt-1">
-            {filter !== "all" ? `No leads with status "${filter}"` : "Add your first lead or connect your lead magnet form"}
-          </div>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          <AnimatePresence initial={false}>
-            {filtered.map(lead => (
-              <motion.div
-                key={lead._id}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.97 }}
-              >
-                <LeadRow lead={lead} onUpdate={updateLead} onDelete={deleteLead} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
-
-      {/* Webhook hint */}
-      <div className="bg-surface/50 border border-border/50 rounded-xl p-4 flex items-start gap-3">
-        <ExternalLink size={16} className="text-gray-500 mt-0.5 shrink-0" />
-        <div>
-          <div className="text-sm font-light text-gray-400 mb-0.5">Resend Webhook</div>
-          <div className="text-xs text-gray-600">
-            Point your Resend inbound/reply webhook to:
-            <code className="ml-1 text-primary bg-primary/10 px-1.5 py-0.5 rounded text-xs">
-              https://owen-zen.vercel.app/api/leads/webhook
-            </code>
-            — replies will auto-notify you on Telegram.
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
