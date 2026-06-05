@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Project, ProjectDeliverable, ProjectLink, ProjectTag, Task } from "@/types";
 import { motion, AnimatePresence } from "framer-motion";
-import { Plus, Edit2, Trash2, ExternalLink, Filter, CheckCircle2, Circle, Clock, Target, CalendarDays, MoreVertical, LayoutTemplate, X, Check, ChevronDown, ChevronUp, ListTodo, FileText } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, Filter, CheckCircle2, Circle, Clock, Target, CalendarDays, MoreVertical, LayoutTemplate, X, Check, ChevronDown, ChevronUp, ListTodo, FileText, Copy, Link2 } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 import { EditTaskModal } from "./EditTaskModal";
@@ -52,12 +52,12 @@ export const ProjectView = () => {
         }
     };
 
-    const handleEditTaskSave = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => {
+    const handleEditTaskSave = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => {
         try {
             await fetch(`/api/tasks/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant })
+                body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant, images })
             });
             setEditingTask(null);
             fetchProjects();
@@ -484,6 +484,17 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
     const [newTagName, setNewTagName] = useState("");
     const [isDirty, setIsDirty] = useState(false);
     const [autoSaveStatus, setAutoSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
+    const [copiedLinkIndex, setCopiedLinkIndex] = useState<number | null>(null);
+
+    const handleCopyLink = async (url: string, index: number) => {
+        try {
+            await navigator.clipboard.writeText(url);
+            setCopiedLinkIndex(index);
+            setTimeout(() => setCopiedLinkIndex(null), 1500);
+        } catch {
+            /* clipboard unavailable — no-op */
+        }
+    };
 
     // Auto-calculate progress based on deliverables
     useEffect(() => {
@@ -590,7 +601,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="relative w-full max-w-[1100px] bg-surface border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
+                className="relative w-full max-w-[1320px] bg-surface border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
                 style={{ maxHeight: "90vh" }}
             >
                 {/* Header */}
@@ -612,11 +623,11 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                     </div>
                 </div>
 
-                {/* Body: 4-column grid */}
+                {/* Body: 3-column grid (Details · Notes · Deliverables & Links) */}
                 <div className="flex flex-1 overflow-hidden">
 
-                    {/* Col 1: Core */}
-                    <div className="w-[28%] border-r border-white/5 p-5 overflow-y-auto">
+                    {/* Col 1: Details (core settings + metadata) */}
+                    <div className="w-[32%] border-r border-white/5 p-6 overflow-y-auto">
                         <div className="flex flex-col gap-5">
                             {/* Title */}
                             <input
@@ -705,11 +716,142 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                     </p>
                                 )}
                             </div>
+
+                            {/* Divider */}
+                            <div className="h-px bg-white/5 my-1" />
+
+                            {/* Tags */}
+                            <div>
+                                <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Tags</h4>
+
+                                {/* Color swatches */}
+                                <div className="flex gap-1.5 mb-3 flex-wrap">
+                                    {[
+                                        { color: "#ef4444", label: "Red" },
+                                        { color: "#f97316", label: "Orange" },
+                                        { color: "#eab308", label: "Yellow" },
+                                        { color: "#22c55e", label: "Green" },
+                                        { color: "#14b8a6", label: "Teal" },
+                                        { color: "#3b82f6", label: "Blue" },
+                                        { color: "#a855f7", label: "Purple" },
+                                        { color: "#ec4899", label: "Pink" },
+                                    ].map(c => (
+                                        <button key={c.color} type="button"
+                                            onClick={() => { setSelectedTagColor(c.color); setIsDirty(true); }}
+                                            title={c.label}
+                                            className={cn("w-5 h-5 rounded-full border-2 transition-all",
+                                                selectedTagColor === c.color ? "border-white scale-125" : "border-transparent opacity-60 hover:opacity-100"
+                                            )}
+                                            style={{ backgroundColor: c.color }} />
+                                    ))}
+                                </div>
+
+                                {/* New tag input */}
+                                <div className="flex gap-2 mb-3">
+                                    <input
+                                        type="text"
+                                        value={newTagName}
+                                        onChange={e => setNewTagName(e.target.value)}
+                                        onKeyDown={e => {
+                                            if (e.key === "Enter") {
+                                                e.preventDefault();
+                                                if (!newTagName.trim()) return;
+                                                setTags(prev => [...prev, { name: newTagName.trim(), color: selectedTagColor }]);
+                                                setNewTagName("");
+                                                setIsDirty(true);
+                                            }
+                                        }}
+                                        placeholder="Tag name... press Enter"
+                                        className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-all text-white placeholder-gray-600"
+                                    />
+                                    <button type="button" onClick={() => {
+                                        if (!newTagName.trim()) return;
+                                        setTags(prev => [...prev, { name: newTagName.trim(), color: selectedTagColor }]);
+                                        setNewTagName("");
+                                        setIsDirty(true);
+                                    }}
+                                        className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors">
+                                        Add
+                                    </button>
+                                </div>
+
+                                {/* Tag chips */}
+                                <div className="flex gap-2 flex-wrap">
+                                    {tags.map((tag, i) => (
+                                        <span key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-white/10 bg-black/20 group/tag">
+                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
+                                            <span className="text-gray-200">{tag.name}</span>
+                                            <button type="button" onClick={() => { setTags(prev => prev.filter((_, idx) => idx !== i)); setIsDirty(true); }}
+                                                className="text-gray-500 hover:text-red-400 ml-1 opacity-0 group-hover/tag:opacity-100 transition-opacity">×</button>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Metadata */}
+                            <div className="grid grid-cols-2 gap-3">
+                                {/* Estimated hours */}
+                                <div>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold mb-1.5 block tracking-wider">Estimated Hours</label>
+                                    <div className="relative">
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={estimatedHours}
+                                            onChange={e => { setEstimatedHours(Number(e.target.value)); setIsDirty(true); }}
+                                            placeholder="0"
+                                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:border-primary transition-all text-white text-sm placeholder-gray-600"
+                                        />
+                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">h</span>
+                                    </div>
+                                </div>
+
+                                {/* Team members */}
+                                <div>
+                                    <label className="text-[10px] uppercase text-gray-500 font-bold mb-1.5 block tracking-wider">Team Members</label>
+                                    <input
+                                        type="text"
+                                        value={teamMembers}
+                                        onChange={e => { setTeamMembers(e.target.value); setIsDirty(true); }}
+                                        placeholder="Sarah, Mike..."
+                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary transition-all text-white text-sm placeholder-gray-600"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* Quadrant */}
+                            <div>
+                                <label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block tracking-wider">Quadrant</label>
+                                <div className="grid grid-cols-2 gap-1.5">
+                                    {[
+                                        { q: "q1", label: "Q1", sub: "Urgent + Important", color: "#ef4444" },
+                                        { q: "q2", label: "Q2", sub: "Not Urgent + Important", color: "#3b82f6" },
+                                        { q: "q3", label: "Q3", sub: "Urgent + Not Important", color: "#f97316" },
+                                        { q: "q4", label: "Q4", sub: "Not Urgent + Not Important", color: "#6b7280" },
+                                    ].map(item => (
+                                        <button key={item.q} type="button"
+                                            onClick={() => { setQuadrant(quadrant === item.q ? null : item.q as any); setIsDirty(true); }}
+                                            className={cn(
+                                                "p-2 rounded-lg border text-left transition-all",
+                                                quadrant === item.q
+                                                    ? "border-current text-white"
+                                                    : "border-white/10 text-gray-500 hover:border-white/30 hover:text-gray-300"
+                                            )}
+                                            style={{ borderColor: quadrant === item.q ? item.color : undefined }}>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: item.color }} />
+                                                <span className="text-xs font-bold">{item.label}</span>
+                                            </div>
+                                            <p className="text-[9px] mt-0.5 opacity-70">{item.sub}</p>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     {/* Col 2: Rich Notes */}
-                    <div className="w-[30%] border-r border-white/5 p-5 overflow-y-auto flex flex-col">
+                    <div className="w-[36%] border-r border-white/5 p-6 overflow-y-auto flex flex-col">
                         <div className="flex flex-col h-full">
                             <div className="flex items-center justify-between mb-3 shrink-0">
                                 <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Notes</h4>
@@ -785,146 +927,18 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                         </div>
                     </div>
 
-                    {/* Col 3: Tags & Metadata */}
-                    <div className="w-[22%] border-r border-white/5 p-5 overflow-y-auto">
-                        <div className="flex flex-col gap-6">
-                            {/* Tags */}
-                            <div>
-                                <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3">Tags</h4>
-
-                                {/* Color swatches */}
-                                <div className="flex gap-1.5 mb-3 flex-wrap">
-                                    {[
-                                        { color: "#ef4444", label: "Red" },
-                                        { color: "#f97316", label: "Orange" },
-                                        { color: "#eab308", label: "Yellow" },
-                                        { color: "#22c55e", label: "Green" },
-                                        { color: "#14b8a6", label: "Teal" },
-                                        { color: "#3b82f6", label: "Blue" },
-                                        { color: "#a855f7", label: "Purple" },
-                                        { color: "#ec4899", label: "Pink" },
-                                    ].map(c => (
-                                        <button key={c.color} type="button"
-                                            onClick={() => { setSelectedTagColor(c.color); setIsDirty(true); }}
-                                            title={c.label}
-                                            className={cn("w-5 h-5 rounded-full border-2 transition-all",
-                                                selectedTagColor === c.color ? "border-white scale-125" : "border-transparent opacity-60 hover:opacity-100"
-                                            )}
-                                            style={{ backgroundColor: c.color }} />
-                                    ))}
-                                </div>
-
-                                {/* New tag input */}
-                                <div className="flex gap-2 mb-3">
-                                    <input
-                                        type="text"
-                                        value={newTagName}
-                                        onChange={e => setNewTagName(e.target.value)}
-                                        onKeyDown={e => {
-                                            if (e.key === "Enter") {
-                                                e.preventDefault();
-                                                if (!newTagName.trim()) return;
-                                                setTags(prev => [...prev, { name: newTagName.trim(), color: selectedTagColor }]);
-                                                setNewTagName("");
-                                                setIsDirty(true);
-                                            }
-                                        }}
-                                        placeholder="Tag name... press Enter"
-                                        className="flex-1 bg-black/20 border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-all text-white placeholder-gray-600"
-                                    />
-                                    <button type="button" onClick={() => {
-                                        if (!newTagName.trim()) return;
-                                        setTags(prev => [...prev, { name: newTagName.trim(), color: selectedTagColor }]);
-                                        setNewTagName("");
-                                        setIsDirty(true);
-                                    }}
-                                        className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-white text-sm transition-colors">
-                                        Add
-                                    </button>
-                                </div>
-
-                                {/* Tag chips */}
-                                <div className="flex gap-2 flex-wrap">
-                                    {tags.map((tag, i) => (
-                                        <span key={i} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border border-white/10 bg-black/20 group/tag">
-                                            <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: tag.color }} />
-                                            <span className="text-gray-200">{tag.name}</span>
-                                            <button type="button" onClick={() => { setTags(prev => prev.filter((_, idx) => idx !== i)); setIsDirty(true); }}
-                                                className="text-gray-500 hover:text-red-400 ml-1 opacity-0 group-hover/tag:opacity-100 transition-opacity">×</button>
-                                        </span>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Metadata */}
-                            <div className="space-y-4">
-                                {/* Estimated hours */}
-                                <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold mb-1.5 block tracking-wider">Estimated Hours</label>
-                                    <div className="relative">
-                                        <input
-                                            type="number"
-                                            min="0"
-                                            value={estimatedHours}
-                                            onChange={e => { setEstimatedHours(Number(e.target.value)); setIsDirty(true); }}
-                                            placeholder="0"
-                                            className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 pr-10 focus:outline-none focus:border-primary transition-all text-white text-sm placeholder-gray-600"
-                                        />
-                                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-500 font-medium">h</span>
-                                    </div>
-                                </div>
-
-                                {/* Team members */}
-                                <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold mb-1.5 block tracking-wider">Team Members</label>
-                                    <input
-                                        type="text"
-                                        value={teamMembers}
-                                        onChange={e => { setTeamMembers(e.target.value); setIsDirty(true); }}
-                                        placeholder="Sarah, Mike, Priya..."
-                                        className="w-full bg-black/20 border border-white/10 rounded-xl px-4 py-2.5 focus:outline-none focus:border-primary transition-all text-white text-sm placeholder-gray-600"
-                                    />
-                                </div>
-
-                                {/* Quadrant */}
-                                <div>
-                                    <label className="text-[10px] uppercase text-gray-500 font-bold mb-2 block tracking-wider">Quadrant</label>
-                                    <div className="grid grid-cols-2 gap-1.5">
-                                        {[
-                                            { q: "q1", label: "Q1", sub: "Urgent + Important", color: "#ef4444" },
-                                            { q: "q2", label: "Q2", sub: "Not Urgent + Important", color: "#3b82f6" },
-                                            { q: "q3", label: "Q3", sub: "Urgent + Not Important", color: "#f97316" },
-                                            { q: "q4", label: "Q4", sub: "Not Urgent + Not Important", color: "#6b7280" },
-                                        ].map(item => (
-                                            <button key={item.q} type="button"
-                                                onClick={() => { setQuadrant(quadrant === item.q ? null : item.q as any); setIsDirty(true); }}
-                                                className={cn(
-                                                    "p-2 rounded-lg border text-left transition-all",
-                                                    quadrant === item.q
-                                                        ? "border-current text-white"
-                                                        : "border-white/10 text-gray-500 hover:border-white/30 hover:text-gray-300"
-                                                )}
-                                                style={{ borderColor: quadrant === item.q ? item.color : undefined }}>
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="w-2 h-2 rounded-sm" style={{ backgroundColor: item.color }} />
-                                                    <span className="text-xs font-bold">{item.label}</span>
-                                                </div>
-                                                <p className="text-[9px] mt-0.5 opacity-70">{item.sub}</p>
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Col 4: Deliverables & Links */}
-                    <div className="w-[20%] p-5 overflow-y-auto">
+                    {/* Col 3: Deliverables & Links */}
+                    <div className="w-[32%] p-6 overflow-y-auto">
                         <div className="flex flex-col gap-6">
                             {/* Deliverables */}
                             <div>
                                 <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
                                     <CheckCircle2 size={14} className="text-emerald-500" /> Deliverables
+                                    {deliverables.length > 0 && (
+                                        <span className="ml-auto text-[10px] font-bold text-gray-500 normal-case tracking-normal">
+                                            {deliverables.filter(d => d.completed).length}/{deliverables.length}
+                                        </span>
+                                    )}
                                 </h4>
                                 <div className="flex gap-2 mb-3">
                                     <input
@@ -938,7 +952,7 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                                     <button type="button" onClick={addDeliverable}
                                         className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors">Add</button>
                                 </div>
-                                <div className="space-y-2 max-h-[160px] overflow-y-auto pr-1">
+                                <div className="space-y-2 max-h-[240px] overflow-y-auto pr-1">
                                     {deliverables.length === 0 && <p className="text-xs text-gray-600">No deliverables yet.</p>}
                                     {deliverables.map((d, i) => (
                                         <div key={i} className="flex items-center gap-2 bg-surface/50 p-2 rounded-lg border border-white/5 group">
@@ -965,37 +979,56 @@ const ProjectModal = ({ project, onClose, onSave }: { project: Project | null, o
                             {/* Links */}
                             <div>
                                 <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 flex items-center gap-2">
-                                    <ExternalLink size={14} className="text-blue-500" /> Links
+                                    <Link2 size={14} className="text-blue-500" /> Links
+                                    {links.length > 0 && (
+                                        <span className="ml-auto text-[10px] font-bold text-gray-500 normal-case tracking-normal">{links.length}</span>
+                                    )}
                                 </h4>
                                 <div className="space-y-2 mb-3">
                                     <input type="text" value={newLinkTitle}
                                         onChange={e => setNewLinkTitle(e.target.value)}
                                         placeholder="Label (e.g. Figma)"
-                                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-all" />
+                                        className="w-full bg-surface border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-all" />
                                     <div className="flex gap-2">
                                         <input type="url" value={newLinkUrl}
                                             onChange={e => setNewLinkUrl(e.target.value)}
                                             onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addLink(); }}}
                                             placeholder="https://..."
-                                            className="flex-1 bg-surface border border-white/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-all" />
+                                            className="flex-1 bg-surface border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-primary transition-all" />
                                         <button type="button" onClick={addLink}
-                                            className="px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg text-sm transition-colors">Add</button>
+                                            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 rounded-lg text-sm font-medium transition-colors">Add</button>
                                     </div>
                                 </div>
-                                <div className="space-y-1.5 max-h-[120px] overflow-y-auto">
+                                <div className="space-y-2 max-h-[360px] overflow-y-auto pr-1">
                                     {links.length === 0 && <p className="text-xs text-gray-600">No links yet.</p>}
                                     {links.map((link, i) => (
-                                        <div key={i} className="flex items-center gap-2 bg-surface/50 p-2 rounded-lg border border-white/5 group">
-                                            <ExternalLink size={11} className="text-gray-500 shrink-0" />
-                                            <div className="flex-1 overflow-hidden">
-                                                <span className="text-xs font-medium text-gray-200 block truncate">{link.title}</span>
-                                                <a href={link.url} target="_blank" rel="noreferrer"
-                                                    className="text-[10px] text-primary hover:underline truncate block">{link.url}</a>
+                                        <div key={i} className="flex items-start gap-3 bg-surface/50 hover:bg-surface p-3 rounded-xl border border-white/5 hover:border-white/10 transition-all group">
+                                            <div className="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center shrink-0 mt-0.5">
+                                                <Link2 size={13} className="text-blue-400" />
                                             </div>
-                                            <button type="button" onClick={() => { setLinks(prev => prev.filter((_, idx) => idx !== i)); setIsDirty(true); }}
-                                                className="text-gray-600 hover:text-red-500 p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <Trash2 size={11} />
-                                            </button>
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-sm font-semibold text-gray-100 truncate flex-1" title={link.title}>{link.title}</span>
+                                                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                                                        <a href={link.url} target="_blank" rel="noreferrer" title="Open link"
+                                                            className="p-1.5 rounded-md text-gray-400 hover:text-blue-400 hover:bg-white/10 transition-colors">
+                                                            <ExternalLink size={13} />
+                                                        </a>
+                                                        <button type="button" onClick={() => handleCopyLink(link.url, i)} title="Copy URL"
+                                                            className="p-1.5 rounded-md text-gray-400 hover:text-emerald-400 hover:bg-white/10 transition-colors">
+                                                            {copiedLinkIndex === i ? <Check size={13} className="text-emerald-400" /> : <Copy size={13} />}
+                                                        </button>
+                                                        <button type="button" onClick={() => { setLinks(prev => prev.filter((_, idx) => idx !== i)); setIsDirty(true); }} title="Remove link"
+                                                            className="p-1.5 rounded-md text-gray-400 hover:text-red-400 hover:bg-white/10 transition-colors">
+                                                            <Trash2 size={13} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                <a href={link.url} target="_blank" rel="noreferrer"
+                                                    className="text-xs text-primary/80 hover:text-primary hover:underline break-all block mt-0.5 leading-snug">
+                                                    {link.url}
+                                                </a>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

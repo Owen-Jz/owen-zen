@@ -36,6 +36,7 @@ export interface Task {
     order: number;
     isArchived?: boolean;
     subtasks?: SubTask[];
+    images?: string[];
     timeLogs?: TimeLog[];
     totalTimeSpent?: number;
     activeTimer?: ActiveTimer;

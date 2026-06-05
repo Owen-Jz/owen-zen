@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { X, Check, Plus, Trash2, Calendar, Layout, AlertCircle, Circle, AlignLeft, CheckCircle2, Grid3x3 } from "lucide-react";
 import { TaskPriority, SubTask } from "@/types";
 import { DatePicker } from "./DatePicker";
+import { TaskImageUploader } from "./TaskImageUploader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,7 +15,7 @@ interface AddTaskModalProps {
     initialTitle?: string;
     initialQuadrant?: "q1" | "q2" | "q3" | "q4" | null;
     onClose: () => void;
-    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => void;
+    onSave: (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => void;
 }
 
 export const AddTaskModal = ({
@@ -32,6 +33,7 @@ export const AddTaskModal = ({
     const [isMIT, setIsMIT] = useState(false);
     const [category, setCategory] = useState("Other");
     const [quadrant, setQuadrant] = useState<"q1" | "q2" | "q3" | "q4" | null>(initialQuadrant ?? null);
+    const [images, setImages] = useState<string[]>([]);
 
     const addSubtask = (e: React.FormEvent) => {
         e.preventDefault();
@@ -52,7 +54,7 @@ export const AddTaskModal = ({
 
     const handleSave = () => {
         if (!title.trim()) return;
-        onSave(title, description, priority, subtasks, dueDate || undefined, isMIT, category, quadrant);
+        onSave(title, description, priority, subtasks, dueDate || undefined, isMIT, category, quadrant, images);
         onClose();
     };
 
@@ -110,6 +112,15 @@ export const AddTaskModal = ({
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Add more details to this task..."
                                 className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[100px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
+                            />
+                        </div>
+
+                        {/* Images Section */}
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                            <TaskImageUploader
+                                images={images}
+                                onAdd={(url) => setImages((prev) => [...prev, url])}
+                                onRemove={(i) => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                             />
                         </div>
 

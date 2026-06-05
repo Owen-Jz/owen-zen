@@ -1598,7 +1598,7 @@ export default function Dashboard() {
     }
   }, [tasks]);
 
-  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => {
+  const handleSaveNewTask = async (title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate: string | undefined, isMIT: boolean, category: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => {
     // Optimistic UI
     const tempId = crypto.randomUUID();
     const tempTask: Task = {
@@ -1616,6 +1616,7 @@ export default function Dashboard() {
       isTemp: true,
       category,
       quadrant,
+      images,
     };
 
     const previousTasks = [...tasks];
@@ -1626,7 +1627,7 @@ export default function Dashboard() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          title, description, priority, subtasks, dueDate, isMIT, category, quadrant
+          title, description, priority, subtasks, dueDate, isMIT, category, quadrant, images
         }),
       });
       const json = await res.json();
@@ -1740,16 +1741,16 @@ export default function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category, quadrant } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category, quadrant, images } : t));
     setEditingTask(null);
 
     try {
       await fetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant }),
+        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant, images }),
       });
     } catch {
       setTasks(oldTasks);

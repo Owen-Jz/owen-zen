@@ -55,6 +55,10 @@ const TaskSchema = new mongoose.Schema({
     }],
     default: []
   },
+  images: {
+    type: [String],
+    default: []
+  },
   timeLogs: {
     type: [{
       startedAt: Date,

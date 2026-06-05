@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
 import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
 import { TimeTracker } from "./TimeTracker";
+import { TaskImageUploader } from "./TaskImageUploader";
 import { Task, TaskPriority, SubTask, TaskStatus } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { useSoundContext } from "./SoundEffects";
@@ -34,7 +35,7 @@ function AutoResizeTextarea({ value, onChange, className }: {
 interface EditTaskModalProps {
     task: Task | null;
     onClose: () => void;
-    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null) => void;
+    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => void;
     onStartTimer: (id: string, sessionTitle?: string) => void;
     onStopTimer: (id: string, note?: string) => void;
     onPauseTimer?: (id: string) => void;
@@ -71,6 +72,7 @@ export const EditTaskModal = ({
     const [isMIT, setIsMIT] = useState(task?.isMIT || false);
     const [category, setCategory] = useState(task?.category || "Other");
     const [quadrant, setQuadrant] = useState<"q1" | "q2" | "q3" | "q4" | null>(task?.quadrant ?? null);
+    const [images, setImages] = useState<string[]>(task?.images || []);
     const [decomposingSubtasks, setDecomposingSubtasks] = useState<SubTask[] | null>(null);
 
     const decomposeMutation = useMutation({
@@ -150,7 +152,7 @@ export const EditTaskModal = ({
     };
 
     const handleSave = () => {
-        onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category, quadrant);
+        onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category, quadrant, images);
         // Also save MIT status if changed
         if (isMIT !== task.isMIT) {
             onToggleMIT(task._id, isMIT);
@@ -227,6 +229,15 @@ export const EditTaskModal = ({
                                 onChange={(e) => setDescription(e.target.value)}
                                 placeholder="Add more details to this task..."
                                 className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[300px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
+                            />
+                        </div>
+
+                        {/* Images Section */}
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                            <TaskImageUploader
+                                images={images}
+                                onAdd={(url) => setImages((prev) => [...prev, url])}
+                                onRemove={(i) => setImages((prev) => prev.filter((_, idx) => idx !== i))}
                             />
                         </div>
 
