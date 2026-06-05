@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Edit2, Plus, X, Upload, ArrowRight, Sparkles, Database, Send, Loader2 } from "lucide-react";
+import { Twitter, Linkedin, Instagram, Image as ImageIcon, Lightbulb, Trash2, Edit2, Plus, X, Upload, ArrowRight, Sparkles, Database, Send, Loader2, Lightbulb as LightbulbIcon } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CldUploadWidget } from 'next-cloudinary';
 import { clsx } from "clsx";
 import { Loading } from "@/components/Loading";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Post {
   _id: string;
@@ -321,11 +322,11 @@ export const SocialHubView = () => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {ideas.length === 0 ? (
-              <div className="h-40 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-border rounded-xl">
-                <Sparkles size={24} className="mb-2 opacity-50" />
-                <p className="text-sm">Bucket empty.</p>
-                <p className="text-xs">AI Curator runs daily at 8am.</p>
-              </div>
+              <EmptyState
+                icon={Sparkles}
+                title="Bucket empty"
+                description="AI Curator fills this daily at 8am — or add ideas manually."
+              />
             ) : (
               ideas.map(post => (
                 <motion.div
@@ -379,9 +380,11 @@ export const SocialHubView = () => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {drafts.length === 0 ? (
-              <div className="h-40 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-border rounded-xl">
-                <p className="text-sm">No active drafts.</p>
-              </div>
+              <EmptyState
+                icon={Edit2}
+                title="No active drafts"
+                description="Move an idea into drafts to start creating content."
+              />
             ) : (
               drafts.map(post => (
                 <motion.div

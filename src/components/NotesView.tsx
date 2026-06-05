@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { Note } from "@/types";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // ── Constants ─────────────────────────────────────────────────────────────────────
 const MAX_CONTENT_LENGTH = 5000;
@@ -768,16 +769,13 @@ export default function NotesView() {
               <Loader2 size={24} className="animate-spin text-gray-500" />
             </div>
           ) : filteredNotes.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <FileText size={32} className="mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No notes yet</p>
-              <button
-                onClick={createNote}
-                className="mt-2 text-primary hover:underline text-sm"
-              >
-                Create your first note
-              </button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No notes yet"
+              description="Create your first note to start organizing your thoughts."
+              actionLabel="Create your first note"
+              onAction={createNote}
+            />
           ) : (
             <AnimatePresence>
               {filteredNotes.map((note) => (
