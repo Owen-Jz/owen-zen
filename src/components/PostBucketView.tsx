@@ -311,7 +311,10 @@ export const PostBucketView = () => {
             title="Nothing here yet"
             description="Capture a content idea above to get started."
             actionLabel="Add First Idea"
-            onAction={() => {}}
+            onAction={() => {
+              const input = document.querySelector('input[placeholder^="Quick capture"]') as HTMLInputElement | null;
+              if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+            }}
           />
         )}
 

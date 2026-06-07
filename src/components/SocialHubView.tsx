@@ -384,8 +384,6 @@ export const SocialHubView = () => {
                 icon={Send}
                 title="No active drafts"
                 description="Your published content lives here. Start drafting on the Post Bucket to see your work reflected here."
-                actionLabel="Create a Draft"
-                onAction={() => {}}
               />
             ) : (
               drafts.map(post => (

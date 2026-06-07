@@ -443,16 +443,13 @@ export function LeadsView() {
           ))}
         </div>
       ) : filtered.length === 0 ? (
-        <div className="text-center py-20 border border-dashed border-border rounded-xl">
-          <Users size={36} className="text-gray-700 mx-auto mb-3" />
-          <EmptyState
-            icon={Users}
-            title="No leads yet"
-            description={filter !== "all" ? `No leads with status "${filter}". Try a different filter or add a new lead.` : "Your pipeline is empty. Add your first lead or connect your lead magnet form to start building."}
-            actionLabel="Add First Lead"
-            onAction={() => {}}
-          />
-        </div>
+        <EmptyState
+          icon={Users}
+          title="No leads yet"
+          description={filter !== "all" ? `No leads with status "${filter}". Try a different filter or add a new lead.` : "Your pipeline is empty. Add your first lead or connect your lead magnet form to start building."}
+          actionLabel="Add First Lead"
+          onAction={() => setShowAdd(true)}
+        />
       ) : (
         <div className="space-y-3">
           <AnimatePresence initial={false}>

@@ -26,6 +26,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 // Types
 type Network = "instagram" | "twitter" | "linkedin";
@@ -979,7 +980,7 @@ export const ContentCalendar = () => {
                         title="No posts scheduled for this day"
                         description="Click 'Add Post' to create and schedule your first post for this day."
                         actionLabel="Add Post"
-                        onAction={() => {}}
+                        onAction={startNewPost}
                       />
                     ) : (
                       getSelectedDayPosts()

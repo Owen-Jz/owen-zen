@@ -1202,8 +1202,8 @@ export const HabitView = () => {
                             description="Build your streak one day at a time. Add your first non-negotiable and start tracking."
                             actionLabel="Add First Protocol"
                             onAction={() => {
-                                const form = document.querySelector('form[onSubmit]') as HTMLFormElement;
-                                if (form) form.dispatchEvent(new Event('submit', { bubbles: true }));
+                                const input = document.querySelector('input[placeholder="Add a new non-negotiable..."]') as HTMLInputElement | null;
+                                if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
                             }}
                         />
                     )}
