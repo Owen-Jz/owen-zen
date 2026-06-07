@@ -1,9 +1,12 @@
-const CACHE_NAME = 'owen-zen-v1';
+// Bump this version on each release to purge stale caches on activate.
+const CACHE_NAME = 'owen-zen-v2';
 const OFFLINE_URL = '/offline';
 
-// Assets to pre-cache on install (app shell)
+// Assets to pre-cache on install. Intentionally does NOT include '/' — caching
+// the HTML app shell across deploys serves a stale page that references deleted,
+// content-hashed JS chunks (white screen until hard refresh). Navigations are
+// network-first and fall back to the dedicated offline page instead.
 const PRECACHE_ASSETS = [
-    '/',
     '/offline',
     '/manifest.json',
     '/logo.svg',
@@ -44,10 +47,25 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(event.request.url);
     if (url.pathname.startsWith('/api/')) return;
 
+    const isNavigation = event.request.mode === 'navigate' || event.request.destination === 'document';
+
+    // Navigations: always network-first and NEVER cache the HTML shell (avoids
+    // serving a stale page that points at deleted JS chunks after a deploy).
+    // Offline → show the dedicated offline page.
+    if (isNavigation) {
+        event.respondWith(
+            fetch(event.request).catch(async () => {
+                const offlinePage = await caches.match(OFFLINE_URL);
+                return offlinePage || new Response('You are offline.', { status: 503 });
+            })
+        );
+        return;
+    }
+
+    // Static assets (content-hashed, safe to cache): network-first, cache on success.
     event.respondWith(
         fetch(event.request)
             .then((response) => {
-                // Cache a copy of successful page/asset responses
                 if (response && response.status === 200) {
                     const clone = response.clone();
                     caches.open(CACHE_NAME).then((cache) => {
@@ -57,16 +75,8 @@ self.addEventListener('fetch', (event) => {
                 return response;
             })
             .catch(async () => {
-                // Offline: try cache first
                 const cached = await caches.match(event.request);
                 if (cached) return cached;
-
-                // For navigation requests, show the offline page
-                if (event.request.destination === 'document') {
-                    const offlinePage = await caches.match(OFFLINE_URL);
-                    return offlinePage || new Response('You are offline.', { status: 503 });
-                }
-
                 return new Response('Network error', { status: 503 });
             })
     );
