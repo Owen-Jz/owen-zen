@@ -41,6 +41,12 @@ NoteSchema.pre('save', function(this: any) {
   this.updatedAt = new Date();
 });
 
+// `pre('save')` does NOT fire on findByIdAndUpdate/updateOne (which the API uses),
+// so set updatedAt on those query-based updates too — otherwise it goes stale.
+NoteSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function(this: any) {
+  this.set({ updatedAt: new Date() });
+});
+
 // Create indexes for optimized queries
 NoteSchema.index({ userId: 1, createdAt: -1 });
 NoteSchema.index({ userId: 1, isPinned: -1 });

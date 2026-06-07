@@ -13,9 +13,15 @@ export async function GET(req: Request) {
         const query: any = {};
 
         if (month) {
-            const [year, monthNum] = month.split("-");
-            const startDate = new Date(parseInt(year), parseInt(monthNum) - 1, 1);
-            const endDate = new Date(parseInt(year), parseInt(monthNum), 0, 23, 59, 59);
+            if (!/^\d{4}-\d{2}$/.test(month)) {
+                return NextResponse.json(
+                    { success: false, message: "Invalid month format. Expected YYYY-MM." },
+                    { status: 400 }
+                );
+            }
+            const [year, monthNum] = month.split("-").map(Number);
+            const startDate = new Date(year, monthNum - 1, 1);
+            const endDate = new Date(year, monthNum, 0, 23, 59, 59);
             query.date = { $gte: startDate, $lte: endDate };
         }
 

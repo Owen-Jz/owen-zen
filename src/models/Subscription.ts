@@ -24,6 +24,9 @@ const SubscriptionSchema = new mongoose.Schema({
     amount: {
         type: Number,
         required: [true, 'Please provide a subscription amount.'],
+        min: [0, 'Amount cannot be negative'],
+        // Round to 2 decimals (cents) on write to prevent float drift.
+        set: (v: number) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v),
     },
     billingCycle: {
         type: String,

@@ -99,6 +99,13 @@ const TaskSchema = new mongoose.Schema({
 // Index for Task Bank queries
 TaskSchema.index({ isBanked: 1 });
 TaskSchema.index({ quadrant: 1 });
+// Indexes for the most common list/filter/sort paths (board view, project view,
+// calendar, status columns, overdue cron) — these were full collection scans.
+TaskSchema.index({ boardId: 1, order: 1 });
+TaskSchema.index({ projectId: 1 });
+TaskSchema.index({ status: 1 });
+TaskSchema.index({ scheduledDate: 1 });
+TaskSchema.index({ dueDate: 1, overdueNotified: 1 });
 
 export default mongoose.models.Task || mongoose.model('Task', TaskSchema);
 

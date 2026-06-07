@@ -12,6 +12,9 @@ const ExpenseSchema: Schema = new Schema({
     amount: {
         type: Number,
         required: [true, 'Please provide an amount.'],
+        min: [0, 'Amount cannot be negative'],
+        // Round to 2 decimals (cents) on write to prevent float drift accumulating in totals.
+        set: (v: number) => (typeof v === 'number' ? Math.round(v * 100) / 100 : v),
         index: true,
     },
     categoryId: {

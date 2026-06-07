@@ -110,9 +110,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   try {
     const deleted = await Habit.deleteOne({ _id: id });
-    if (!deleted) {
+    if (deleted.deletedCount === 0) {
       return NextResponse.json({ success: false }, { status: 404 });
     }
+    // Remove dangling references to this habit from any routine items.
+    await Routine.updateMany(
+      { "items.habitId": id },
+      { $pull: { items: { habitId: id } } }
+    );
     return NextResponse.json({ success: true, data: {} });
   } catch (error) {
     return NextResponse.json({ success: false, error: error instanceof Error ? error.message : String(error) }, { status: 400 });

@@ -46,6 +46,6 @@ const CanvasSchema = new mongoose.Schema({
   edges: [CanvasEdgeSchema],
 }, { timestamps: true });
 
-// Force re-registration on hot reload so schema changes take effect
-delete mongoose.models['Canvas'];
-export default mongoose.model('Canvas', CanvasSchema);
+// Use the cached model if already compiled (avoids recompiling on every import
+// in serverless / hot-reload, matching the pattern used by every other model).
+export default mongoose.models.Canvas || mongoose.model('Canvas', CanvasSchema);

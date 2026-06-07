@@ -37,8 +37,8 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ success: false }, { status: 404 });
     }
 
-    // Recalculate project progress if task was completed or un-completed
-    if (task.projectId && body.status === 'completed') {
+    // Recalculate project progress on any status change (complete OR un-complete)
+    if (task.projectId && body.status) {
       await recalculateProjectProgress(task.projectId.toString());
     }
     // If task was removed from project or moved, recalculate old project
@@ -63,7 +63,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const projectId = task?.projectId?.toString();
 
     const deletedTask = await Task.deleteOne({ _id: id });
-    if (!deletedTask) {
+    if (deletedTask.deletedCount === 0) {
       return NextResponse.json({ success: false }, { status: 404 });
     }
 

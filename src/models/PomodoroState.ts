@@ -57,4 +57,10 @@ PomodoroStateSchema.pre('save', function (this: { updatedAt: Date }) {
   this.updatedAt = new Date();
 });
 
+// `pre('save')` does not fire on findOneAndUpdate/updateOne (used by the API),
+// so keep updatedAt fresh on query-based updates too.
+PomodoroStateSchema.pre(['findOneAndUpdate', 'updateOne', 'updateMany'], function (this: any) {
+  this.set({ updatedAt: new Date() });
+});
+
 export default mongoose.models.PomodoroState || mongoose.model('PomodoroState', PomodoroStateSchema);

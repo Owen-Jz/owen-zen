@@ -25,7 +25,7 @@ const GoalSchema = new mongoose.Schema({
     },
     year: {
         type: Number,
-        default: 2026,
+        default: () => new Date().getFullYear(),
     },
     createdAt: {
         type: Date,

@@ -14,7 +14,11 @@ export async function GET(req: Request) {
     const query: any = {};
     if (status) query.status = status;
     if (entryType) query.entryType = entryType;
-    if (search) query.title = { $regex: search, $options: "i" };
+    if (search) {
+      // Escape regex metacharacters to prevent ReDoS / regex-injection from raw user input
+      const escaped = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      query.title = { $regex: escaped, $options: "i" };
+    }
 
     const items = await InboxItem.find(query).sort({ dateAdded: -1 });
     return NextResponse.json({ success: true, data: items });
