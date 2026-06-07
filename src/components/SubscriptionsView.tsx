@@ -60,6 +60,7 @@ function formatCurrency(amount: number, currency: string = "NGN"): string {
   }).format(amount);
 }
 
+// Shows the USD-equivalent of an NGN amount (amount is pre-divided by EXCHANGE_RATE).
 function formatUSD(amount: number): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",

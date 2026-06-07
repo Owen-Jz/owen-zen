@@ -9,7 +9,7 @@ import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash
 import { useState, useRef, useEffect, forwardRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { TaskColumn } from "./TaskColumn";
-import { Task, TaskStatus, TaskPriority, Board } from "@/types";
+import { Task, TaskStatus, TaskPriority } from "@/types";
 import { TaskCard } from "./TaskColumn";
 import { cn } from "@/lib/utils";
 import { QuickAddBar } from "./TaskBoard/QuickAddBar";
@@ -46,8 +46,6 @@ export const TaskBoard = ({
   onPauseTimer,
   onResumeTimer,
   onFocus,
-  onMoveToBoard,
-  boards,
   isZenMode,
   onBulkDelete,
   onBulkArchive,
@@ -72,8 +70,6 @@ export const TaskBoard = ({
   onPauseTimer?: (id: string) => void | Promise<void>,
   onResumeTimer?: (id: string) => void | Promise<void>,
   onFocus: (task: Task) => void | Promise<void>,
-  onMoveToBoard?: (taskId: string, boardId: string | null) => void | Promise<void>,
-  boards?: Board[],
   isZenMode?: boolean,
   onBulkDelete?: (ids: string[]) => void | Promise<void>,
   onBulkArchive?: (ids: string[]) => void | Promise<void>,

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { Search, ArrowLeft, X } from "lucide-react";
 
 type Category =
@@ -338,13 +339,13 @@ export default function DictionaryPage() {
       <div className="sticky top-0 z-10 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/5">
         <div className="max-w-7xl mx-auto px-6 py-5">
           <div className="flex items-center gap-4 mb-5">
-            <a
+            <Link
               href="/"
               className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors text-sm"
             >
               <ArrowLeft size={16} />
               Dashboard
-            </a>
+            </Link>
             <div className="h-4 w-px bg-white/10" />
             <div>
               <h1 className="text-xl font-bold text-white">AI Prompting Dictionary</h1>

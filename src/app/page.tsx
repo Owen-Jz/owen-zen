@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef, lazy, Suspense } from "react";
+import { useState, useEffect, useRef, lazy, Suspense, useCallback } from "react";
 import dynamic from "next/dynamic";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { Plus, LayoutDashboard, Calendar, Settings, Menu, X, Target, Crosshair, TrendingUp, Users, Twitter, Linkedin, Instagram, Palette, GripVertical, AlertCircle, AlertTriangle, ArrowDown, MoreVertical, Archive, ArrowRightCircle, Edit2, ChevronDown, Check, Clock, Trash2, Circle, Trophy, Pause, Maximize2, ShoppingCart, Search, LayoutTemplate, Inbox, Star, Wallet, Activity, Dumbbell, Sparkles, FileText, Eye, UtensilsCrossed, Utensils, Shield, Square, CheckSquare, BarChart2, MessageSquare, BookOpen, LayoutGrid, Megaphone, Play, Landmark, CreditCard, Grid3x3, Brain } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -28,7 +29,8 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { AddTaskModal } from "@/components/AddTaskModal";
-import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, Board, ProjectLink } from "@/types";
+import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, ProjectLink } from "@/types";
+import { apiFetch } from "@/lib/apiFetch";
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
 import { NotificationBell } from "@/components/NotificationBell";
@@ -58,6 +60,12 @@ const HabitAnalyticsView = dynamic(() => import("@/components/HabitAnalyticsView
   loading: () => <Loading />
 });
 const VisionBoardView = dynamic(() => import("@/components/VisionBoardView").then(mod => ({ default: mod.VisionBoardView })), {
+  loading: () => <Loading />
+});
+const WeeklyReviewView = dynamic(() => import("@/components/WeeklyReviewView").then(mod => ({ default: mod.WeeklyReviewView })), {
+  loading: () => <Loading />
+});
+const SocialHubView = dynamic(() => import("@/components/SocialHubView").then(mod => ({ default: mod.SocialHubView })), {
   loading: () => <Loading />
 });
 const RealityView = dynamic(() => import("@/components/RealityView").then(mod => ({ default: mod.RealityView })), {
@@ -273,11 +281,13 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       title: "Planning",
       links: [
         { id: "weekly", label: "Weekly Goals", icon: Target },
+        { id: "weekly-review", label: "Weekly Review", icon: BarChart2 },
         { id: "vision", label: "Vision Board", icon: Palette },
         { id: "reality", label: "Reality Check", icon: Eye },
         { id: "roadmap", label: "2026 Roadmap", icon: Target },
         { id: "bucket", label: "2026 Bucket List", icon: Star },
-        { id: "calendar", label: "Calendar", icon: Calendar },
+        { id: "schedule", label: "Schedule", icon: Calendar },
+        { id: "calendar", label: "Content Calendar", icon: LayoutTemplate },
         { id: "post-bucket", label: "Post Bucket", icon: Inbox },
         { id: "canvas", label: "Mind Map", icon: LayoutGrid },
         { id: "eisenhower", label: "Eisenhower Matrix", icon: Grid3x3 },
@@ -308,6 +318,7 @@ const Sidebar = ({ activeTab, setActiveTab, isOpen, setIsOpen, isCollapsed, setI
       title: "Marketing",
       links: [
         { id: "marketing", label: "Marketing HQ", icon: Megaphone },
+        { id: "socials", label: "Social Hub", icon: Twitter },
       ]
     },
     {
@@ -1289,13 +1300,29 @@ const RightSidebar = ({
   );
 };
 
-export default function Dashboard() {
+function Dashboard() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
   const [newTask, setNewTask] = useState("");
   const [newPriority, setNewPriority] = useState<TaskPriority>("medium");
   const [isAddTaskModalOpen, setIsAddTaskModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("tasks");
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTabState] = useState("tasks");
+
+  // Keep the active tab in sync with the URL (?tab=…). This makes the Command
+  // Center cards, notification deep-links, and browser back/forward all navigate
+  // correctly, and makes every section bookmarkable / refresh-stable.
+  useEffect(() => {
+    const tab = searchParams.get("tab") || "tasks";
+    setActiveTabState((prev) => (prev === tab ? prev : tab));
+  }, [searchParams]);
+
+  const setActiveTab = useCallback((id: string) => {
+    setActiveTabState(id);
+    router.replace(id === "tasks" ? "/" : `/?tab=${id}`, { scroll: false });
+  }, [router]);
+
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isRightSidebarCollapsed, setIsRightSidebarCollapsed] = useState(false);
@@ -1521,21 +1548,23 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [tasks]);
 
-  // Switch to mind map tab when a dock task is dropped on the canvas
+  // Switch to mind map tab when a dock task is dropped on the canvas.
+  // The Mind Map tab id is "canvas" (see nav + render switch); "mind-map" is a
+  // task *status*, not a tab — navigating there landed on a blank screen.
   useEffect(() => {
     const handleDockTaskDropped = () => {
-      setActiveTab('mind-map');
+      setActiveTab('canvas');
     };
     window.addEventListener('canvas:addTaskNode', handleDockTaskDropped);
     return () => window.removeEventListener('canvas:addTaskNode', handleDockTaskDropped);
-  }, []);
+  }, [setActiveTab]);
 
   // Load Tasks
   useEffect(() => {
     const fetchTasks = async () => {
       setIsLoading(true);
       try {
-        const res = await fetch("/api/tasks");
+        const res = await apiFetch("/api/tasks");
         const json = await res.json();
         if (json.success) {
           setTasks(json.data);
@@ -1623,7 +1652,7 @@ export default function Dashboard() {
     setTasks([tempTask, ...tasks]);
 
     try {
-      const res = await fetch("/api/tasks", {
+      const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1665,7 +1694,7 @@ export default function Dashboard() {
     setIsBrainDumpOpen(false);
 
     try {
-      const res = await fetch("/api/tasks", {
+      const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1690,7 +1719,7 @@ export default function Dashboard() {
     const task = tasks.find(t => t._id === id);
     setTasks(tasks.map(t => t._id === id ? { ...t, status } : t));
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
@@ -1731,7 +1760,7 @@ export default function Dashboard() {
     const oldTasks = [...tasks];
     setTasks(tasks.map(t => t._id === id ? { ...t, priority } : t));
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ priority }),
@@ -1747,7 +1776,7 @@ export default function Dashboard() {
     setEditingTask(null);
 
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant, images }),
@@ -1762,7 +1791,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: true } : t));
 
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isArchived: true }),
@@ -1777,7 +1806,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === id ? { ...t, isArchived: false } : t));
 
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isArchived: false }),
@@ -1788,19 +1817,24 @@ export default function Dashboard() {
   };
 
   const bankTask = async (id: string) => {
-    await fetch(`/api/tasks/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isBanked: true, status: "pending" }),
-    });
+    const oldTasks = [...tasks];
     setTasks(tasks.map(t => t._id === id ? { ...t, isBanked: true } : t));
+    try {
+      await apiFetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isBanked: true, status: "pending" }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const updateTaskQuadrant = async (id: string, quadrant: "q1" | "q2" | "q3" | "q4" | null) => {
     const oldTasks = [...tasks];
     setTasks(tasks.map(t => t._id === id ? { ...t, quadrant } as Task : t));
     try {
-      await fetch(`/api/tasks/${id}`, {
+      await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ quadrant }),
@@ -1811,12 +1845,17 @@ export default function Dashboard() {
   };
 
   const unbankTask = async (id: string) => {
-    await fetch(`/api/tasks/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isBanked: false, status: "pending" }),
-    });
+    const oldTasks = [...tasks];
     setTasks(tasks.map(t => t._id === id ? { ...t, isBanked: false } : t));
+    try {
+      await apiFetch(`/api/tasks/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isBanked: false, status: "pending" }),
+      });
+    } catch {
+      setTasks(oldTasks);
+    }
   };
 
   const deleteTask = async (id: string) => {
@@ -1827,7 +1866,7 @@ export default function Dashboard() {
     setTasks(tasks.filter(t => t._id !== id));
 
     try {
-      await fetch(`/api/tasks/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/tasks/${id}`, { method: "DELETE" });
       // Success - task stays deleted
     } catch {
       // Rollback on error
@@ -1944,7 +1983,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === taskId ? { ...t, subtasks: newSubtasks } : t));
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: newSubtasks }),
@@ -1963,7 +2002,7 @@ export default function Dashboard() {
     ) || [];
 
     try {
-        const res = await fetch(`/api/tasks/${taskId}`, {
+        const res = await apiFetch(`/api/tasks/${taskId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ subtasks: updatedSubtasks }),
@@ -2012,7 +2051,7 @@ export default function Dashboard() {
 
     try {
       // 1. Create the new task
-      const res = await fetch("/api/tasks", {
+      const res = await apiFetch("/api/tasks", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2032,7 +2071,7 @@ export default function Dashboard() {
       const createdTask = json.data;
 
       // 2. Update the parent task to remove the subtask persistently
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ subtasks: newSubtasks }),
@@ -2055,7 +2094,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: newActiveTimer } : t));
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTimer: newActiveTimer }),
@@ -2102,7 +2141,7 @@ export default function Dashboard() {
     } : t));
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2136,7 +2175,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: updatedActiveTimer } : t));
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTimer: updatedActiveTimer }),
@@ -2163,7 +2202,7 @@ export default function Dashboard() {
     setTasks(tasks.map(t => t._id === taskId ? { ...t, activeTimer: updatedActiveTimer } : t));
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ activeTimer: updatedActiveTimer }),
@@ -2196,7 +2235,7 @@ export default function Dashboard() {
     }
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2243,7 +2282,7 @@ export default function Dashboard() {
     }
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -2262,24 +2301,10 @@ export default function Dashboard() {
     setTasks(updatedTasks);
 
     try {
-      await fetch(`/api/tasks/${taskId}`, {
+      await apiFetch(`/api/tasks/${taskId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isMIT }),
-      });
-    } catch {
-      setTasks(oldTasks);
-    }
-  };
-
-  const moveTaskToBoard = async (taskId: string, boardId: string | null) => {
-    const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === taskId ? { ...t, boardId: boardId || undefined } : t));
-    try {
-      await fetch(`/api/tasks/${taskId}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ boardId: boardId }),
       });
     } catch {
       setTasks(oldTasks);
@@ -2897,8 +2922,6 @@ export default function Dashboard() {
                   onPauseTimer={pauseTimer}
                   onResumeTimer={resumeTimer}
                   onFocus={setFocusedTask}
-                  onMoveToBoard={moveTaskToBoard}
-                  boards={[]}
                   isZenMode={isZenMode}
                   onBulkDelete={bulkDeleteTasks}
                   onBulkArchive={bulkArchiveTasks}
@@ -2927,6 +2950,7 @@ export default function Dashboard() {
             </motion.div>
           )}
           {activeTab === "weekly" && <WeeklyGoalsView />}
+          {activeTab === "weekly-review" && <WeeklyReviewView />}
           {activeTab === "eisenhower" && <EisenhowerMatrixView tasks={tasks} onTasksChange={(updated) => setTasks(tasks.map(t => t._id === updated._id ? updated : t))} onAddTask={() => setIsAddTaskModalOpen(true)} isAddTaskModalOpen={isAddTaskModalOpen} setIsAddTaskModalOpen={setIsAddTaskModalOpen} onDelete={deleteTask} onUpdateStatus={updateTaskStatus} onEdit={setEditingTask} onArchive={archiveTask} onToggleSubtask={toggleTaskSubtask} onUpdatePriority={updateTaskPriority} onStartTimer={startTimer} onStopTimer={stopTimer} onFocus={setEditingTask} onBank={bankTask} />}
           {activeTab === "vision" && <VisionBoardView />}
           {activeTab === "reality" && <RealityView />}
@@ -2946,7 +2970,9 @@ export default function Dashboard() {
           {activeTab === "projects" && <ProjectView />}
           {activeTab === "settings" && <SettingsView />}
 
+          {activeTab === "schedule" && <CalendarView />}
           {activeTab === "calendar" && <ContentCalendar />}
+          {activeTab === "socials" && <SocialHubView />}
           {activeTab === "gym" && <GymView />}
           {activeTab === "mealplan" && <MealPlanView />}
           {activeTab === "food" && <FoodTrackerView />}
@@ -2986,5 +3012,14 @@ export default function Dashboard() {
         </div>
       </div >
     </>
+  );
+}
+
+// useSearchParams() requires a Suspense boundary; wrap the client dashboard.
+export default function DashboardPage() {
+  return (
+    <Suspense fallback={null}>
+      <Dashboard />
+    </Suspense>
   );
 }
