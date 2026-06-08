@@ -22,6 +22,13 @@ const HOUR_LABELS = Array.from({ length: 24 }, (_, i) => {
   return `${h}:00 ${ampm}`;
 });
 
+// Stable testid label: "9am", "9pm", "10am" etc.
+const HOUR_TESTID = (hour: number) => {
+  const h = hour % 12 || 12;
+  const ampm = hour < 12 ? "am" : "pm";
+  return `${h}${ampm}`;
+};
+
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", {
     weekday: "long",
@@ -337,6 +344,7 @@ export function HourTrackerView() {
               return (
                 <div
                   key={hour}
+                  data-testid={`hour-row-${HOUR_TESTID(hour)}`}
                   className={cn(
                     "flex min-h-[52px] group",
                     isFuture && isToday && hourEntries.length === 0 && "opacity-60"
@@ -362,6 +370,7 @@ export function HourTrackerView() {
                       <div className="px-3 py-2 space-y-2">
                         <input
                           autoFocus
+                          data-testid="entry-text-input"
                           value={draftText}
                           onChange={(e) => setDraftText(e.target.value)}
                           onKeyDown={handleKeyDown}
@@ -389,12 +398,14 @@ export function HourTrackerView() {
                           <div className="flex-1" />
                           <div className="flex items-center gap-1">
                             <button
+                              data-testid="cancel-entry"
                               onClick={cancelEditing}
                               className="px-2 py-1 rounded text-xs text-[var(--color-text-muted)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] transition-all"
                             >
                               Cancel
                             </button>
                             <button
+                              data-testid="save-entry"
                               onClick={handleSave}
                               disabled={saveMutation.isPending}
                               className="px-3 py-1 rounded bg-[var(--color-primary)] text-[var(--color-text-inverse)] text-xs font-medium hover:brightness-110 transition-all disabled:opacity-50"
@@ -406,6 +417,7 @@ export function HourTrackerView() {
                       </div>
                     ) : (
                       <div
+                        data-testid={`add-entry-${HOUR_TESTID(hour)}`}
                         onClick={() => handleCellClick(hour)}
                         className={cn(
                           "w-full h-full px-3 py-2 cursor-pointer transition-all min-h-[44px]",
@@ -428,7 +440,7 @@ export function HourTrackerView() {
                             </span>
                           ) : (
                             hourEntries.map((e, idx) => (
-                              <div key={e._id} className="flex items-start justify-between gap-2 group/entry">
+                              <div key={e._id} data-testid={`entry-${e._id}`} className="flex items-start justify-between gap-2 group/entry">
                                 <div className="flex items-start gap-2 flex-1 min-w-0">
                                   <div className={cn("w-1.5 h-1.5 rounded-full mt-1.5 shrink-0", getEntryColor(e.type), e.isPlanned && "opacity-60")} />
                                   <span className={cn(
@@ -442,6 +454,7 @@ export function HourTrackerView() {
                                   </span>
                                 </div>
                                 <button
+                                  data-testid={`delete-entry-${e._id}`}
                                   onClick={(ev) => {
                                     ev.stopPropagation();
                                     if (e._id) handleDelete(e._id);
