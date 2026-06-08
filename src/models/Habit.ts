@@ -23,6 +23,10 @@ const HabitSchema = new mongoose.Schema({
     type: [Date], // Stores dates when the habit was completed (normalized to midnight)
     default: [],
   },
+  freezeDays: {
+    type: [Date],
+    default: [],
+  },
   createdAt: {
     type: Date,
     default: Date.now,
