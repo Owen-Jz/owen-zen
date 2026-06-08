@@ -5,6 +5,7 @@ import { Plus, Check, Flame, Trophy, Activity, Trash2, Calendar, TrendingUp, Zap
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
 import { HabitDetailModal } from "./habit/HabitDetailModal";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useSoundContext } from "@/components/SoundEffects";
 import { getCurrentWeekKey, toLocalString } from "@/lib/dateUtils";
 import { isPerfectDay, isPerfectWeek } from "@/lib/perfectDetection";
@@ -1192,6 +1193,20 @@ export const HabitView = () => {
                             );
                         })}
                     </AnimatePresence>
+
+                    {/* Empty state — show only when there are no habits at all */}
+                    {habits.length === 0 && (
+                        <EmptyState
+                            icon={Flame}
+                            title="No protocols yet"
+                            description="Build your streak one day at a time. Add your first non-negotiable and start tracking."
+                            actionLabel="Add First Protocol"
+                            onAction={() => {
+                                const input = document.querySelector('input[placeholder="Add a new non-negotiable..."]') as HTMLInputElement | null;
+                                if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                            }}
+                        />
+                    )}
 
                     {/* Add New Input Row */}
                     <form onSubmit={addHabit} className="group flex items-center gap-4 p-4 hover:bg-white/5 transition-all border-t border-white/5 bg-black/20">

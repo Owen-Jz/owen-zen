@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { CldUploadWidget } from 'next-cloudinary';
 import { clsx } from "clsx";
 import { Loading } from "@/components/Loading";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Post {
   _id: string;
@@ -379,9 +380,11 @@ export const SocialHubView = () => {
 
           <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
             {drafts.length === 0 ? (
-              <div className="h-40 flex flex-col items-center justify-center text-gray-500 border-2 border-dashed border-border rounded-xl">
-                <p className="text-sm">No active drafts.</p>
-              </div>
+              <EmptyState
+                icon={Send}
+                title="No active drafts"
+                description="Your published content lives here. Start drafting on the Post Bucket to see your work reflected here."
+              />
             ) : (
               drafts.map(post => (
                 <motion.div

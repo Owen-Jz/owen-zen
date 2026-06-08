@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Plus, Check, Flame, Trophy, Target, Trash2, Calendar, ChevronLeft, ChevronRight, Star } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Loading } from "@/components/Loading";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/utils";
 
 interface WeeklyGoal {
@@ -379,11 +380,16 @@ export const WeeklyGoalsView = () => {
             </div>
 
             {goals.length === 0 && (
-                <div className="text-center py-12">
-                    <Star className="w-12 h-12 text-gray-600 mx-auto mb-4" />
-                    <p className="text-gray-400">No weekly goals yet</p>
-                    <p className="text-gray-600 text-sm">Add your first weekly goal above</p>
-                </div>
+                <EmptyState
+                    icon={Trophy}
+                    title="No weekly goals yet"
+                    description="Set your weekly targets and build a streak of consistent wins. Add your first goal above."
+                    actionLabel="Add First Goal"
+                    onAction={() => {
+                        const input = document.querySelector('input[placeholder="Add a new weekly goal..."]') as HTMLInputElement;
+                        if (input) { input.focus(); input.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+                    }}
+                />
             )}
         </div>
     );
