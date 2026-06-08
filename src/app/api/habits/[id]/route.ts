@@ -55,9 +55,16 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
           // Streak is alive only if latest completion is today or yesterday
           if (uniqueDateStrs[0] === todayStr || uniqueDateStrs[0] === yesterdayStr) {
               streak = 1;
+              const frozenSet = new Set((habit.freezeDays || []).map((d: Date) => toDateString(new Date(d))));
               for (let i = 0; i < uniqueDateStrs.length - 1; i++) {
-                  const curr = new Date(uniqueDateStrs[i]);
-                  const prev = new Date(uniqueDateStrs[i + 1]);
+                  const currStr = uniqueDateStrs[i];
+                  const prevStr = uniqueDateStrs[i + 1];
+                  // Skip frozen days — they don't break the streak and don't increment count
+                  if (frozenSet.has(currStr)) {
+                      continue;
+                  }
+                  const curr = new Date(currStr);
+                  const prev = new Date(prevStr);
                   // Consecutive days differ by exactly 1 day when compared as date strings
                   const dayDiff = Math.round((curr.getTime() - prev.getTime()) / (1000 * 60 * 60 * 24));
                   if (dayDiff === 1) {
@@ -90,6 +97,27 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
         }
       }
 
+      return NextResponse.json({ success: true, data: updated });
+    }
+
+    // Freeze a specific day — it won't break the streak but also won't increment it
+    if (body.action === 'freeze') {
+      const habit = await Habit.findById(id);
+      if (!habit) return NextResponse.json({ success: false }, { status: 404 });
+
+      const freezeDate = body.freezeDate;
+      if (!freezeDate) return NextResponse.json({ success: false, error: 'freezeDate is required' }, { status: 400 });
+
+      const toDateString = (d: Date) => d.toISOString().split('T')[0];
+      const freezeDateStr = freezeDate; // Expecting YYYY-MM-DD
+
+      // Push to freezeDays if not already present (deduplicate by string comparison)
+      const existingFrozen = (habit.freezeDays || []).map((d: Date) => toDateString(new Date(d)));
+      if (!existingFrozen.includes(freezeDateStr)) {
+        habit.freezeDays.push(new Date(freezeDateStr));
+      }
+
+      const updated = await Habit.findByIdAndUpdate(id, { freezeDays: habit.freezeDays }, { new: true });
       return NextResponse.json({ success: true, data: updated });
     }
 
