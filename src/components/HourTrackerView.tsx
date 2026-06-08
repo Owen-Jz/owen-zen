@@ -7,6 +7,13 @@ import { ChevronLeft, ChevronRight, Copy, LayoutGrid, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { HourEntry } from "@/types";
 
+// Converts a 24-hour numeric hour to the test ID format used by the tests.
+// e.g. 14 -> "2pmpm", 9 -> "9am", 0 -> "12amam" (0 is treated as 12 AM per HOUR_LABELS).
+function hourToTestId(hour: number) {
+  const isPM = hour >= 12;
+  const h = hour % 12 || 12;
+  return `add-entry-${h}${isPM ? 'pm' : 'am'}${isPM ? 'pm' : 'am'}`;
+}
 const ENTRY_TYPES = [
   { key: "deep-work", label: "Deep Work", color: "bg-blue-500" },
   { key: "routine", label: "Routine", color: "bg-green-500" },
@@ -337,6 +344,7 @@ export function HourTrackerView() {
               return (
                 <div
                   key={hour}
+                  data-testid={hourToTestId(hour)}
                   className={cn(
                     "flex min-h-[52px] group",
                     isFuture && isToday && hourEntries.length === 0 && "opacity-60"
@@ -362,6 +370,7 @@ export function HourTrackerView() {
                       <div className="px-3 py-2 space-y-2">
                         <input
                           autoFocus
+                          data-testid="entry-text-input"
                           value={draftText}
                           onChange={(e) => setDraftText(e.target.value)}
                           onKeyDown={handleKeyDown}
@@ -390,12 +399,14 @@ export function HourTrackerView() {
                           <div className="flex items-center gap-1">
                             <button
                               onClick={cancelEditing}
+                              data-testid="cancel-entry"
                               className="px-2 py-1 rounded text-xs text-[var(--color-text-muted)] hover:text-[var(--color-foreground)] hover:bg-[var(--color-surface-hover)] transition-all"
                             >
                               Cancel
                             </button>
                             <button
                               onClick={handleSave}
+                              data-testid="save-entry"
                               disabled={saveMutation.isPending}
                               className="px-3 py-1 rounded bg-[var(--color-primary)] text-[var(--color-text-inverse)] text-xs font-medium hover:brightness-110 transition-all disabled:opacity-50"
                             >
@@ -446,6 +457,7 @@ export function HourTrackerView() {
                                     ev.stopPropagation();
                                     if (e._id) handleDelete(e._id);
                                   }}
+                                  data-testid={`delete-entry-${e._id}`}
                                   className="opacity-0 group-hover/entry:opacity-100 shrink-0 p-1 rounded text-[var(--color-text-muted)] hover:text-[var(--color-error)] transition-all"
                                 >
                                   <X size={12} />
