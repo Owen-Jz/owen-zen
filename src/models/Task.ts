@@ -94,6 +94,29 @@ const TaskSchema = new mongoose.Schema({
     enum: ['q1', 'q2', 'q3', 'q4', null],
     default: null,
   },
+  // Links surfaced on the task (Owen-added or written back by ZEAL).
+  links: {
+    type: [{
+      label: { type: String },
+      url: { type: String },
+      source: { type: String, enum: ['owen', 'zeal'] },
+    }],
+    default: [],
+  },
+  // ZEAL "Assign to ZEAL" bridge state. ZEAL writes these back onto the task,
+  // so every field below must live in the schema or Mongoose strict mode drops them.
+  zeal: {
+    status: { type: String, enum: ['queued', 'routing', 'working', 'done', 'failed'] },
+    route: { type: String },
+    reason: { type: String },
+    missionId: { type: String },
+    summary: { type: String },
+    error: { type: String },
+    assignedAt: { type: Date },
+    startedAt: { type: Date },
+    completedAt: { type: Date },
+    synced: { type: Boolean },
+  },
 });
 
 // Index for Task Bank queries

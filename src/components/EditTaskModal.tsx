@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMutation } from "@tanstack/react-query";
-import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown, Sparkles } from "lucide-react";
+import { X, Check, Plus, Trash2, Calendar, Clock, Activity, Layout, AlertCircle, Circle, ArrowRightCircle, CheckCircle2, Pin, AlignLeft, ArrowUpToLine, ArrowUp, ArrowDown, Sparkles, LinkIcon, Bot, ExternalLink } from "lucide-react";
 import { TimeTracker } from "./TimeTracker";
 import { TaskImageUploader } from "./TaskImageUploader";
-import { Task, TaskPriority, SubTask, TaskStatus } from "@/types";
+import { Task, TaskPriority, SubTask, TaskStatus, TaskLink } from "@/types";
 import { DatePicker } from "./DatePicker";
 import { useSoundContext } from "./SoundEffects";
 import { cn } from "@/lib/utils";
@@ -35,7 +35,7 @@ function AutoResizeTextarea({ value, onChange, className }: {
 interface EditTaskModalProps {
     task: Task | null;
     onClose: () => void;
-    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => void;
+    onSave: (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[], links?: TaskLink[]) => void;
     onStartTimer: (id: string, sessionTitle?: string) => void;
     onStopTimer: (id: string, note?: string) => void;
     onPauseTimer?: (id: string) => void;
@@ -73,6 +73,9 @@ export const EditTaskModal = ({
     const [category, setCategory] = useState(task?.category || "Other");
     const [quadrant, setQuadrant] = useState<"q1" | "q2" | "q3" | "q4" | null>(task?.quadrant ?? null);
     const [images, setImages] = useState<string[]>(task?.images || []);
+    const [links, setLinks] = useState<TaskLink[]>(task?.links || []);
+    const [newLinkLabel, setNewLinkLabel] = useState("");
+    const [newLinkUrl, setNewLinkUrl] = useState("");
     const [decomposingSubtasks, setDecomposingSubtasks] = useState<SubTask[] | null>(null);
 
     const decomposeMutation = useMutation({
@@ -151,8 +154,21 @@ export const EditTaskModal = ({
         setSubtasks(updated);
     };
 
+    const addLink = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!newLinkLabel.trim() || !newLinkUrl.trim()) return;
+        const url = newLinkUrl.startsWith("http") ? newLinkUrl : `https://${newLinkUrl}`;
+        setLinks([...links, { label: newLinkLabel.trim(), url, source: "owen" }]);
+        setNewLinkLabel("");
+        setNewLinkUrl("");
+    };
+
+    const removeLink = (index: number) => {
+        setLinks(links.filter((_, i) => i !== index));
+    };
+
     const handleSave = () => {
-        onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category, quadrant, images);
+        onSave(task._id, title, description, priority, subtasks, dueDate || undefined, category, quadrant, images, links);
         // Also save MIT status if changed
         if (isMIT !== task.isMIT) {
             onToggleMIT(task._id, isMIT);
@@ -230,6 +246,105 @@ export const EditTaskModal = ({
                                 placeholder="Add more details to this task..."
                                 className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 outline-none border-none p-0 focus:ring-0 min-h-[300px] resize-none leading-relaxed scrollbar-thin scrollbar-thumb-white/10"
                             />
+                        </div>
+
+                        {/* ZEAL Result Block (read-only) */}
+                        {task.zeal && (
+                            <div className="bg-cyan-500/5 rounded-xl p-4 border border-cyan-500/20">
+                                <div className="flex items-center gap-2 mb-3 text-sm font-bold text-cyan-400 uppercase tracking-wider">
+                                    <Bot size={14} /> ZEAL
+                                    <span className={cn(
+                                        "ml-1 px-2 py-0.5 rounded-full text-[10px] font-bold normal-case tracking-normal",
+                                        task.zeal.status === "done" ? "bg-emerald-500/20 text-emerald-400" :
+                                            task.zeal.status === "failed" ? "bg-amber-500/20 text-amber-400" :
+                                                "bg-cyan-500/20 text-cyan-300"
+                                    )}>
+                                        {task.zeal.status}
+                                    </span>
+                                </div>
+                                {task.zeal.reason && (
+                                    <p className="text-xs text-gray-400 mb-2">
+                                        <span className="font-bold text-gray-500">Reason: </span>{task.zeal.reason}
+                                    </p>
+                                )}
+                                {task.zeal.error && (
+                                    <p className="text-xs text-amber-400 mb-2 whitespace-pre-wrap break-words">{task.zeal.error}</p>
+                                )}
+                                {task.zeal.summary && (
+                                    <p className="text-sm text-gray-300 whitespace-pre-wrap break-words leading-relaxed">{task.zeal.summary}</p>
+                                )}
+                                {links.filter(l => l.source === "zeal").length > 0 && (
+                                    <div className="mt-3 space-y-1.5">
+                                        {links.filter(l => l.source === "zeal").map((l, i) => (
+                                            <a
+                                                key={i}
+                                                href={l.url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-xs text-cyan-400 hover:text-cyan-300 transition-colors"
+                                            >
+                                                <ExternalLink size={12} className="shrink-0" />
+                                                <span className="truncate">{l.label}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {/* Links Section */}
+                        <div className="bg-black/20 rounded-xl p-4 border border-white/5">
+                            <div className="flex items-center gap-2 mb-3 text-sm font-bold text-gray-400 uppercase tracking-wider">
+                                <LinkIcon size={14} /> Links
+                            </div>
+                            <div className="space-y-2 mb-3">
+                                {links.map((l, i) => (
+                                    <div key={i} className="flex items-center gap-2 group bg-surface hover:bg-surface-hover p-2.5 rounded-xl border border-border transition-all">
+                                        <a
+                                            href={l.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 text-sm text-gray-300 hover:text-primary transition-colors flex-1 min-w-0"
+                                        >
+                                            {l.source === "zeal" ? <Bot size={14} className="shrink-0 text-cyan-400" /> : <ExternalLink size={14} className="shrink-0" />}
+                                            <span className="truncate">{l.label}</span>
+                                        </a>
+                                        <button
+                                            onClick={() => removeLink(i)}
+                                            className="text-gray-500 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 shrink-0"
+                                            title="Remove link"
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+                                    </div>
+                                ))}
+                                {links.length === 0 && (
+                                    <p className="text-xs text-gray-600">No links yet.</p>
+                                )}
+                            </div>
+                            <form onSubmit={addLink} className="flex flex-col sm:flex-row gap-2">
+                                <input
+                                    type="text"
+                                    value={newLinkLabel}
+                                    onChange={(e) => setNewLinkLabel(e.target.value)}
+                                    placeholder="Label"
+                                    className="flex-1 bg-surface-hover/50 border border-transparent rounded-xl px-3 py-2.5 text-sm focus:border-primary/50 focus:bg-surface-hover outline-none transition-all placeholder:text-gray-600"
+                                />
+                                <input
+                                    type="text"
+                                    value={newLinkUrl}
+                                    onChange={(e) => setNewLinkUrl(e.target.value)}
+                                    placeholder="https://..."
+                                    className="flex-1 bg-surface-hover/50 border border-transparent rounded-xl px-3 py-2.5 text-sm focus:border-primary/50 focus:bg-surface-hover outline-none transition-all placeholder:text-gray-600"
+                                />
+                                <button
+                                    type="submit"
+                                    disabled={!newLinkLabel.trim() || !newLinkUrl.trim()}
+                                    className="px-4 bg-surface hover:bg-white/10 rounded-xl border border-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors font-medium text-sm"
+                                >
+                                    Add link
+                                </button>
+                            </form>
                         </div>
 
                         {/* Images Section */}

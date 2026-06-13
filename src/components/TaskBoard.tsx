@@ -54,7 +54,8 @@ export const TaskBoard = ({
   onBulkUpdatePriority,
   onBank,
   onUpdateQuadrant,
-  onUpdateSubtaskDescription
+  onUpdateSubtaskDescription,
+  onAssignToZeal
 }: {
   tasks: Task[],
   setTasks: React.Dispatch<React.SetStateAction<Task[]>>,
@@ -78,7 +79,8 @@ export const TaskBoard = ({
   onBulkUpdatePriority?: (ids: string[], priority: TaskPriority) => void | Promise<void>,
   onBank?: (id: string) => void,
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void,
-  onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void | Promise<void>
+  onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void | Promise<void>,
+  onAssignToZeal?: (id: string) => void | Promise<void>
 }) => {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -177,6 +179,8 @@ export const TaskBoard = ({
 
     if (!newStatus) return;
 
+    const previousStatus = activeTask.status;
+
     let newTasks = [...tasks];
 
     if (activeTask.status !== newStatus) {
@@ -215,6 +219,13 @@ export const TaskBoard = ({
         }))
       }),
     });
+
+    // Dragging a card into the "AI Agent" column hands the task to ZEAL.
+    // Guard against re-assigning a task ZEAL is already handling.
+    const alreadyWorking = ["queued", "routing", "working"].includes(activeTask.zeal?.status || "");
+    if (newStatus === "ai-agent" && previousStatus !== "ai-agent" && !alreadyWorking) {
+      onAssignToZeal?.(activeIdStr);
+    }
   };
 
   const columns: { id: TaskStatus | "ai-agent" | "mind-map"; title: string }[] = [
@@ -491,6 +502,7 @@ export const TaskBoard = ({
                   onBank={onBank}
                   onUpdateQuadrant={onUpdateQuadrant}
                   onUpdateSubtaskDescription={onUpdateSubtaskDescription}
+                  onAssignToZeal={onAssignToZeal}
                   onArchiveAll={col.id === "completed" ? handleArchiveAllCompleted : undefined}
                   activeId={activeId}
                 />

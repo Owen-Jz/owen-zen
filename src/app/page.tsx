@@ -29,7 +29,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { TaskColumn, SortableTaskItem, TaskCard } from "@/components/TaskColumn";
 import { EditTaskModal } from "@/components/EditTaskModal";
 import { AddTaskModal } from "@/components/AddTaskModal";
-import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, ProjectLink } from "@/types";
+import { Task, TaskStatus, TaskPriority, SubTask, TimeLog, ActiveTimer, ProjectLink, TaskLink } from "@/types";
 import { apiFetch } from "@/lib/apiFetch";
 import { MITList } from "@/components/MITList";
 import { TaskBoard } from "@/components/TaskBoard";
@@ -1770,17 +1770,38 @@ function Dashboard() {
     }
   };
 
-  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[]) => {
+  const saveEditTask = async (id: string, title: string, description: string, priority: TaskPriority, subtasks: SubTask[], dueDate?: string, category?: string, quadrant?: "q1" | "q2" | "q3" | "q4" | null, images?: string[], links?: TaskLink[]) => {
     const oldTasks = [...tasks];
-    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category, quadrant, images } : t));
+    setTasks(tasks.map(t => t._id === id ? { ...t, title, description, priority, subtasks, dueDate, category, quadrant, images, links } : t));
     setEditingTask(null);
 
     try {
       await apiFetch(`/api/tasks/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant, images }),
+        body: JSON.stringify({ title, description, priority, subtasks, dueDate, category, quadrant, images, links }),
       });
+    } catch {
+      setTasks(oldTasks);
+    }
+  };
+
+  const assignToZeal = async (taskId: string) => {
+    const oldTasks = [...tasks];
+    // Optimistic: move to AI Agent column + show queued badge.
+    setTasks(tasks.map(t => t._id === taskId ? { ...t, status: "ai-agent" as TaskStatus, zeal: { status: "queued" as const } } : t));
+    try {
+      const res = await fetch("/api/zeal/assign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskId }),
+      });
+      const json = await res.json();
+      if (json.success && json.data) {
+        setTasks(prev => prev.map(t => t._id === taskId ? json.data : t));
+      } else if (!json.success) {
+        setTasks(oldTasks);
+      }
     } catch {
       setTasks(oldTasks);
     }
@@ -2928,6 +2949,7 @@ function Dashboard() {
                   onBulkRestore={bulkRestoreTasks}
                   onBulkUpdateStatus={bulkUpdateTaskStatus}
                   onBulkUpdatePriority={bulkUpdateTaskPriority}
+                  onAssignToZeal={assignToZeal}
                 />
               )}
             </motion.div>

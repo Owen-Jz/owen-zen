@@ -26,6 +26,27 @@ export interface Board {
     title: string;
 }
 
+export interface TaskLink {
+    label: string;
+    url: string;
+    source?: "owen" | "zeal";
+}
+
+export type ZealStatus = "queued" | "routing" | "working" | "done" | "failed";
+
+export interface TaskZeal {
+    status: ZealStatus;
+    route?: "answer" | "develop" | null;
+    reason?: string;
+    missionId?: string | null;
+    summary?: string;
+    error?: string | null;
+    assignedAt?: string;
+    startedAt?: string;
+    completedAt?: string;
+    synced?: boolean;
+}
+
 export interface Task {
     _id: string;
     title: string;
@@ -52,6 +73,8 @@ export interface Task {
     completedAt?: string;
     isBanked?: boolean;
     quadrant?: 'q1' | 'q2' | 'q3' | 'q4' | null;
+    links?: TaskLink[];
+    zeal?: TaskZeal;
 }
 
 export interface ProjectDeliverable {

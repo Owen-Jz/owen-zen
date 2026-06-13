@@ -2,7 +2,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { useSortable } from "@dnd-kit/sortable";
-import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Landmark, Copy, Flame, Grid3x3 } from "lucide-react";
+import { GripVertical, MoreVertical, Edit2, Circle, Clock, Check, Archive, Trash2, Pin, Play, Pause, Timer, Maximize2, CalendarDays, ArrowUpToLine, Sparkles, Plus, Landmark, Copy, Flame, Grid3x3, Bot, LinkIcon } from "lucide-react";
 import { useState, useRef, useEffect, forwardRef, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Task, TaskStatus, TaskPriority } from "@/types";
@@ -38,6 +38,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onBank?: (id: string) => void;
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
   onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void;
+  onAssignToZeal?: (id: string) => void;
   style?: React.CSSProperties;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   attributes?: any;
@@ -66,6 +67,7 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
   onBank,
   onUpdateQuadrant,
   onUpdateSubtaskDescription,
+  onAssignToZeal,
   style,
   attributes,
   listeners,
@@ -305,6 +307,18 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                   <DropdownMenuItem onClick={() => onBank?.(task._id)} className="cursor-pointer">
                     <Landmark size={14} className="mr-2" /> Move to Bank
                   </DropdownMenuItem>
+                  {onAssignToZeal && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem
+                        onClick={() => onAssignToZeal(task._id)}
+                        disabled={["queued", "routing", "working"].includes(task.zeal?.status || "")}
+                        className="cursor-pointer text-cyan-400"
+                      >
+                        <Bot size={14} className="mr-2" /> Assign to ZEAL
+                      </DropdownMenuItem>
+                    </>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={() => onUpdateQuadrant?.(task._id, "q1")}
@@ -515,6 +529,30 @@ export const TaskCard = memo(forwardRef<HTMLDivElement, {
                 <span>{formatTime(totalTime)}</span>
               </div>
             )}
+            {/* ZEAL Status Badge */}
+            {task.zeal?.status && (
+              <div className={cn(
+                "flex items-center gap-1.5 text-[10px] font-bold border px-2 py-1 rounded-md",
+                task.zeal.status === "queued" && "text-cyan-400 border-cyan-500/30 bg-cyan-500/10",
+                (task.zeal.status === "routing" || task.zeal.status === "working") && "text-cyan-300 border-cyan-500/40 bg-cyan-500/15 animate-pulse",
+                task.zeal.status === "done" && "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+                task.zeal.status === "failed" && "text-amber-400 border-amber-500/30 bg-amber-500/10"
+              )}>
+                <span>
+                  {task.zeal.status === "queued" && "🤖 ZEAL queued"}
+                  {(task.zeal.status === "routing" || task.zeal.status === "working") && "🤖 ZEAL working…"}
+                  {task.zeal.status === "done" && "✓ ZEAL done"}
+                  {task.zeal.status === "failed" && "⚠ ZEAL failed"}
+                </span>
+              </div>
+            )}
+            {/* Links Indicator */}
+            {task.links && task.links.length > 0 && (
+              <div className="flex items-center gap-1 text-[10px] font-bold text-gray-400 border border-white/10 bg-black/20 px-2 py-1 rounded-md">
+                <LinkIcon size={11} className="opacity-70" />
+                <span>{task.links.length}</span>
+              </div>
+            )}
           </div>
 
           {/* Timer Controls - Hide in Overlay if needed, or keep static */}
@@ -567,6 +605,7 @@ export const SortableTaskItem = ({
   onBank,
   onUpdateQuadrant,
   onUpdateSubtaskDescription,
+  onAssignToZeal,
   activeId,
   isMultiSelectMode,
   selectedTasks,
@@ -586,6 +625,7 @@ export const SortableTaskItem = ({
   onBank?: (id: string) => void;
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void;
   onUpdateSubtaskDescription?: (taskId: string, subtaskIndex: number, description: string) => void;
+  onAssignToZeal?: (id: string) => void;
   activeId?: string | null;
   isMultiSelectMode?: boolean;
   selectedTasks?: Set<string>;
@@ -627,6 +667,7 @@ export const SortableTaskItem = ({
       onBank={onBank}
       onUpdateQuadrant={onUpdateQuadrant}
       onUpdateSubtaskDescription={onUpdateSubtaskDescription}
+      onAssignToZeal={onAssignToZeal}
       attributes={attributes}
       listeners={listeners}
       isDragging={isDragging}
@@ -641,7 +682,7 @@ export const SortableTaskItem = ({
 };
 
 // --- Task Column ---
-export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, onUpdateQuadrant, onUpdateSubtaskDescription, activeId, isMultiSelectMode, selectedTasks, onToggleSelect }: {
+export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit, onArchive, onToggleSubtask, onPromoteSubtask, onUpdatePriority, onStartTimer, onStopTimer, onFocus, onArchiveAll, onBank, onUpdateQuadrant, onUpdateSubtaskDescription, onAssignToZeal, activeId, isMultiSelectMode, selectedTasks, onToggleSelect }: {
   id: string,
   title: string,
   tasks: Task[],
@@ -659,6 +700,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
   onBank?: (id: string) => void,
   onUpdateQuadrant?: (id: string, quadrant: "q1" | "q2" | "q3" | "q4") => void,
   onUpdateSubtaskDescription?: (id: string, subtaskIndex: number, description: string) => void,
+  onAssignToZeal?: (id: string) => void,
   activeId?: string | null,
   isMultiSelectMode?: boolean,
   selectedTasks?: Set<string>,
@@ -741,6 +783,7 @@ export const TaskColumn = ({ id, title, tasks, onDelete, onUpdateStatus, onEdit,
                 onBank={onBank}
                 onUpdateQuadrant={onUpdateQuadrant}
                 onUpdateSubtaskDescription={onUpdateSubtaskDescription}
+                onAssignToZeal={onAssignToZeal}
                 activeId={activeId}
                 isMultiSelectMode={isMultiSelectMode}
                 selectedTasks={selectedTasks}
