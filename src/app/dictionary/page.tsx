@@ -72,7 +72,6 @@ export default function DictionaryPage() {
           <div className="flex gap-2 mt-4 flex-wrap">
             <button
               onClick={() => setActiveCategory("All")}
-```javascript
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all border ${
                 activeCategory === "All"
                   ? "bg-white/15 text-white border-white/20"
